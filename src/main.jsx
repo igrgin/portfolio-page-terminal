@@ -211,9 +211,6 @@ function usePrototypeState() {
     window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark",
   );
   const [fontPair, setFontPair] = useState("plex");
-  const [menuOpen, setMenuOpen] = useState(
-    () => !window.matchMedia("(max-width: 760px)").matches,
-  );
 
   useEffect(() => {
     const onPopState = () => updateWithTransition(() => setLocation(parseLocation()));
@@ -227,13 +224,6 @@ function usePrototypeState() {
     document.documentElement.lang = language;
   }, [theme, fontPair, language]);
 
-  useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 760px)");
-    const handleViewportChange = (event) => setMenuOpen(!event.matches);
-    mobileQuery.addEventListener("change", handleViewportChange);
-    return () => mobileQuery.removeEventListener("change", handleViewportChange);
-  }, []);
-
   const navigate = (view, variant = location.variant) => {
     const paths = {
       about: "/about",
@@ -244,9 +234,6 @@ function usePrototypeState() {
     updateWithTransition(() => {
       window.history.pushState({}, "", `${path}?variant=${variant}`);
       setLocation({ view, variant });
-      if (window.matchMedia("(max-width: 760px)").matches) {
-        setMenuOpen(false);
-      }
       window.scrollTo({ top: 0, behavior: "instant" });
     });
   };
@@ -268,8 +255,6 @@ function usePrototypeState() {
     setTheme,
     fontPair,
     setFontPair,
-    menuOpen,
-    setMenuOpen,
     navigate,
     setVariant,
   };
@@ -329,6 +314,62 @@ function RouteLink({ state, view, children, className = "" }) {
     >
       {children}
     </a>
+  );
+}
+
+function NavIcon({ name }) {
+  const common = {
+    fill: "none",
+    stroke: "currentColor",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    strokeWidth: 1.7,
+  };
+
+  return (
+    <svg
+      className="nav-icon"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
+      {...common}
+    >
+      {name === "about" && (
+        <>
+          <circle cx="12" cy="8" r="3.25" />
+          <path d="M5.5 19c.8-3.55 3-5.35 6.5-5.35s5.7 1.8 6.5 5.35" />
+        </>
+      )}
+      {name === "experience" && (
+        <>
+          <rect x="3.5" y="7" width="17" height="12" rx="1.5" />
+          <path d="M8.5 7V5.5h7V7M3.5 12.25c5.2 2.2 11.8 2.2 17 0M12 12.5v2" />
+        </>
+      )}
+      {name === "education" && (
+        <>
+          <path d="m3 9 9-4 9 4-9 4-9-4Z" />
+          <path d="M6.5 11v4.5c2.8 2.25 8.2 2.25 11 0V11M21 9v5" />
+        </>
+      )}
+      {name === "skills" && (
+        <>
+          <path d="m8.5 6-5 6 5 6M15.5 6l5 6-5 6M13.5 4l-3 16" />
+        </>
+      )}
+      {name === "projects" && (
+        <>
+          <path d="M3.5 6.5h6l1.75 2H20.5v9.5H3.5z" />
+          <path d="M3.5 9h17" />
+        </>
+      )}
+      {name === "contact" && (
+        <>
+          <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
+          <path d="m4.5 7 7.5 6 7.5-6" />
+        </>
+      )}
+    </svg>
   );
 }
 
@@ -517,17 +558,6 @@ function VariantA({ state, labels }) {
           <RouteLink state={state} view="about" className="wordmark">
             <span aria-hidden="true">[</span> IVO GRGIN <span aria-hidden="true">]</span>
           </RouteLink>
-          <button
-            type="button"
-            className={`a-nav-toggle ${state.menuOpen ? "is-open" : ""}`}
-            aria-controls="a-page-index"
-            aria-expanded={state.menuOpen}
-            aria-label={state.menuOpen ? labels.hideNavigation : labels.showNavigation}
-            title={state.menuOpen ? labels.hideNavigation : labels.showNavigation}
-            onClick={() => state.setMenuOpen(!state.menuOpen)}
-          >
-            <span className="nav-toggle-icon" aria-hidden="true" />
-          </button>
         </div>
         <div className="a-location">
           <span>{labels.page}</span>
@@ -536,16 +566,11 @@ function VariantA({ state, labels }) {
         <ControlGroup state={state} labels={labels} compact />
       </header>
 
-      <div className={`a-workspace ${state.menuOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
-        <aside
-          className="a-sidebar"
-          id="a-page-index"
-          aria-hidden={!state.menuOpen}
-          inert={!state.menuOpen}
-        >
+      <div className="a-workspace">
+        <aside className="a-sidebar" id="a-page-index">
           <div className="a-sidebar__label">portfolio://</div>
           <nav aria-label={labels.navLabel}>
-            {navItems.map((item, index) => {
+            {navItems.map((item) => {
               const isRoute = item === "about" || item === "projects";
               const active =
                 (item === "about" && state.view === "about") ||
@@ -553,8 +578,8 @@ function VariantA({ state, labels }) {
                   (state.view === "projects" || state.view === "project"));
               const content = (
                 <>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  {labels[item]}
+                  <NavIcon name={item} />
+                  <span>{labels[item]}</span>
                 </>
               );
               return isRoute ? (
