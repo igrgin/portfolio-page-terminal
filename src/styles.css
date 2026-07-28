@@ -87,6 +87,16 @@ summary {
   -webkit-tap-highlight-color: transparent;
 }
 
+button,
+a,
+summary {
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    opacity 180ms ease;
+}
+
 :focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
@@ -961,6 +971,85 @@ p {
   font-size: 0.75rem;
 }
 
+.nav-toggle-icon,
+.nav-toggle-icon::before,
+.nav-toggle-icon::after {
+  display: block;
+  width: 16px;
+  height: 1px;
+  background: currentcolor;
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.nav-toggle-icon {
+  position: relative;
+}
+
+.nav-toggle-icon::before,
+.nav-toggle-icon::after {
+  position: absolute;
+  left: 0;
+  content: "";
+}
+
+.nav-toggle-icon::before {
+  transform: translateY(-5px);
+}
+
+.nav-toggle-icon::after {
+  transform: translateY(5px);
+}
+
+.is-open > .nav-toggle-icon {
+  background: transparent;
+}
+
+.is-open > .nav-toggle-icon::before {
+  transform: rotate(45deg);
+}
+
+.is-open > .nav-toggle-icon::after {
+  transform: rotate(-45deg);
+}
+
+.route-view {
+  view-transition-name: portfolio-page;
+  animation: route-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.has-active-view-transition .route-view {
+  animation: none;
+}
+
+::view-transition-group(portfolio-page) {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(portfolio-page) {
+  animation: route-leave 180ms ease both;
+}
+
+::view-transition-new(portfolio-page) {
+  animation: route-enter 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes route-leave {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes route-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
 /* Variant A — persistent operational shell */
 .variant-a {
   min-height: 100vh;
@@ -1053,20 +1142,42 @@ p {
   display: grid;
   min-height: calc(100vh - 64px);
   grid-template-columns: 260px minmax(0, 1fr);
+  transition: grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .a-workspace.is-nav-collapsed {
-  grid-template-columns: 1fr;
+  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .a-sidebar {
   position: sticky;
   top: 64px;
   display: flex;
+  overflow: hidden;
+  width: 260px;
+  min-width: 0;
   height: calc(100vh - 64px);
   flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--surface);
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 220ms ease,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear;
+}
+
+.a-workspace.is-nav-collapsed .a-sidebar {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
+  visibility: hidden;
+  transition:
+    opacity 180ms ease,
+    transform 260ms ease,
+    visibility 0s linear 320ms;
 }
 
 .a-sidebar__label {
@@ -1489,24 +1600,47 @@ p {
 }
 
 .c-layout {
+  --c-index-width: clamp(250px, 24vw, 360px);
   display: grid;
   min-height: calc(100vh - 72px);
-  grid-template-columns: minmax(250px, 24vw) 1fr;
+  grid-template-columns: var(--c-index-width) minmax(0, 1fr);
+  transition: grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .c-layout.is-nav-collapsed {
-  grid-template-columns: 1fr;
+  grid-template-columns: 0 minmax(0, 1fr);
 }
 
 .c-index {
   position: sticky;
   top: 72px;
   display: flex;
+  overflow: hidden;
+  width: var(--c-index-width);
+  min-width: 0;
   height: calc(100vh - 72px);
   flex-direction: column;
   padding: 28px 18px;
   border-right: 1px solid var(--border);
   background: var(--canvas);
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition:
+    opacity 220ms ease,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    visibility 0s linear;
+}
+
+.c-layout.is-nav-collapsed .c-index {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-20px);
+  visibility: hidden;
+  transition:
+    opacity 180ms ease,
+    transform 260ms ease,
+    visibility 0s linear 320ms;
 }
 
 .c-index > .mini-label {
@@ -1731,6 +1865,14 @@ p {
     grid-template-columns: 210px minmax(0, 1fr);
   }
 
+  .a-workspace.is-nav-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .a-sidebar {
+    width: 210px;
+  }
+
   .a-hero,
   .a-content-grid {
     grid-template-columns: 1fr;
@@ -1778,7 +1920,12 @@ p {
   }
 
   .c-layout {
-    grid-template-columns: 190px 1fr;
+    --c-index-width: 190px;
+    grid-template-columns: var(--c-index-width) minmax(0, 1fr);
+  }
+
+  .c-layout.is-nav-collapsed {
+    grid-template-columns: 0 minmax(0, 1fr);
   }
 
   .c-hero {
@@ -1850,13 +1997,23 @@ p {
     top: 60px;
     right: 0;
     left: 0;
-    display: none;
+    width: auto;
     height: calc(100vh - 60px);
     border-right: 0;
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
   }
 
-  .a-sidebar.is-open {
-    display: flex;
+  .a-workspace.is-nav-open .a-sidebar {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+    transition:
+      opacity 220ms ease,
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear;
   }
 
   .a-main {
@@ -2037,10 +2194,37 @@ p {
 
   .c-index {
     position: static;
+    width: auto;
+    max-height: 460px;
     height: auto;
     padding: 12px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    transition:
+      max-height 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      padding 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 220ms ease,
+      transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      visibility 0s linear;
+  }
+
+  .c-layout.is-nav-collapsed .c-index {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom-color: transparent;
+    opacity: 0;
+    transform: translateY(-10px);
+    visibility: hidden;
+    transition:
+      max-height 300ms ease,
+      padding 300ms ease,
+      opacity 180ms ease,
+      transform 260ms ease,
+      visibility 0s linear 320ms;
   }
 
   .c-index > .mini-label,
@@ -2176,5 +2360,9 @@ p {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+
+  .route-view {
+    view-transition-name: none;
   }
 }

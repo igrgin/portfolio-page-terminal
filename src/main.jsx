@@ -4,6 +4,7 @@
  * exercised on /about and /projects/distributed-event-platform.
  */
 import React, { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import "@fontsource/ibm-plex-sans/400.css";
@@ -173,6 +174,22 @@ const copy = {
 const navItems = ["about", "experience", "education", "skills", "projects", "contact"];
 const technologies = ["TypeScript", "Go", "Kafka", "PostgreSQL", "OpenTelemetry", "Kubernetes"];
 
+function updateWithTransition(update) {
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!document.startViewTransition || prefersReducedMotion) {
+    update();
+    return;
+  }
+
+  document.documentElement.classList.add("has-active-view-transition");
+  const transition = document.startViewTransition(() => {
+    flushSync(update);
+  });
+  transition.finished.finally(() => {
+    document.documentElement.classList.remove("has-active-view-transition");
+  });
+}
+
 function usePrototypeState() {
   const parseLocation = () => {
     const params = new URLSearchParams(window.location.search);
@@ -199,7 +216,7 @@ function usePrototypeState() {
   );
 
   useEffect(() => {
-    const onPopState = () => setLocation(parseLocation());
+    const onPopState = () => updateWithTransition(() => setLocation(parseLocation()));
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -224,19 +241,23 @@ function usePrototypeState() {
       project: "/projects/distributed-event-platform",
     };
     const path = paths[view] ?? "/about";
-    window.history.pushState({}, "", `${path}?variant=${variant}`);
-    setLocation({ view, variant });
-    if (window.matchMedia("(max-width: 760px)").matches) {
-      setMenuOpen(false);
-    }
-    window.scrollTo({ top: 0, behavior: "instant" });
+    updateWithTransition(() => {
+      window.history.pushState({}, "", `${path}?variant=${variant}`);
+      setLocation({ view, variant });
+      if (window.matchMedia("(max-width: 760px)").matches) {
+        setMenuOpen(false);
+      }
+      window.scrollTo({ top: 0, behavior: "instant" });
+    });
   };
 
   const setVariant = (variant) => {
     const params = new URLSearchParams(window.location.search);
     params.set("variant", variant);
-    window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
-    setLocation((current) => ({ ...current, variant }));
+    updateWithTransition(() => {
+      window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+      setLocation((current) => ({ ...current, variant }));
+    });
   };
 
   return {
@@ -505,7 +526,7 @@ function VariantA({ state, labels }) {
             title={state.menuOpen ? labels.hideNavigation : labels.showNavigation}
             onClick={() => state.setMenuOpen(!state.menuOpen)}
           >
-            <span aria-hidden="true">{state.menuOpen ? "×" : "☰"}</span>
+            <span className="nav-toggle-icon" aria-hidden="true" />
           </button>
         </div>
         <div className="a-location">
@@ -516,7 +537,12 @@ function VariantA({ state, labels }) {
       </header>
 
       <div className={`a-workspace ${state.menuOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
-        {state.menuOpen && <aside className="a-sidebar is-open" id="a-page-index">
+        <aside
+          className="a-sidebar"
+          id="a-page-index"
+          aria-hidden={!state.menuOpen}
+          inert={!state.menuOpen}
+        >
           <div className="a-sidebar__label">portfolio://</div>
           <nav aria-label={labels.navLabel}>
             {navItems.map((item, index) => {
@@ -551,16 +577,18 @@ function VariantA({ state, labels }) {
             <span className="status-dot" />
             <span>{labels.available}</span>
           </div>
-        </aside>}
+        </aside>
 
         <main id="main-content" className="a-main">
-          {state.view === "about" ? (
-            <AAbout state={state} labels={labels} />
-          ) : state.view === "projects" ? (
-            <AProjects state={state} labels={labels} />
-          ) : (
-            <AProject state={state} labels={labels} />
-          )}
+          <div className="route-view" key={`a-${state.view}`}>
+            {state.view === "about" ? (
+              <AAbout state={state} labels={labels} />
+            ) : state.view === "projects" ? (
+              <AProjects state={state} labels={labels} />
+            ) : (
+              <AProject state={state} labels={labels} />
+            )}
+          </div>
         </main>
       </div>
     </div>
@@ -685,13 +713,15 @@ function VariantB({ state, labels }) {
       </header>
 
       <main id="main-content" className="b-main">
-        {state.view === "about" ? (
-          <BAbout state={state} labels={labels} />
-        ) : state.view === "projects" ? (
-          <BProjects state={state} labels={labels} />
-        ) : (
-          <BProject labels={labels} />
-        )}
+        <div className="route-view" key={`b-${state.view}`}>
+          {state.view === "about" ? (
+            <BAbout state={state} labels={labels} />
+          ) : state.view === "projects" ? (
+            <BProjects state={state} labels={labels} />
+          ) : (
+            <BProject labels={labels} />
+          )}
+        </div>
       </main>
 
       <footer className="b-footer">
@@ -838,7 +868,7 @@ function VariantC({ state, labels }) {
           title={navigationOpen ? labels.hideNavigation : labels.showNavigation}
           onClick={() => setNavigationOpen((current) => !current)}
         >
-          <span aria-hidden="true">{navigationOpen ? "×" : "☰"}</span>
+          <span className="nav-toggle-icon" aria-hidden="true" />
         </button>
         <div className="c-current">
           <span>{currentMode}</span>
@@ -847,7 +877,12 @@ function VariantC({ state, labels }) {
         <ControlGroup state={state} labels={labels} compact />
       </header>
       <div className={`c-layout ${navigationOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
-        {navigationOpen && <aside className="c-index" id="c-page-index">
+        <aside
+          className="c-index"
+          id="c-page-index"
+          aria-hidden={!navigationOpen}
+          inert={!navigationOpen}
+        >
           <span className="mini-label">INDEX</span>
           <nav aria-label={labels.navLabel}>
             {navItems.map((item, index) =>
@@ -872,21 +907,23 @@ function VariantC({ state, labels }) {
             <span className="status-dot" />
             {labels.available}
           </div>
-        </aside>}
+        </aside>
         <main id="main-content" className="c-main">
-          {state.view === "about" ? (
-            <CAbout
-              state={state}
-              labels={labels}
-              evidence={evidence}
-              selectedEvidence={selectedEvidence}
-              setSelectedEvidence={setSelectedEvidence}
-            />
-          ) : state.view === "projects" ? (
-            <CProjects state={state} labels={labels} />
-          ) : (
-            <CProject labels={labels} />
-          )}
+          <div className="route-view" key={`c-${state.view}`}>
+            {state.view === "about" ? (
+              <CAbout
+                state={state}
+                labels={labels}
+                evidence={evidence}
+                selectedEvidence={selectedEvidence}
+                setSelectedEvidence={setSelectedEvidence}
+              />
+            ) : state.view === "projects" ? (
+              <CProjects state={state} labels={labels} />
+            ) : (
+              <CProject labels={labels} />
+            )}
+          </div>
         </main>
       </div>
     </div>
