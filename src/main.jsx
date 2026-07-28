@@ -92,6 +92,8 @@ const copy = {
     portrait: "Ivo Grgin",
     menu: "Menu",
     close: "Close",
+    showNavigation: "Show navigation",
+    hideNavigation: "Hide navigation",
   },
   hr: {
     language: "HR",
@@ -163,6 +165,8 @@ const copy = {
     portrait: "Ivo Grgin",
     menu: "Izbornik",
     close: "Zatvori",
+    showNavigation: "Prikaži navigaciju",
+    hideNavigation: "Sakrij navigaciju",
   },
 };
 
@@ -772,6 +776,9 @@ function BProject({ labels }) {
 
 function VariantC({ state, labels }) {
   const [selectedEvidence, setSelectedEvidence] = useState(0);
+  const [navigationOpen, setNavigationOpen] = useState(
+    () => !window.matchMedia("(max-width: 760px)").matches,
+  );
   const evidence = [
     [labels.evidence1, labels.evidence1Text, "SYSTEMS"],
     [labels.evidence2, labels.evidence2Text, "DATA"],
@@ -785,6 +792,20 @@ function VariantC({ state, labels }) {
       : state.view === "projects"
         ? labels.projects
         : labels.projectTitle;
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 760px)");
+    const handleViewportChange = (event) => setNavigationOpen(!event.matches);
+    mobileQuery.addEventListener("change", handleViewportChange);
+    return () => mobileQuery.removeEventListener("change", handleViewportChange);
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setNavigationOpen(false);
+    }
+  }, [state.view]);
+
   return (
     <div className="variant-c">
       <header className="c-header">
@@ -792,14 +813,25 @@ function VariantC({ state, labels }) {
           <span aria-hidden="true">I/G</span>
           <span className="sr-only">Ivo Grgin</span>
         </RouteLink>
+        <button
+          type="button"
+          className={`c-nav-toggle ${navigationOpen ? "is-open" : ""}`}
+          aria-controls="c-page-index"
+          aria-expanded={navigationOpen}
+          aria-label={navigationOpen ? labels.hideNavigation : labels.showNavigation}
+          title={navigationOpen ? labels.hideNavigation : labels.showNavigation}
+          onClick={() => setNavigationOpen((current) => !current)}
+        >
+          <span aria-hidden="true">{navigationOpen ? "×" : "☰"}</span>
+        </button>
         <div className="c-current">
           <span>{currentMode}</span>
           <strong>{currentLabel}</strong>
         </div>
         <ControlGroup state={state} labels={labels} compact />
       </header>
-      <div className="c-layout">
-        <aside className="c-index">
+      <div className={`c-layout ${navigationOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
+        {navigationOpen && <aside className="c-index" id="c-page-index">
           <span className="mini-label">INDEX</span>
           <nav aria-label={labels.navLabel}>
             {navItems.map((item, index) =>
@@ -824,7 +856,7 @@ function VariantC({ state, labels }) {
             <span className="status-dot" />
             {labels.available}
           </div>
-        </aside>
+        </aside>}
         <main id="main-content" className="c-main">
           {state.view === "about" ? (
             <CAbout

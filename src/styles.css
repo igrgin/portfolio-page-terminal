@@ -1397,7 +1397,7 @@ p {
   top: 0;
   display: grid;
   min-height: 72px;
-  grid-template-columns: 88px 1fr auto;
+  grid-template-columns: 88px 48px 1fr auto;
   align-items: center;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface), transparent 4%);
@@ -1413,6 +1413,27 @@ p {
   font-family: var(--font-mono);
   font-weight: 500;
   text-decoration: none;
+}
+
+.c-nav-toggle {
+  display: grid;
+  width: 48px;
+  height: 72px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.c-nav-toggle:hover,
+.c-nav-toggle.is-open {
+  background: var(--accent-subtle);
+  color: var(--accent);
 }
 
 .c-current {
@@ -1444,6 +1465,10 @@ p {
   display: grid;
   min-height: calc(100vh - 72px);
   grid-template-columns: minmax(250px, 24vw) 1fr;
+}
+
+.c-layout.is-nav-collapsed {
+  grid-template-columns: 1fr;
 }
 
 .c-index {
@@ -1969,10 +1994,14 @@ p {
   }
 
   .c-header {
-    grid-template-columns: 64px 1fr;
+    grid-template-columns: 64px 48px 1fr;
   }
 
   .c-logo {
+    height: 64px;
+  }
+
+  .c-nav-toggle {
     height: 64px;
   }
 
@@ -1990,7 +2019,7 @@ p {
   .c-index {
     position: static;
     height: auto;
-    padding: 0;
+    padding: 12px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
   }
@@ -2001,17 +2030,17 @@ p {
   }
 
   .c-index nav {
-    display: flex;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .c-index nav a {
-    min-width: 148px;
+    min-width: 0;
     min-height: 52px;
     grid-template-columns: 30px 1fr;
     border-top: 0;
     border-right: 1px solid var(--border);
-    border-bottom: 0 !important;
+    border-bottom: 1px solid var(--border) !important;
   }
 
   .c-main {
