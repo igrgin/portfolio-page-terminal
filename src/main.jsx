@@ -52,6 +52,13 @@ const copy = {
     currentFocusText:
       "Practical AI-assisted development, resilient platform foundations, and product-minded technical leadership.",
     stack: "Working set",
+    projectsEyebrow: "Project index · selected work",
+    projectsIntro:
+      "A curated list of case studies. Select a project to open its full context, architecture, technical decisions, and outcomes.",
+    caseStudy: "Case study",
+    openProject: "Open project",
+    projectStatus: "Published",
+    moreProjects: "Additional project write-ups will appear here after editorial review.",
     projectTitle: "Distributed event platform",
     projectEyebrow: "Selected project · backend infrastructure",
     projectSummary:
@@ -116,6 +123,13 @@ const copy = {
     currentFocusText:
       "Praktična primjena AI-ja u razvoju, otporni platformski temelji i product-minded tehničko vodstvo.",
     stack: "Tech stack",
+    projectsEyebrow: "Indeks projekata · odabrani radovi",
+    projectsIntro:
+      "Kurirana lista case studyja. Odaberi projekt za puni kontekst, arhitekturu, tehničke odluke i ishode.",
+    caseStudy: "Case study",
+    openProject: "Otvori projekt",
+    projectStatus: "Objavljeno",
+    moreProjects: "Dodatni project writeupovi pojavit će se ovdje nakon editorial reviewa.",
     projectTitle: "Platforma za distribuirane evente",
     projectEyebrow: "Odabrani projekt · backend infrastruktura",
     projectSummary:
@@ -161,7 +175,12 @@ function usePrototypeState() {
     const variant = variants.some((item) => item.key === params.get("variant"))
       ? params.get("variant")
       : "a";
-    const view = window.location.pathname.startsWith("/projects/") ? "project" : "about";
+    const pathname = window.location.pathname;
+    const view = pathname.startsWith("/projects/")
+      ? "project"
+      : pathname === "/projects"
+        ? "projects"
+        : "about";
     return { variant, view };
   };
 
@@ -186,7 +205,12 @@ function usePrototypeState() {
   }, [theme, fontPair, language]);
 
   const navigate = (view, variant = location.variant) => {
-    const path = view === "project" ? "/projects/distributed-event-platform" : "/about";
+    const paths = {
+      about: "/about",
+      projects: "/projects",
+      project: "/projects/distributed-event-platform",
+    };
+    const path = paths[view] ?? "/about";
     window.history.pushState({}, "", `${path}?variant=${variant}`);
     setLocation({ view, variant });
     setMenuOpen(false);
@@ -250,10 +274,16 @@ function ControlGroup({ state, labels, compact = false }) {
 }
 
 function RouteLink({ state, view, children, className = "" }) {
-  const active = state.view === view;
+  const paths = {
+    about: "/about",
+    projects: "/projects",
+    project: "/projects/distributed-event-platform",
+  };
+  const active =
+    state.view === view || (view === "projects" && state.view === "project");
   return (
     <a
-      href={view === "project" ? "/projects/distributed-event-platform" : "/about"}
+      href={paths[view] ?? "/about"}
       className={className}
       aria-current={active ? "page" : undefined}
       onClick={(event) => {
@@ -288,7 +318,7 @@ function Portrait({ label, small = false, treatment = "operational" }) {
 function CtaRow({ state, labels }) {
   return (
     <div className="cta-row">
-      <RouteLink state={state} view="project" className="button button--primary">
+      <RouteLink state={state} view="projects" className="button button--primary">
         {labels.explore} <span aria-hidden="true">→</span>
       </RouteLink>
       <a className="button button--secondary" href="#contact">
@@ -409,7 +439,41 @@ function TechnologyList({ labels }) {
   );
 }
 
+function ProjectIndexEntry({ state, labels, treatment }) {
+  return (
+    <RouteLink
+      state={state}
+      view="project"
+      className={`project-entry project-entry--${treatment}`}
+    >
+      <span className="project-entry__index">01</span>
+      <div className="project-entry__body">
+        <div className="project-entry__meta">
+          <span>{labels.caseStudy}</span>
+          <span>{labels.projectStatus}</span>
+        </div>
+        <h2>{labels.projectTitle}</h2>
+        <p>{labels.projectSummary}</p>
+        <ul className="project-entry__tech" aria-label={labels.tech}>
+          {technologies.slice(0, 4).map((technology) => (
+            <li key={technology}>{technology}</li>
+          ))}
+        </ul>
+      </div>
+      <span className="project-entry__action">
+        {labels.openProject} <span aria-hidden="true">→</span>
+      </span>
+    </RouteLink>
+  );
+}
+
 function VariantA({ state, labels }) {
+  const currentLabel =
+    state.view === "about"
+      ? labels.about
+      : state.view === "projects"
+        ? labels.projects
+        : labels.projectTitle;
   return (
     <div className="variant-a">
       <header className="a-topbar">
@@ -418,7 +482,7 @@ function VariantA({ state, labels }) {
         </RouteLink>
         <div className="a-location">
           <span>{labels.page}</span>
-          <strong>{state.view === "about" ? labels.about : labels.projectTitle}</strong>
+          <strong>{currentLabel}</strong>
         </div>
         <button
           type="button"
@@ -439,7 +503,8 @@ function VariantA({ state, labels }) {
               const isRoute = item === "about" || item === "projects";
               const active =
                 (item === "about" && state.view === "about") ||
-                (item === "projects" && state.view === "project");
+                (item === "projects" &&
+                  (state.view === "projects" || state.view === "project"));
               const content = (
                 <>
                   <span>{String(index + 1).padStart(2, "0")}</span>
@@ -450,7 +515,7 @@ function VariantA({ state, labels }) {
                 <RouteLink
                   key={item}
                   state={state}
-                  view={item === "projects" ? "project" : "about"}
+                  view={item === "projects" ? "projects" : "about"}
                   className={active ? "is-current" : ""}
                 >
                   {content}
@@ -471,6 +536,8 @@ function VariantA({ state, labels }) {
         <main id="main-content" className="a-main">
           {state.view === "about" ? (
             <AAbout state={state} labels={labels} />
+          ) : state.view === "projects" ? (
+            <AProjects state={state} labels={labels} />
           ) : (
             <AProject state={state} labels={labels} />
           )}
@@ -512,6 +579,22 @@ function AAbout({ state, labels }) {
         </aside>
       </div>
     </>
+  );
+}
+
+function AProjects({ state, labels }) {
+  return (
+    <section className="a-project-index">
+      <header className="project-index-header">
+        <p className="eyebrow">{labels.projectsEyebrow}</p>
+        <h1>{labels.projects}</h1>
+        <p className="lede">{labels.projectsIntro}</p>
+      </header>
+      <div className="a-project-list" role="list">
+        <ProjectIndexEntry state={state} labels={labels} treatment="operational" />
+      </div>
+      <p className="project-index-note">{labels.moreProjects}</p>
+    </section>
   );
 }
 
@@ -567,7 +650,7 @@ function VariantB({ state, labels }) {
               <RouteLink
                 key={item}
                 state={state}
-                view={item === "projects" ? "project" : "about"}
+                view={item === "projects" ? "projects" : "about"}
               >
                 {labels[item]}
               </RouteLink>
@@ -584,6 +667,8 @@ function VariantB({ state, labels }) {
       <main id="main-content" className="b-main">
         {state.view === "about" ? (
           <BAbout state={state} labels={labels} />
+        ) : state.view === "projects" ? (
+          <BProjects state={state} labels={labels} />
         ) : (
           <BProject labels={labels} />
         )}
@@ -632,6 +717,22 @@ function BAbout({ state, labels }) {
   );
 }
 
+function BProjects({ state, labels }) {
+  return (
+    <section className="b-project-index">
+      <header className="b-project-index__header">
+        <p className="b-kicker">{labels.projectsEyebrow}</p>
+        <h1>{labels.projects}</h1>
+        <p className="b-intro">{labels.projectsIntro}</p>
+      </header>
+      <div className="b-project-list" role="list">
+        <ProjectIndexEntry state={state} labels={labels} treatment="editorial" />
+      </div>
+      <p className="project-index-note">{labels.moreProjects}</p>
+    </section>
+  );
+}
+
 function BProject({ labels }) {
   return (
     <article className="b-project">
@@ -676,6 +777,14 @@ function VariantC({ state, labels }) {
     [labels.evidence2, labels.evidence2Text, "DATA"],
     [labels.evidence3, labels.evidence3Text, "TOOLS"],
   ];
+  const currentMode =
+    state.view === "about" ? "PROFILE" : state.view === "projects" ? "PROJECT INDEX" : "CASE STUDY";
+  const currentLabel =
+    state.view === "about"
+      ? labels.about
+      : state.view === "projects"
+        ? labels.projects
+        : labels.projectTitle;
   return (
     <div className="variant-c">
       <header className="c-header">
@@ -684,8 +793,8 @@ function VariantC({ state, labels }) {
           <span className="sr-only">Ivo Grgin</span>
         </RouteLink>
         <div className="c-current">
-          <span>{state.view === "about" ? "PROFILE" : "CASE STUDY"}</span>
-          <strong>{state.view === "about" ? labels.about : labels.projectTitle}</strong>
+          <span>{currentMode}</span>
+          <strong>{currentLabel}</strong>
         </div>
         <ControlGroup state={state} labels={labels} compact />
       </header>
@@ -698,7 +807,7 @@ function VariantC({ state, labels }) {
                 <RouteLink
                   key={item}
                   state={state}
-                  view={item === "projects" ? "project" : "about"}
+                  view={item === "projects" ? "projects" : "about"}
                 >
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{labels[item]}</strong>
@@ -725,6 +834,8 @@ function VariantC({ state, labels }) {
               selectedEvidence={selectedEvidence}
               setSelectedEvidence={setSelectedEvidence}
             />
+          ) : state.view === "projects" ? (
+            <CProjects state={state} labels={labels} />
           ) : (
             <CProject labels={labels} />
           )}
@@ -775,7 +886,7 @@ function CAbout({ state, labels, evidence, selectedEvidence, setSelectedEvidence
               <h2>{evidence[selectedEvidence][0]}</h2>
               <p>{evidence[selectedEvidence][1]}</p>
               <p>{labels.currentFocusText}</p>
-              <RouteLink state={state} view="project" className="b-text-link">
+              <RouteLink state={state} view="projects" className="b-text-link">
                 {labels.explore} <span aria-hidden="true">→</span>
               </RouteLink>
             </div>
@@ -784,6 +895,27 @@ function CAbout({ state, labels, evidence, selectedEvidence, setSelectedEvidence
       </section>
       <TechnologyList labels={labels} />
     </>
+  );
+}
+
+function CProjects({ state, labels }) {
+  return (
+    <section className="c-project-index">
+      <header className="c-project-index__header">
+        <div>
+          <p className="eyebrow">{labels.projectsEyebrow}</p>
+          <h1>{labels.projects}</h1>
+        </div>
+        <p className="lede">{labels.projectsIntro}</p>
+      </header>
+      <div className="c-project-list" role="list">
+        <ProjectIndexEntry state={state} labels={labels} treatment="navigator" />
+      </div>
+      <div className="c-project-index__footer">
+        <span className="mini-label">01 / 01</span>
+        <p>{labels.moreProjects}</p>
+      </div>
+    </section>
   );
 }
 

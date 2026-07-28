@@ -12,9 +12,10 @@ Three structurally different portfolio directions are switchable with
 - **C — Evidence navigator:** a compact master/detail surface that foregrounds
   evidence.
 
-Each direction exercises `/about` and
-`/projects/distributed-event-platform`. The header controls switch light/dark
-theme, English/Croatian content, and IBM Plex/Atkinson type pairs.
+Each direction exercises `/about`, a selectable project index at `/projects`,
+and the detail route `/projects/distributed-event-platform`. The header
+controls switch light/dark theme, English/Croatian content, and IBM
+Plex/Atkinson type pairs.
 
 Run it with:
 
