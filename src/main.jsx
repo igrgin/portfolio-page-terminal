@@ -579,7 +579,7 @@ function VariantA({ state, labels }) {
           </div>
         </aside>
 
-        <main id="main-content" className="a-main">
+        <main id="main-content" className={`a-main a-main--${state.view}`}>
           <div className="route-view" key={`a-${state.view}`}>
             {state.view === "about" ? (
               <AAbout state={state} labels={labels} />
@@ -597,7 +597,7 @@ function VariantA({ state, labels }) {
 
 function AAbout({ state, labels }) {
   return (
-    <>
+    <div className="a-about">
       <section className="a-hero">
         <div className="a-hero__copy">
           <div className="eyebrow">
@@ -608,25 +608,25 @@ function AAbout({ state, labels }) {
           <p>{labels.bio}</p>
           <CtaRow state={state} labels={labels} />
         </div>
-        <Portrait label={labels.portrait} treatment="operational" />
-      </section>
-      <div className="a-content-grid">
-        <section className="panel-heading">
-          <div>
-            <span>01</span>
-            <h2>{labels.strongestEvidence}</h2>
+        <aside className="a-hero__aside">
+          <Portrait label={labels.portrait} treatment="operational" />
+          <div className="a-context">
+            <section>
+              <span className="mini-label">{labels.currentFocus}</span>
+              <p>{labels.currentFocusText}</p>
+            </section>
+            <TechnologyList labels={labels} />
           </div>
-          <EvidenceList labels={labels} />
-        </section>
-        <aside className="a-context">
-          <section>
-            <span className="mini-label">{labels.currentFocus}</span>
-            <p>{labels.currentFocusText}</p>
-          </section>
-          <TechnologyList labels={labels} />
         </aside>
-      </div>
-    </>
+      </section>
+      <section className="a-evidence-band panel-heading">
+        <div>
+          <span>01</span>
+          <h2>{labels.strongestEvidence}</h2>
+        </div>
+        <EvidenceList labels={labels} />
+      </section>
+    </div>
   );
 }
 
