@@ -273,60 +273,218 @@ p {
 }
 
 .portrait {
+  position: relative;
+  isolation: isolate;
   width: min(100%, 300px);
   margin: 0;
 }
 
+.portrait::before {
+  position: absolute;
+  z-index: -1;
+  background: var(--accent-subtle);
+  content: "";
+  filter: blur(28px);
+  inset: 14% -12% -8% 18%;
+  opacity: 0.72;
+}
+
 .portrait__mark {
   position: relative;
-  display: grid;
   overflow: hidden;
   aspect-ratio: 4 / 5;
-  place-items: center;
-  border: 1px solid var(--border-strong);
   background:
-    linear-gradient(135deg, transparent 48%, var(--border) 49%, var(--border) 51%, transparent 52%),
-    var(--surface-raised);
-  color: var(--text);
-  font-family: var(--font-mono);
-  font-size: clamp(2.8rem, 6vw, 5.5rem);
-  font-weight: 500;
+    radial-gradient(circle at 68% 24%, color-mix(in srgb, var(--accent), transparent 64%), transparent 31%),
+    linear-gradient(145deg, var(--surface-raised), var(--canvas) 72%);
 }
 
 .portrait__mark::before,
 .portrait__mark::after {
   position: absolute;
-  border: 1px solid var(--border);
   content: "";
-  inset: 16px;
+}
+
+.portrait__mark::before {
+  z-index: 2;
+  background:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 32px 32px;
+  inset: 0;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 58%), transparent 72%);
+  opacity: 0.38;
 }
 
 .portrait__mark::after {
-  border-color: transparent var(--accent) var(--accent) transparent;
-  inset: auto 16px 16px auto;
-  width: 34%;
-  height: 34%;
+  z-index: 4;
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 36%);
+  border-top: 0;
+  border-left: 0;
+  inset: 12px 12px 12px 44%;
 }
 
-.portrait__mark i {
+.portrait__silhouette {
   position: absolute;
-  top: 0;
-  right: 22%;
-  width: 1px;
-  height: 100%;
-  background: var(--border);
+  z-index: 1;
+  background:
+    radial-gradient(
+      circle at 53% 25%,
+      color-mix(in srgb, var(--text), var(--surface-raised) 58%) 0 13%,
+      transparent 13.5%
+    ),
+    radial-gradient(
+      ellipse at 51% 82%,
+      color-mix(in srgb, var(--text), var(--surface-raised) 62%) 0 37%,
+      transparent 37.5%
+    );
+  filter: grayscale(1);
+  inset: 0;
+  opacity: 0.88;
+  transform: scale(1.18) translateY(5%);
+}
+
+.portrait__monogram {
+  position: absolute;
+  z-index: 3;
+  right: 18px;
+  bottom: 54px;
+  color: color-mix(in srgb, var(--text), transparent 82%);
+  font-family: var(--font-mono);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 500;
+  letter-spacing: -0.08em;
+}
+
+.portrait__accent {
+  position: absolute;
+  z-index: 5;
+  top: 12%;
+  right: 0;
+  width: 3px;
+  height: 46%;
+  background: var(--accent);
 }
 
 .portrait figcaption {
-  padding-top: 8px;
-  color: var(--text-muted);
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 42px 18px 14px;
+  background: linear-gradient(to top, color-mix(in srgb, var(--canvas), transparent 4%), transparent);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
   text-transform: uppercase;
+}
+
+.portrait figcaption strong {
+  color: var(--text);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
+.portrait figcaption span {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
 }
 
 .portrait--small {
   width: 170px;
+}
+
+.portrait--operational {
+  transform: translate(14px, -14px);
+}
+
+.portrait--operational .portrait__mark {
+  clip-path: polygon(12% 0, 100% 0, 100% 88%, 86% 100%, 0 100%, 0 12%);
+}
+
+.portrait--operational::after {
+  position: absolute;
+  z-index: -1;
+  border: 1px solid var(--border-strong);
+  content: "";
+  inset: 18px -14px -14px 18px;
+}
+
+.portrait--editorial.portrait--small {
+  width: min(220px, 100%);
+}
+
+.portrait--editorial::before {
+  inset: 8% -22% -12% -18%;
+  opacity: 0.5;
+}
+
+.portrait--editorial .portrait__mark {
+  aspect-ratio: 3 / 4;
+  mask-image: linear-gradient(to bottom, #000 66%, transparent 100%);
+}
+
+.portrait--editorial .portrait__mark::before {
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to right, #000, transparent 84%);
+  opacity: 0.24;
+}
+
+.portrait--editorial .portrait__mark::after,
+.portrait--editorial .portrait__accent {
+  display: none;
+}
+
+.portrait--editorial .portrait__monogram {
+  top: 12px;
+  right: auto;
+  bottom: auto;
+  left: 12px;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+}
+
+.portrait--editorial figcaption {
+  justify-content: flex-start;
+  padding-inline: 0;
+  background: none;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+.portrait--navigator.portrait--small {
+  width: min(190px, 100%);
+}
+
+.portrait--navigator::before {
+  inset: 22% -18% -18% 28%;
+  opacity: 0.58;
+}
+
+.portrait--navigator .portrait__mark {
+  aspect-ratio: 1;
+  clip-path: polygon(0 0, 86% 0, 100% 14%, 100% 100%, 14% 100%, 0 86%);
+}
+
+.portrait--navigator .portrait__mark::before {
+  mask-image: linear-gradient(135deg, #000, transparent 86%);
+}
+
+.portrait--navigator .portrait__mark::after {
+  border-color: var(--accent);
+  inset: 18px 18px 18px 58%;
+}
+
+.portrait--navigator .portrait__monogram {
+  right: 16px;
+  bottom: 42px;
+  font-size: 2.7rem;
+}
+
+.portrait--navigator figcaption span {
+  display: none;
 }
 
 .evidence-list {

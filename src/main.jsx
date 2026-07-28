@@ -82,7 +82,7 @@ const copy = {
     page: "View",
     status: "Status",
     prototype: "Throwaway prototype",
-    portrait: "Portrait slot",
+    portrait: "Ivo Grgin",
     menu: "Menu",
     close: "Close",
   },
@@ -146,7 +146,7 @@ const copy = {
     page: "Stranica",
     status: "Status",
     prototype: "Privremeni prototip",
-    portrait: "Mjesto za fotografiju",
+    portrait: "Ivo Grgin",
     menu: "Izbornik",
     close: "Zatvori",
   },
@@ -266,14 +266,21 @@ function RouteLink({ state, view, children, className = "" }) {
   );
 }
 
-function Portrait({ label, small = false }) {
+function Portrait({ label, small = false, treatment = "operational" }) {
   return (
-    <figure className={`portrait ${small ? "portrait--small" : ""}`}>
+    <figure
+      className={`portrait portrait--${treatment} ${small ? "portrait--small" : ""}`}
+      aria-label={label}
+    >
       <div className="portrait__mark" aria-hidden="true">
-        <span>IG</span>
-        <i />
+        <span className="portrait__silhouette" />
+        <span className="portrait__monogram">IG</span>
+        <span className="portrait__accent" />
       </div>
-      <figcaption>{label}</figcaption>
+      <figcaption>
+        <strong>{label}</strong>
+        <span>software engineer</span>
+      </figcaption>
     </figure>
   );
 }
@@ -486,7 +493,7 @@ function AAbout({ state, labels }) {
           <p>{labels.bio}</p>
           <CtaRow state={state} labels={labels} />
         </div>
-        <Portrait label={labels.portrait} />
+        <Portrait label={labels.portrait} treatment="operational" />
       </section>
       <div className="a-content-grid">
         <section className="panel-heading">
@@ -555,13 +562,21 @@ function VariantB({ state, labels }) {
           <span>Software engineer</span>
         </div>
         <nav aria-label={labels.navLabel}>
-          <RouteLink state={state} view="about">
-            {labels.about}
-          </RouteLink>
-          <RouteLink state={state} view="project">
-            {labels.projects}
-          </RouteLink>
-          <a href="#contact">{labels.contact}</a>
+          {navItems.map((item) =>
+            item === "about" || item === "projects" ? (
+              <RouteLink
+                key={item}
+                state={state}
+                view={item === "projects" ? "project" : "about"}
+              >
+                {labels[item]}
+              </RouteLink>
+            ) : (
+              <a key={item} href={`#${item}`}>
+                {labels[item]}
+              </a>
+            ),
+          )}
         </nav>
         <ControlGroup state={state} labels={labels} compact />
       </header>
@@ -588,7 +603,7 @@ function BAbout({ state, labels }) {
       <section className="b-hero">
         <div className="b-hero__index">
           <span>PROFILE / 001</span>
-          <Portrait label={labels.portrait} small />
+          <Portrait label={labels.portrait} small treatment="editorial" />
         </div>
         <div className="b-hero__story">
           <p className="b-kicker">{labels.available}</p>
@@ -678,22 +693,23 @@ function VariantC({ state, labels }) {
         <aside className="c-index">
           <span className="mini-label">INDEX</span>
           <nav aria-label={labels.navLabel}>
-            <RouteLink state={state} view="about">
-              <span>01</span>
-              <strong>{labels.about}</strong>
-            </RouteLink>
-            <RouteLink state={state} view="project">
-              <span>02</span>
-              <strong>{labels.projects}</strong>
-            </RouteLink>
-            <a href="#experience">
-              <span>03</span>
-              <strong>{labels.experience}</strong>
-            </a>
-            <a href="#contact">
-              <span>04</span>
-              <strong>{labels.contact}</strong>
-            </a>
+            {navItems.map((item, index) =>
+              item === "about" || item === "projects" ? (
+                <RouteLink
+                  key={item}
+                  state={state}
+                  view={item === "projects" ? "project" : "about"}
+                >
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{labels[item]}</strong>
+                </RouteLink>
+              ) : (
+                <a key={item} href={`#${item}`}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{labels[item]}</strong>
+                </a>
+              ),
+            )}
           </nav>
           <div className="c-index__availability">
             <span className="status-dot" />
@@ -729,7 +745,7 @@ function CAbout({ state, labels, evidence, selectedEvidence, setSelectedEvidence
           <CtaRow state={state} labels={labels} />
         </div>
         <div className="c-hero__aside">
-          <Portrait label={labels.portrait} small />
+          <Portrait label={labels.portrait} small treatment="navigator" />
           <p>{labels.bio}</p>
         </div>
       </section>
