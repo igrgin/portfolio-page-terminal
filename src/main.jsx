@@ -194,7 +194,9 @@ function usePrototypeState() {
     window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark",
   );
   const [fontPair, setFontPair] = useState("plex");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(
+    () => !window.matchMedia("(max-width: 760px)").matches,
+  );
 
   useEffect(() => {
     const onPopState = () => setLocation(parseLocation());
@@ -208,6 +210,13 @@ function usePrototypeState() {
     document.documentElement.lang = language;
   }, [theme, fontPair, language]);
 
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 760px)");
+    const handleViewportChange = (event) => setMenuOpen(!event.matches);
+    mobileQuery.addEventListener("change", handleViewportChange);
+    return () => mobileQuery.removeEventListener("change", handleViewportChange);
+  }, []);
+
   const navigate = (view, variant = location.variant) => {
     const paths = {
       about: "/about",
@@ -217,7 +226,9 @@ function usePrototypeState() {
     const path = paths[view] ?? "/about";
     window.history.pushState({}, "", `${path}?variant=${variant}`);
     setLocation({ view, variant });
-    setMenuOpen(false);
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setMenuOpen(false);
+    }
     window.scrollTo({ top: 0, behavior: "instant" });
   };
 
@@ -481,26 +492,31 @@ function VariantA({ state, labels }) {
   return (
     <div className="variant-a">
       <header className="a-topbar">
-        <RouteLink state={state} view="about" className="wordmark">
-          <span aria-hidden="true">[</span> IVO GRGIN <span aria-hidden="true">]</span>
-        </RouteLink>
+        <div className="a-brand-zone">
+          <RouteLink state={state} view="about" className="wordmark">
+            <span aria-hidden="true">[</span> IVO GRGIN <span aria-hidden="true">]</span>
+          </RouteLink>
+          <button
+            type="button"
+            className={`a-nav-toggle ${state.menuOpen ? "is-open" : ""}`}
+            aria-controls="a-page-index"
+            aria-expanded={state.menuOpen}
+            aria-label={state.menuOpen ? labels.hideNavigation : labels.showNavigation}
+            title={state.menuOpen ? labels.hideNavigation : labels.showNavigation}
+            onClick={() => state.setMenuOpen(!state.menuOpen)}
+          >
+            <span aria-hidden="true">{state.menuOpen ? "×" : "☰"}</span>
+          </button>
+        </div>
         <div className="a-location">
           <span>{labels.page}</span>
           <strong>{currentLabel}</strong>
         </div>
-        <button
-          type="button"
-          className="mobile-menu"
-          aria-expanded={state.menuOpen}
-          onClick={() => state.setMenuOpen(!state.menuOpen)}
-        >
-          {state.menuOpen ? labels.close : labels.menu}
-        </button>
         <ControlGroup state={state} labels={labels} compact />
       </header>
 
-      <div className="a-workspace">
-        <aside className={`a-sidebar ${state.menuOpen ? "is-open" : ""}`}>
+      <div className={`a-workspace ${state.menuOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
+        {state.menuOpen && <aside className="a-sidebar is-open" id="a-page-index">
           <div className="a-sidebar__label">portfolio://</div>
           <nav aria-label={labels.navLabel}>
             {navItems.map((item, index) => {
@@ -535,7 +551,7 @@ function VariantA({ state, labels }) {
             <span className="status-dot" />
             <span>{labels.available}</span>
           </div>
-        </aside>
+        </aside>}
 
         <main id="main-content" className="a-main">
           {state.view === "about" ? (
