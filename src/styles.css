@@ -122,7 +122,7 @@ h3 {
 h1 {
   max-width: 18ch;
   margin-bottom: 24px;
-  font-size: clamp(2.25rem, 5vw, 5rem);
+  font-size: clamp(2.25rem, 4.2vw, 4.4rem);
   letter-spacing: -0.045em;
 }
 
@@ -279,7 +279,7 @@ p {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
 .portrait {
@@ -556,11 +556,11 @@ p {
 
 .project-index-header {
   max-width: 780px;
-  padding: 28px 0 64px;
+  padding: 8px 0 36px;
 }
 
 .project-index-header h1 {
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 .project-entry {
@@ -644,7 +644,7 @@ p {
   grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 24px;
   align-items: start;
-  padding: 32px 20px;
+  padding: 26px 20px;
   border-block: 1px solid var(--border-strong);
 }
 
@@ -659,19 +659,19 @@ p {
 }
 
 .b-project-index {
-  padding: 92px 0 120px;
+  padding: 40px 0 72px;
 }
 
 .b-project-index__header {
   display: grid;
-  min-height: 440px;
-  align-content: center;
+  max-width: 880px;
+  padding-bottom: 36px;
 }
 
 .b-project-index__header h1 {
-  margin: 16px 0 28px;
-  font-size: clamp(4rem, 9vw, 9rem);
-  line-height: 0.9;
+  margin: 10px 0 18px;
+  font-size: clamp(3rem, 5.5vw, 5rem);
+  line-height: 0.96;
 }
 
 .b-project-list {
@@ -681,13 +681,13 @@ p {
 .project-entry--editorial {
   grid-template-columns: 90px minmax(0, 1fr) auto;
   gap: clamp(28px, 5vw, 72px);
-  padding: 64px 0;
+  padding: 40px 0;
   border-bottom: 1px solid var(--border-strong);
 }
 
 .project-entry--editorial h2 {
   max-width: 15ch;
-  font-size: clamp(2.5rem, 5vw, 5rem);
+  font-size: clamp(2.2rem, 4vw, 3.8rem);
   letter-spacing: -0.04em;
 }
 
@@ -702,7 +702,7 @@ p {
 }
 
 .c-project-index {
-  padding-top: 28px;
+  padding-top: 0;
 }
 
 .c-project-index__header {
@@ -710,7 +710,7 @@ p {
   grid-template-columns: minmax(0, 1fr) minmax(280px, 0.75fr);
   align-items: end;
   gap: clamp(32px, 7vw, 100px);
-  padding: 48px 0 64px;
+  padding: 8px 0 32px;
   border-bottom: 1px solid var(--border-strong);
 }
 
@@ -723,14 +723,14 @@ p {
 }
 
 .c-project-list {
-  padding: 48px 0;
+  padding: 30px 0;
 }
 
 .project-entry--navigator {
   position: relative;
   grid-template-columns: 72px minmax(0, 1fr) 180px;
   gap: 24px;
-  padding: 36px;
+  padding: 28px;
   border: 1px solid var(--border-strong);
   background: var(--canvas);
 }
@@ -750,7 +750,7 @@ p {
 }
 
 .project-entry--navigator h2 {
-  font-size: clamp(2rem, 4vw, 3.6rem);
+  font-size: clamp(2rem, 3.5vw, 3rem);
 }
 
 .project-entry--navigator .project-entry__action {
@@ -1243,15 +1243,24 @@ p {
 
 .a-main {
   width: min(100%, 1260px);
-  padding: clamp(32px, 5vw, 76px);
+  padding: clamp(28px, 3.5vw, 52px);
 }
 
 .a-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.65fr);
+  grid-template-columns: minmax(0, 1.75fr) minmax(190px, 0.5fr);
   align-items: start;
-  gap: clamp(40px, 7vw, 100px);
-  padding-bottom: 72px;
+  gap: clamp(32px, 5vw, 64px);
+  padding-bottom: 40px;
+}
+
+.a-hero h1 {
+  max-width: 20ch;
+  font-size: clamp(2.4rem, 4vw, 4rem);
+}
+
+.a-hero .portrait {
+  width: min(100%, 230px);
 }
 
 .a-hero__copy > p:not(.eyebrow) {
@@ -1262,14 +1271,14 @@ p {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
 }
 
 .a-content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(220px, 0.65fr);
-  gap: clamp(40px, 7vw, 100px);
-  padding-top: 32px;
+  gap: clamp(32px, 5vw, 64px);
+  padding-top: 24px;
   border-top: 1px solid var(--border-strong);
 }
 
@@ -1309,7 +1318,7 @@ p {
   align-items: end;
   justify-content: space-between;
   gap: 32px;
-  padding-bottom: 48px;
+  padding-bottom: 32px;
 }
 
 .a-project-hero h1 {
@@ -1321,7 +1330,7 @@ p {
 }
 
 .a-project-section {
-  padding: 56px 0;
+  padding: 40px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -1336,11 +1345,11 @@ p {
 .b-header {
   display: grid;
   max-width: 1420px;
-  min-height: 92px;
+  min-height: 72px;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 32px;
-  padding: 18px clamp(20px, 4vw, 64px);
+  padding: 12px clamp(20px, 4vw, 64px);
   margin: 0 auto;
   border-bottom: 1px solid var(--border-strong);
 }
@@ -1387,17 +1396,16 @@ p {
 
 .b-main {
   max-width: 1240px;
-  padding: 0 clamp(20px, 4vw, 64px) 100px;
+  padding: 0 clamp(20px, 4vw, 64px) 64px;
   margin: 0 auto;
 }
 
 .b-hero {
   display: grid;
-  min-height: 680px;
-  grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1.5fr);
-  gap: clamp(40px, 7vw, 100px);
-  align-items: center;
-  padding: 80px 0;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1.7fr);
+  gap: clamp(36px, 5vw, 64px);
+  align-items: start;
+  padding: 44px 0 52px;
 }
 
 .b-hero__index {
@@ -1418,28 +1426,28 @@ p {
 
 .b-hero__story h1,
 .b-project h1 {
-  max-width: 14ch;
+  max-width: 20ch;
   font-family: var(--font-body);
-  font-size: clamp(3.2rem, 7vw, 7.5rem);
+  font-size: clamp(2.8rem, 4.8vw, 4.8rem);
   font-weight: 600;
-  line-height: 0.98;
+  line-height: 1;
 }
 
 .b-kicker {
-  margin-bottom: 30px;
+  margin-bottom: 16px;
 }
 
 .b-intro {
   max-width: 52ch;
   color: var(--text);
-  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+  font-size: clamp(1.15rem, 1.8vw, 1.4rem);
 }
 
 .b-evidence {
   display: grid;
   grid-template-columns: 0.7fr 1.3fr;
-  gap: clamp(40px, 7vw, 100px);
-  padding: 72px 0;
+  gap: clamp(36px, 5vw, 64px);
+  padding: 40px 0;
   border-top: 1px solid var(--border-strong);
 }
 
@@ -1458,8 +1466,8 @@ p {
 .b-toolkit {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  padding: 48px;
+  gap: 40px;
+  padding: 32px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
@@ -1477,14 +1485,13 @@ p {
 }
 
 .b-project {
-  padding-top: 100px;
+  padding-top: 48px;
 }
 
 .b-project__header {
   display: grid;
   max-width: 1000px;
-  min-height: 600px;
-  align-content: center;
+  padding-bottom: 40px;
 }
 
 .b-text-link {
@@ -1497,7 +1504,7 @@ p {
 
 .b-architecture,
 .b-decisions {
-  padding: 80px 0;
+  padding: 48px 0;
   margin: 0;
   border-bottom: 1px solid var(--border-strong);
 }
@@ -1519,8 +1526,8 @@ p {
 .b-project__footer {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 60px;
-  padding: 64px 0;
+  gap: 40px;
+  padding: 44px 0;
 }
 
 /* Variant C — evidence navigator */
@@ -1703,33 +1710,34 @@ p {
 
 .c-main {
   overflow: hidden;
-  padding: clamp(32px, 5vw, 76px);
+  padding: clamp(28px, 3.5vw, 52px);
 }
 
 .c-hero {
   display: grid;
-  min-height: 580px;
-  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.65fr);
-  align-items: center;
-  gap: clamp(40px, 7vw, 100px);
+  grid-template-columns: minmax(0, 1.65fr) minmax(210px, 0.55fr);
+  align-items: start;
+  gap: clamp(32px, 5vw, 64px);
+  padding: 12px 0 48px;
 }
 
 .c-hero__copy h1 {
-  max-width: 15ch;
+  max-width: 20ch;
+  font-size: clamp(2.4rem, 4vw, 4rem);
 }
 
 .c-hero__aside {
-  align-self: center;
+  align-self: start;
   padding-left: 28px;
   border-left: 1px solid var(--border);
 }
 
 .c-hero__aside p {
-  margin-top: 28px;
+  margin-top: 20px;
 }
 
 .c-explorer {
-  margin-bottom: 72px;
+  margin-bottom: 48px;
   border: 1px solid var(--border-strong);
   background: var(--canvas);
 }
@@ -1751,7 +1759,7 @@ p {
 
 .c-explorer__body {
   display: grid;
-  min-height: 340px;
+  min-height: 280px;
   grid-template-columns: minmax(190px, 0.7fr) 1.5fr;
 }
 
@@ -1763,7 +1771,7 @@ p {
 
 .c-explorer__tabs button {
   display: grid;
-  min-height: 76px;
+  min-height: 64px;
   grid-template-columns: 52px 1fr;
   align-items: center;
   padding: 0 16px;
@@ -1796,7 +1804,7 @@ p {
   grid-template-columns: 64px 1fr;
   align-content: center;
   gap: 20px;
-  padding: 36px;
+  padding: 28px;
 }
 
 .c-explorer__detail > span {
@@ -1810,18 +1818,18 @@ p {
 
 .c-project__hero {
   display: flex;
-  min-height: 420px;
-  align-items: center;
+  align-items: start;
   justify-content: space-between;
   gap: 40px;
+  padding: 12px 0 36px;
   border-bottom: 1px solid var(--border-strong);
 }
 
 .c-project__workspace {
   display: grid;
   grid-template-columns: minmax(220px, 0.65fr) minmax(0, 1.6fr);
-  gap: clamp(40px, 6vw, 80px);
-  padding-top: 56px;
+  gap: clamp(32px, 5vw, 64px);
+  padding-top: 36px;
 }
 
 .c-project__workspace > aside {
@@ -1834,7 +1842,7 @@ p {
 
 .c-project__story {
   display: grid;
-  gap: 72px;
+  gap: 48px;
 }
 
 .architecture--vertical {
@@ -2017,16 +2025,17 @@ p {
   }
 
   .a-main {
-    padding: 32px 20px 110px;
+    padding: 24px 20px 96px;
   }
 
   .a-hero {
-    gap: 30px;
-    padding-bottom: 48px;
+    gap: 24px;
+    padding-bottom: 36px;
   }
 
   .a-hero .portrait {
-    width: 128px;
+    width: 104px;
+    grid-row: auto;
   }
 
   .a-project-hero,
@@ -2037,19 +2046,19 @@ p {
 
   .project-index-header,
   .c-project-index__header {
-    padding: 20px 0 44px;
+    padding: 4px 0 28px;
   }
 
   .b-project-index {
-    padding: 52px 0 100px;
+    padding: 28px 0 88px;
   }
 
   .b-project-index__header {
-    min-height: 360px;
+    padding-bottom: 28px;
   }
 
   .b-project-index__header h1 {
-    font-size: clamp(3.4rem, 18vw, 5rem);
+    font-size: clamp(2.8rem, 15vw, 4rem);
   }
 
   .project-entry--operational,
@@ -2057,7 +2066,7 @@ p {
   .project-entry--navigator {
     grid-template-columns: 38px minmax(0, 1fr);
     gap: 16px;
-    padding: 28px 16px;
+    padding: 22px 16px;
   }
 
   .project-entry--editorial {
@@ -2102,8 +2111,8 @@ p {
 
   .b-header {
     grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 14px 20px;
+    gap: 10px;
+    padding: 10px 20px;
   }
 
   .b-header .control-group {
@@ -2115,10 +2124,17 @@ p {
   }
 
   .b-header nav {
+    display: grid;
     grid-column: 1;
     grid-row: 3;
-    overflow-x: auto;
-    gap: 20px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px 12px;
+  }
+
+  .b-header nav a {
+    min-width: 0;
+    padding: 4px 0;
+    font-size: 0.68rem;
   }
 
   .b-main {
@@ -2128,21 +2144,16 @@ p {
   .b-hero {
     min-height: 0;
     grid-template-columns: 1fr;
-    gap: 32px;
-    padding: 48px 0;
+    gap: 24px;
+    padding: 32px 0 36px;
   }
 
   .b-hero__index {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: start;
-    padding: 0 0 24px;
-    border-right: 0;
-    border-bottom: 1px solid var(--border);
+    display: none;
   }
 
-  .b-hero__index .portrait {
-    width: 90px;
+  .b-hero__story {
+    grid-row: 1;
   }
 
   .b-hero__story h1,
@@ -2157,16 +2168,16 @@ p {
   }
 
   .b-toolkit {
-    gap: 36px;
-    padding: 28px 20px;
+    gap: 28px;
+    padding: 24px 20px;
   }
 
   .b-project {
-    padding-top: 56px;
+    padding-top: 32px;
   }
 
   .b-project__header {
-    min-height: 470px;
+    padding-bottom: 32px;
   }
 
   .c-header {
@@ -2247,13 +2258,13 @@ p {
   }
 
   .c-main {
-    padding: 32px 20px 110px;
+    padding: 24px 20px 96px;
   }
 
   .c-hero {
     min-height: 0;
-    gap: 30px;
-    padding: 36px 0 56px;
+    gap: 24px;
+    padding: 8px 0 36px;
   }
 
   .c-hero__aside {
@@ -2285,7 +2296,7 @@ p {
   }
 
   .c-project__hero {
-    min-height: 440px;
+    padding: 4px 0 32px;
   }
 
   .c-project__workspace > aside {
@@ -2335,7 +2346,7 @@ p {
 
   .b-hero__story h1,
   .b-project h1 {
-    font-size: 2.8rem;
+    font-size: 2.3rem;
   }
 
   .b-footer {

@@ -1028,7 +1028,7 @@ function CProject({ labels }) {
               <span>01</span>
               <h2>{labels.architecture}</h2>
             </div>
-            <ArchitectureDiagram labels={labels} vertical />
+            <ArchitectureDiagram labels={labels} />
           </section>
           <section>
             <div className="section-line">
