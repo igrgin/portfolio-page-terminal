@@ -723,11 +723,6 @@ function VariantB({ state, labels }) {
           )}
         </div>
       </main>
-
-      <footer className="b-footer">
-        <span>{labels.prototype}</span>
-        <span>© Ivo Grgin</span>
-      </footer>
     </div>
   );
 }
