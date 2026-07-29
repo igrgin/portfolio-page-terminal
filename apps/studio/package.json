@@ -1,0 +1,19 @@
+{
+  "name": "@portfolio/studio",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "schema:extract": "sanity schema extract --enforce-required-fields --force",
+    "typegen": "npm run schema:extract && sanity typegen generate",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@portfolio/content": "*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sanity": "6.7.0",
+    "styled-components": "6.1.19"
+  }
+}
