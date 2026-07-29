@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
+    "predev": "tsx scripts/sync-public-assets.ts",
     "dev": "next dev",
+    "prebuild": "tsx scripts/sync-public-assets.ts",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"

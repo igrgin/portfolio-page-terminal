@@ -36,6 +36,27 @@
   color-scheme: light;
 }
 
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --tui-canvas: #f3f5f2;
+    --tui-surface: #ffffff;
+    --tui-surface-raised: #e9efec;
+    --tui-text-primary: #172024;
+    --tui-text-muted: #52636b;
+    --tui-border: #bac8c6;
+    --tui-border-strong: #60756f;
+    --tui-focus: #8d4d00;
+    --tui-accent: #087d74;
+    --tui-accent-subtle: #d5eeea;
+    --tui-link: #006890;
+    --tui-success: #176b3a;
+    --tui-warning: #8d4d00;
+    --tui-danger: #a42d36;
+    --tui-selection: #bce4df;
+    color-scheme: light;
+  }
+}
+
 .tui-button-scaffold {
   min-height: 2.75rem;
   border: 1px solid var(--tui-border-strong);

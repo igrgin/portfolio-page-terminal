@@ -9,3 +9,12 @@ export type PublishedDocument = Readonly<{
   _type: string;
   _updatedAt: string;
 }>;
+
+export {
+  contactChannelKinds,
+  hasSanityConfiguration,
+  loadPublishedAbout,
+  normalizePublishedAbout,
+  type AboutPageContent,
+  type ContactChannelKind,
+} from "./about";

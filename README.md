@@ -27,6 +27,14 @@ The Studio uses a non-production placeholder project ID until provider provision
 completed. Set `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to connect an
 authorized Sanity project.
 
+Static Web builds read published content through Sanity's CDN. Set
+`SANITY_PROJECT_ID`, `SANITY_DATASET`, and the public HTTPS origin in
+`NEXT_PUBLIC_SITE_ORIGIN` in the Web build environment. A configured build fails
+before deployment when published About Me content or its required local assets are
+invalid, preserving the last successful public site. When Sanity variables are absent,
+local builds deliberately leave localized content routes unpublished rather than
+inventing fallback content.
+
 Run the complete local quality gate:
 
 ```sh
