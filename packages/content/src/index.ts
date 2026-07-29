@@ -18,3 +18,10 @@ export {
   type AboutPageContent,
   type ContactChannelKind,
 } from "./about";
+
+export {
+  loadPublishedExperience,
+  normalizePublishedExperience,
+  type ExperiencePageContent,
+  type ExperiencePageEntry,
+} from "./experience";

@@ -1,4 +1,4 @@
-import { defineField, defineType } from "sanity";
+import { defineArrayMember, defineField, defineType } from "sanity";
 
 export const localizedString = defineType({
   fields: [
@@ -40,6 +40,39 @@ export const localizedText = defineType({
   name: "localizedText",
   title: "Localized text",
   type: "object",
+});
+
+export const localizedStringList = defineType({
+  fields: [
+    defineField({
+      name: "en",
+      of: [defineArrayMember({ type: "string" })],
+      title: "English",
+      type: "array",
+      validation: (rule) => rule.required().min(1),
+    }),
+    defineField({
+      name: "hr",
+      of: [defineArrayMember({ type: "string" })],
+      title: "Croatian",
+      type: "array",
+      validation: (rule) => rule.required().min(1),
+    }),
+  ],
+  name: "localizedStringList",
+  title: "Localized string list",
+  type: "object",
+  validation: (rule) =>
+    rule.custom((value) => {
+      const lists = value as
+        | Readonly<{ en?: readonly unknown[]; hr?: readonly unknown[] }>
+        | undefined;
+      return lists?.en &&
+        lists.hr &&
+        lists.en.length !== lists.hr.length
+        ? "English and Croatian lists must contain the same number of facts."
+        : true;
+    }),
 });
 
 export const localizedMetadata = defineType({
