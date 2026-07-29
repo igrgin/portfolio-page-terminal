@@ -180,6 +180,15 @@ h1, h2, h3, p { margin-top: 0; }
 .preview-pair .mini-diagram { margin: 28px 0; }
 .preview-pair mark { padding: 4px; background: var(--red-soft); color: var(--red); }
 
+.preview-modal { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 28px; }
+.preview-modal__backdrop { position: absolute; background: rgb(17 24 32 / 58%); backdrop-filter: blur(3px); inset: 0; }
+.preview-modal__panel { position: relative; overflow: hidden; width: min(1050px, 100%); max-height: calc(100vh - 56px); border-radius: 11px; background: var(--surface); box-shadow: 0 24px 70px rgb(0 0 0 / 34%); }
+.preview-modal__panel > header { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); }
+.preview-modal__panel > header span { display: grid; gap: 3px; }
+.preview-modal__panel > header small { color: var(--accent); font-family: "IBM Plex Mono"; font-size: 9px; letter-spacing: .08em; }
+.preview-modal__panel > header button { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: white; font-size: 20px; }
+.preview-modal .review-screen { overflow-y: auto; max-height: calc(100vh - 125px); border: 0; border-radius: 0; }
+
 .outline-layout { display: grid; grid-template-columns: 245px minmax(380px, .92fr) minmax(420px, 1.08fr); height: calc(100vh - 58px); overflow: hidden; }
 .outline-sidebar { overflow-y: auto; border-right: 1px solid var(--line); background: var(--surface); }
 .outline-locales { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 12px; border-bottom: 1px solid var(--line); }
@@ -244,7 +253,7 @@ h1, h2, h3, p { margin-top: 0; }
 }
 
 @media (max-width: 820px) {
-  .save-status, .preview-button { display: none; }
+  .save-status { display: none; }
   .app-header { padding: 0 10px; }
   .brand small { display: none; }
   .scenario-toggle { padding: 0 8px; font-size: 11px; }
@@ -266,6 +275,7 @@ h1, h2, h3, p { margin-top: 0; }
 }
 
 @media (max-width: 560px) {
+  .brand span:last-child, .avatar { display: none; }
   .header-status { gap: 5px; }
   .scenario-toggle { width: 35px; overflow: hidden; white-space: nowrap; }
   .scenario-toggle .icon { flex: 0 0 auto; }
@@ -282,4 +292,7 @@ h1, h2, h3, p { margin-top: 0; }
   .preview-pair article { padding: 18px; }
   .guided-title h1 { font-size: 25px; }
   .prototype-switcher { bottom: 10px; }
+  .preview-modal { padding: 8px; }
+  .preview-modal__panel { max-height: calc(100vh - 16px); }
+  .preview-modal .review-screen { max-height: calc(100vh - 85px); }
 }

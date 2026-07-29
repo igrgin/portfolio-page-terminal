@@ -58,6 +58,7 @@ function usePrototype() {
   const [locale, setLocale] = useState("en");
   const [step, setStep] = useState(0);
   const [section, setSection] = useState("Narrative");
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setVariantState(getVariant());
@@ -70,6 +71,7 @@ function usePrototype() {
     params.set("variant", next);
     window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
     setVariantState(next);
+    setPreviewOpen(false);
   };
 
   return {
@@ -83,6 +85,8 @@ function usePrototype() {
     setStep,
     section,
     setSection,
+    previewOpen,
+    setPreviewOpen,
   };
 }
 
@@ -96,6 +100,12 @@ function StatusDot({ tone = "ok" }) {
 
 function AppHeader({ state }) {
   const issueCount = state.scenario === "failure" ? 3 : 0;
+  const openPreview = () => {
+    if (state.variant === "a") state.setPreviewOpen(true);
+    if (state.variant === "b") state.setStep(4);
+  };
+  const previewLabel =
+    state.variant === "b" ? "Open review" : state.variant === "c" ? "Preview visible" : "Preview";
   return (
     <header className="app-header">
       <a className="brand" href="#project">
@@ -115,7 +125,9 @@ function AppHeader({ state }) {
           <Icon>⚠</Icon>
           {state.scenario === "ready" ? "Test failure state" : `${issueCount} blocking issues`}
         </button>
-        <button className="preview-button" type="button"><Icon>◉</Icon> Preview</button>
+        <button className="preview-button" type="button" onClick={openPreview}>
+          <Icon>◉</Icon> {previewLabel}
+        </button>
         <button className="publish-button" type="button" disabled={issueCount > 0}>
           {issueCount > 0 ? "Publish blocked" : "Review & publish"}
         </button>
@@ -321,6 +333,35 @@ function VariantA({ state }) {
           </section>
         </main>
         <ValidationPanel failure={failure} />
+      </div>
+      {state.previewOpen && (
+        <PreviewModal failure={failure} onClose={() => state.setPreviewOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+function PreviewModal({ failure, onClose }) {
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  return (
+    <div className="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+      <div className="preview-modal__backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="preview-modal__panel">
+        <header>
+          <span>
+            <small>ON-DEMAND PREVIEW</small>
+            <strong id="preview-title">Compare localized public pages</strong>
+          </span>
+          <button type="button" onClick={onClose} aria-label="Close preview">×</button>
+        </header>
+        <ReviewScreen failure={failure} />
       </div>
     </div>
   );
