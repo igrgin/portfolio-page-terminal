@@ -47,6 +47,23 @@ export {
 } from "./privacy";
 
 export {
+  containsProhibitedSkillClaim,
+  loadPublishedSkills,
+  normalizeSkillEntry,
+  normalizePublishedSkills,
+  skillCategoryLabels,
+  skillCategories,
+  skillIcons,
+  SKILLS_PAGE_QUERY,
+  type SkillCategory,
+  type SkillEvidence,
+  type SkillEvidenceKind,
+  type SkillIcon,
+  type SkillPageContent,
+  type SkillPageEntry,
+} from "./skills";
+
+export {
   contactChannelKinds,
   hasRequiredContactChannelOrder,
   hasSanityConfiguration,

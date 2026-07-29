@@ -13,6 +13,10 @@ import {
   type ContactChannel,
   type UnknownRecord,
 } from "./sanity";
+import {
+  normalizeSkillEntry,
+  SKILL_PUBLIC_PROJECTION,
+} from "./skills";
 
 type ResumeFile = Readonly<{
   mimeType: "application/pdf";
@@ -80,9 +84,7 @@ export const ABOUT_PAGE_QUERY = defineQuery(`{
     headline,
     biography,
     currentFocus,
-    "selectedSkills": selectedSkills[]->{
-      _id, canonicalName, displayName, capability, evidence
-    },
+    "selectedSkills": selectedSkills[]->${SKILL_PUBLIC_PROJECTION},
     "featuredProjects": featuredProjects[]->{
       _id, "slug": slug.current, title, summary, contribution
     }
@@ -214,16 +216,12 @@ export function normalizePublishedAbout(
     locale,
   );
   const selectedSkills = localizedEntries(aboutMe.selectedSkills, (skill) => {
-    const name =
-      localizedStrings(skill.displayName)?.[locale] ??
-      nonEmptyString(skill.canonicalName);
-    const capability = localizedStrings(skill.capability);
-    const evidence = localizedStrings(skill.evidence);
-    return name && capability && evidence
+    const normalized = normalizeSkillEntry(skill, locale);
+    return normalized
       ? {
-          description: capability[locale],
-          evidence: evidence[locale],
-          name,
+          description: normalized.capability,
+          evidence: normalized.evidence.map(({ label }) => label).join(" · "),
+          name: normalized.name,
         }
       : null;
   });

@@ -71,8 +71,10 @@ const publishedAboutQueryResult = {
     selectedSkills: [
       {
         _id: "skill.backend",
+        _type: "skill",
         canonicalName: "Backend engineering",
         displayName: { en: "Backend engineering", hr: "Backend engineering" },
+        category: "backendEngineering",
         capability: {
           en: "Production services with explicit domain boundaries.",
           hr: "Produkcijski servisi s jasnim domenskim granicama.",
@@ -81,6 +83,10 @@ const publishedAboutQueryResult = {
           en: "Applied in production event-processing services.",
           hr: "Primijenjeno u produkcijskim servisima za obradu evenata.",
         },
+        order: 10,
+        experienceEvidence: [],
+        educationEvidence: [],
+        projectEvidence: [],
       },
     ],
     featuredProjects: [
@@ -194,6 +200,29 @@ test("invalid, incomplete, or draft About Me content is not published", () => {
   const unexplainedContribution = structuredClone(publishedAboutQueryResult);
   unexplainedContribution.aboutMe.featuredProjects[0]!.contribution.hr = "";
   assert.equal(normalizePublishedAbout(unexplainedContribution, "hr"), null);
+});
+
+test("About Me accepts a selected Skill backed by published Experience evidence", () => {
+  const referencedSkill = structuredClone(publishedAboutQueryResult);
+  const skill = referencedSkill.aboutMe.selectedSkills[0]!;
+  Reflect.deleteProperty(skill, "evidence");
+  skill.experienceEvidence.push({
+    _id: "experience.current",
+    _type: "experience",
+    employerPresentation: "publicEmployer",
+    employer: "Public Systems",
+    role: {
+      en: "Senior software engineer",
+      hr: "Viši softverski inženjer",
+    },
+  } as never);
+
+  const content = normalizePublishedAbout(referencedSkill, "hr");
+  assert.ok(content);
+  assert.equal(
+    content.selectedSkills[0]?.evidence,
+    "Viši softverski inženjer — Public Systems",
+  );
 });
 
 test("valid edge focal points remain publishable", () => {

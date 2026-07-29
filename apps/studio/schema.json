@@ -266,6 +266,28 @@
           "name": "localizedText"
         },
         "optional": false
+      },
+      "skills": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "array",
+          "of": {
+            "type": "object",
+            "attributes": {
+              "_key": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "string"
+                }
+              }
+            },
+            "rest": {
+              "type": "inline",
+              "name": "skill.reference"
+            }
+          }
+        },
+        "optional": false
       }
     }
   },
@@ -379,6 +401,39 @@
         },
         "optional": true
       },
+      "category": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "union",
+          "of": [
+            {
+              "type": "string",
+              "value": "backendEngineering"
+            },
+            {
+              "type": "string",
+              "value": "distributedDataSystems"
+            },
+            {
+              "type": "string",
+              "value": "developerTooling"
+            },
+            {
+              "type": "string",
+              "value": "aiAndMachineLearning"
+            },
+            {
+              "type": "string",
+              "value": "frontendEngineering"
+            },
+            {
+              "type": "string",
+              "value": "platformsAndOperations"
+            }
+          ]
+        },
+        "optional": false
+      },
       "capability": {
         "type": "objectAttribute",
         "value": {
@@ -392,6 +447,53 @@
         "value": {
           "type": "inline",
           "name": "localizedText"
+        },
+        "optional": true
+      },
+      "icon": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "union",
+          "of": [
+            {
+              "type": "string",
+              "value": "api"
+            },
+            {
+              "type": "string",
+              "value": "database"
+            },
+            {
+              "type": "string",
+              "value": "terminal"
+            },
+            {
+              "type": "string",
+              "value": "neuralNetwork"
+            },
+            {
+              "type": "string",
+              "value": "browser"
+            },
+            {
+              "type": "string",
+              "value": "cloud"
+            }
+          ]
+        },
+        "optional": true
+      },
+      "documentationUrl": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "string"
+        },
+        "optional": true
+      },
+      "order": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "number"
         },
         "optional": false
       }
