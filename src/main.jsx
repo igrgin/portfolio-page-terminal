@@ -53,17 +53,27 @@ function usePrototype() {
     const value = new URLSearchParams(window.location.search).get("variant");
     return variants.some((item) => item.key === value) ? value : "a";
   };
+  const getTheme = () =>
+    new URLSearchParams(window.location.search).get("theme") === "dark" ? "dark" : "light";
   const [variant, setVariantState] = useState(getVariant);
+  const [theme, setThemeState] = useState(getTheme);
   const [scenario, setScenario] = useState("ready");
   const [locale, setLocale] = useState("en");
   const [step, setStep] = useState(0);
   const [section, setSection] = useState("Narrative");
 
   useEffect(() => {
-    const onPopState = () => setVariantState(getVariant());
+    const onPopState = () => {
+      setVariantState(getVariant());
+      setThemeState(getTheme());
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.studioTheme = theme;
+  }, [theme]);
 
   const setVariant = (next) => {
     const params = new URLSearchParams(window.location.search);
@@ -72,9 +82,19 @@ function usePrototype() {
     setVariantState(next);
   };
 
+  const setTheme = (next) => {
+    const params = new URLSearchParams(window.location.search);
+    if (next === "dark") params.set("theme", "dark");
+    else params.delete("theme");
+    window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+    setThemeState(next);
+  };
+
   return {
     variant,
     setVariant,
+    theme,
+    setTheme,
     scenario,
     setScenario,
     locale,
@@ -118,6 +138,18 @@ function AppHeader({ state }) {
         <span className="preview-button preview-button--status">
           <StatusDot /> Live preview
         </span>
+        {state.variant === "a" && (
+          <button
+            className="theme-toggle"
+            type="button"
+            aria-pressed={state.theme === "dark"}
+            aria-label={`Switch to ${state.theme === "dark" ? "light" : "dark"} mode`}
+            onClick={() => state.setTheme(state.theme === "dark" ? "light" : "dark")}
+          >
+            <Icon>{state.theme === "dark" ? "☀" : "☾"}</Icon>
+            {state.theme === "dark" ? "Light" : "Dark"}
+          </button>
+        )}
         <button className="publish-button" type="button" disabled={issueCount > 0}>
           {issueCount > 0 ? "Publish blocked" : "Review & publish"}
         </button>
