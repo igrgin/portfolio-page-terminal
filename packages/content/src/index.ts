@@ -11,10 +11,21 @@ export type PublishedDocument = Readonly<{
 }>;
 
 export {
-  contactChannelKinds,
-  hasSanityConfiguration,
   loadPublishedAbout,
   normalizePublishedAbout,
   type AboutPageContent,
-  type ContactChannelKind,
 } from "./about";
+
+export {
+  loadPublishedExperience,
+  normalizePublishedExperience,
+  type ExperiencePageContent,
+  type ExperiencePageEntry,
+} from "./experience";
+
+export {
+  contactChannelKinds,
+  hasSanityConfiguration,
+  type ContactChannel,
+  type ContactChannelKind,
+} from "./sanity";

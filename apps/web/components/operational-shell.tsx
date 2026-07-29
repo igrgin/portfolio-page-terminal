@@ -41,6 +41,7 @@ export function OperationalShell({
   locale,
   locationLabel,
   locationPrefix,
+  pairedRoute,
 }: Readonly<{
   children: ReactNode;
   contactChannels?: readonly ContactChannel[];
@@ -49,6 +50,7 @@ export function OperationalShell({
   locale: Locale;
   locationLabel: string;
   locationPrefix?: string;
+  pairedRoute?: string;
 }>) {
   const labels = copy[locale];
 
@@ -71,7 +73,7 @@ export function OperationalShell({
         </div>
         <div className="global-controls">
           <LanguagePreferenceLink
-            href={pairedAboutRoute(locale)}
+            href={pairedRoute ?? pairedAboutRoute(locale)}
             locale={locale}
           />
           <ThemeControl locale={locale} />

@@ -1,29 +1,28 @@
 import type { Locale, LocalizedValue } from "./index";
 import { defineQuery } from "groq";
 
+import {
+  loadSanityQuery,
+  localizedStrings,
+  nonEmptyString,
+  normalizeContactChannels,
+  positiveNumber,
+  publishedDocument,
+  record,
+  safeUrl,
+  type ContactChannel,
+  type UnknownRecord,
+} from "./sanity";
+
 type ResumeFile = Readonly<{
   mimeType: "application/pdf";
   updatedAt: string;
   url: string;
 }>;
 
-export const contactChannelKinds = [
-  "email",
-  "phone",
-  "linkedin",
-  "github",
-  "other",
-] as const;
-
-export type ContactChannelKind = (typeof contactChannelKinds)[number];
-
 export type AboutPageContent = Readonly<{
   biography: readonly string[];
-  contactChannels: readonly Readonly<{
-    href: string;
-    kind: ContactChannelKind;
-    label: string;
-  }>[];
+  contactChannels: readonly ContactChannel[];
   currentFocus: string;
   displayName: string;
   featuredProjects: readonly Readonly<{
@@ -63,8 +62,6 @@ export type AboutPageContent = Readonly<{
     name: string;
   }>[];
 }>;
-
-type UnknownRecord = Record<string, unknown>;
 
 export const ABOUT_PAGE_QUERY = defineQuery(`{
   "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{
@@ -117,22 +114,6 @@ export const ABOUT_PAGE_QUERY = defineQuery(`{
   }
 }`);
 
-function record(value: unknown): UnknownRecord | null {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-    ? (value as UnknownRecord)
-    : null;
-}
-
-function nonEmptyString(value: unknown): string | null {
-  return typeof value === "string" && value.trim() ? value.trim() : null;
-}
-
-function positiveNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : null;
-}
-
 function unitIntervalNumber(value: unknown): number | null {
   return typeof value === "number" &&
     Number.isFinite(value) &&
@@ -163,39 +144,6 @@ function imageCrop(value: unknown) {
     : null;
 }
 
-function contactChannelKind(value: unknown): ContactChannelKind | null {
-  return typeof value === "string" &&
-    contactChannelKinds.includes(value as ContactChannelKind)
-    ? (value as ContactChannelKind)
-    : null;
-}
-
-function localizedStrings(value: unknown): LocalizedValue<string> | null {
-  const candidate = record(value);
-  const en = nonEmptyString(candidate?.en);
-  const hr = nonEmptyString(candidate?.hr);
-  return en && hr ? { en, hr } : null;
-}
-
-function publishedDocument(value: unknown): UnknownRecord | null {
-  const candidate = record(value);
-  const id = nonEmptyString(candidate?._id);
-  return id && !id.startsWith("drafts.") ? candidate : null;
-}
-
-function safeUrl(value: unknown, protocols: readonly string[]): string | null {
-  const url = nonEmptyString(value);
-  if (!url) {
-    return null;
-  }
-
-  try {
-    return protocols.includes(new URL(url).protocol) ? url : null;
-  } catch {
-    return null;
-  }
-}
-
 function localizedEntries<T>(
   value: unknown,
   normalize: (entry: UnknownRecord) => T | null,
@@ -219,10 +167,6 @@ function resumeFile(value: unknown): ResumeFile | null {
   return url && updatedAt && candidate?.mimeType === "application/pdf"
     ? { mimeType: "application/pdf", updatedAt, url }
     : null;
-}
-
-function isPresent<T>(value: T | null): value is T {
-  return value !== null;
 }
 
 export function normalizePublishedAbout(
@@ -265,17 +209,10 @@ export function normalizePublishedAbout(
   const englishResume = resumeFile(resumeSet.english);
   const croatianResume = resumeFile(resumeSet.croatian);
 
-  const contactChannels = Array.isArray(siteSettings.contactChannels)
-    ? siteSettings.contactChannels.map((entry) => {
-        const channel = record(entry);
-        const label = localizedStrings(channel?.label);
-        const href = safeUrl(channel?.href, ["https:", "mailto:", "tel:"]);
-        const kind = contactChannelKind(channel?.kind);
-        return label && href && kind
-          ? { href, kind, label: label[locale] }
-          : null;
-      })
-    : null;
+  const contactChannels = normalizeContactChannels(
+    siteSettings.contactChannels,
+    locale,
+  );
   const selectedSkills = localizedEntries(aboutMe.selectedSkills, (skill) => {
     const name =
       localizedStrings(skill.displayName)?.[locale] ??
@@ -339,7 +276,6 @@ export function normalizePublishedAbout(
     !croatianResume ||
     !contactChannels ||
     contactChannels.length === 0 ||
-    !contactChannels.every(isPresent) ||
     !selectedSkills ||
     selectedSkills.length === 0 ||
     !featuredProjects ||
@@ -352,7 +288,7 @@ export function normalizePublishedAbout(
 
   return {
     biography: biographyParagraphs,
-    contactChannels: contactChannels.filter(isPresent),
+    contactChannels,
     currentFocus: currentFocus[locale],
     displayName,
     featuredProjects,
@@ -380,74 +316,9 @@ export function normalizePublishedAbout(
   };
 }
 
-type SanityEnvironment = Readonly<Record<string, string | undefined>>;
-
-export function hasSanityConfiguration(
-  environment: SanityEnvironment = process.env,
-): boolean {
-  const configuredKeys = [
-    "NEXT_PUBLIC_SANITY_DATASET",
-    "NEXT_PUBLIC_SANITY_PROJECT_ID",
-    "SANITY_DATASET",
-    "SANITY_PROJECT_ID",
-  ] as const;
-  if (!configuredKeys.some((key) => environment[key] !== undefined)) {
-    return false;
-  }
-
-  const projectId =
-    environment.SANITY_PROJECT_ID ?? environment.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset =
-    environment.SANITY_DATASET ??
-    environment.NEXT_PUBLIC_SANITY_DATASET ??
-    "production";
-
-  if (
-    !projectId ||
-    !/^[a-z0-9-]+$/.test(projectId) ||
-    !/^[a-zA-Z0-9_-]+$/.test(dataset)
-  ) {
-    throw new Error(
-      "Invalid Sanity configuration: check the project ID and dataset.",
-    );
-  }
-
-  return true;
-}
-
-function sanityEndpoint(): string | null {
-  if (!hasSanityConfiguration()) {
-    return null;
-  }
-
-  const projectId =
-    process.env.SANITY_PROJECT_ID ?? process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-  const dataset =
-    process.env.SANITY_DATASET ??
-    process.env.NEXT_PUBLIC_SANITY_DATASET ??
-    "production";
-  const query = new URLSearchParams({ query: ABOUT_PAGE_QUERY });
-  return `https://${projectId}.apicdn.sanity.io/v2025-02-19/data/query/${dataset}?${query}`;
-}
-
 export async function loadPublishedAbout(
   locale: Locale,
 ): Promise<AboutPageContent | null> {
-  const endpoint = sanityEndpoint();
-  if (!endpoint) {
-    return null;
-  }
-
-  const response = await fetch(endpoint, {
-    cache: "force-cache",
-    headers: { Accept: "application/json" },
-  });
-  if (!response.ok) {
-    throw new Error(
-      `Sanity About Me query failed with status ${response.status}.`,
-    );
-  }
-
-  const payload: unknown = await response.json();
-  return normalizePublishedAbout(record(payload)?.result, locale);
+  const result = await loadSanityQuery(ABOUT_PAGE_QUERY, "About Me");
+  return normalizePublishedAbout(result, locale);
 }

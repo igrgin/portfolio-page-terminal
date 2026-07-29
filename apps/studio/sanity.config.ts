@@ -37,6 +37,7 @@ export default defineConfig({
                 .child(list.document().schemaType(type).documentId(id)),
             ),
             list.divider(),
+            list.documentTypeListItem("experience").title("Experience"),
             list.documentTypeListItem("skill").title("Skills"),
             list.documentTypeListItem("project").title("Projects"),
           ]),

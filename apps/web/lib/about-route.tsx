@@ -5,9 +5,11 @@ import {
 } from "@portfolio/content";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import React, { cache } from "react";
+import { cache } from "react";
 
 import { AboutPageView } from "../components/about-page-view";
+import { StructuredData } from "../components/structured-data";
+import { unpublishedContentMetadata } from "./content-route";
 import { sharingImagePublicPath } from "./public-assets";
 import { destinationRoute } from "./routing";
 import { absoluteSiteUrl, siteOrigin } from "./site-origin";
@@ -82,10 +84,7 @@ export function aboutStructuredData(
 export async function aboutMetadata(locale: Locale): Promise<Metadata> {
   const content = await publishedAbout(locale);
   if (!content) {
-    return {
-      robots: { follow: false, index: false },
-      title: locale === "en" ? "Page not found" : "Stranica nije pronađena",
-    };
+    return unpublishedContentMetadata(locale);
   }
 
   return buildAboutMetadata(content, locale);
@@ -102,12 +101,7 @@ export async function renderAboutRoute(locale: Locale) {
   return (
     <>
       <AboutPageView content={content} locale={locale} />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c"),
-        }}
-        type="application/ld+json"
-      />
+      <StructuredData value={structuredData} />
     </>
   );
 }
