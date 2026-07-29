@@ -1,4 +1,5 @@
 import { aboutMe } from "./about";
+import { education, relevantSubject } from "./education";
 import { experience } from "./experience";
 import {
   localizedMetadata,
@@ -14,6 +15,7 @@ export const schemaTypes = [
   localizedText,
   localizedStringList,
   localizedMetadata,
+  relevantSubject,
   contactChannel,
   siteSettings,
   aboutMe,
@@ -22,4 +24,5 @@ export const schemaTypes = [
   resumeSet,
   skill,
   project,
+  education,
 ];

@@ -60,6 +60,9 @@ export function destinationLabel(locale: Locale, destination: Destination) {
   return routes[destination].label[locale];
 }
 
-export function pairedAboutRoute(locale: Locale) {
-  return destinationRoute(locale === "en" ? "hr" : "en", "about");
+export function pairedDestinationRoute(
+  locale: Locale,
+  destination: Destination,
+) {
+  return destinationRoute(locale === "en" ? "hr" : "en", destination);
 }

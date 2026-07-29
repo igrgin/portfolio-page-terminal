@@ -38,6 +38,7 @@ export default defineConfig({
             ),
             list.divider(),
             list.documentTypeListItem("experience").title("Experience"),
+            list.documentTypeListItem("education").title("Education"),
             list.documentTypeListItem("skill").title("Skills"),
             list.documentTypeListItem("project").title("Projects"),
           ]),

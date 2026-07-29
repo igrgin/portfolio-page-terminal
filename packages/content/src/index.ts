@@ -17,6 +17,15 @@ export {
 } from "./about";
 
 export {
+  EDUCATION_PAGE_QUERY,
+  EDUCATION_YEAR_RANGE,
+  loadPublishedEducation,
+  normalizePublishedEducation,
+  type EducationPageContent,
+  type EducationPageEntry,
+} from "./education";
+
+export {
   loadPublishedExperience,
   normalizePublishedExperience,
   type ExperiencePageContent,

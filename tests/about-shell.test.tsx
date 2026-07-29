@@ -11,7 +11,7 @@ import {
 } from "../apps/web/lib/about-route";
 import {
   destinationRoute,
-  pairedAboutRoute,
+  pairedDestinationRoute,
   primaryNavigation,
 } from "../apps/web/lib/routing";
 import { siteOrigin } from "../apps/web/lib/site-origin";
@@ -133,8 +133,8 @@ const publishedAboutQueryResult = {
 };
 
 test("route pairing preserves the About Me entity in either locale", () => {
-  assert.equal(pairedAboutRoute("en"), "/hr/o-meni");
-  assert.equal(pairedAboutRoute("hr"), "/en/about");
+  assert.equal(pairedDestinationRoute("en", "about"), "/hr/o-meni");
+  assert.equal(pairedDestinationRoute("hr", "about"), "/en/about");
 });
 
 test("global navigation exposes all six localized destinations", () => {
