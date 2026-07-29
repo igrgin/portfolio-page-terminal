@@ -15,6 +15,45 @@
 export declare const internalGroqTypeReferenceTo: unique symbol;
 
 // Source: schema.json
+export type SkillReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "skill";
+};
+
+export type Education = {
+  _id: string;
+  _type: "education";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  institution: LocalizedString;
+  qualification: LocalizedString;
+  field: LocalizedString;
+  startYear: number;
+  endYear?: number;
+  inProgress: boolean;
+  location?: LocalizedString;
+  url?: string;
+  relevantSubjects: Array<
+    {
+      _key: string;
+    } & RelevantSubject
+  >;
+  skills?: Array<
+    {
+      _key: string;
+    } & SkillReference
+  >;
+};
+
+export type LocalizedString = {
+  _type: "localizedString";
+  en: string;
+  hr: string;
+};
+
 export type Project = {
   _id: string;
   _type: "project";
@@ -39,12 +78,6 @@ export type Slug = {
   source?: string;
 };
 
-export type LocalizedString = {
-  _type: "localizedString";
-  en: string;
-  hr: string;
-};
-
 export type Skill = {
   _id: string;
   _type: "skill";
@@ -55,13 +88,6 @@ export type Skill = {
   displayName?: LocalizedString;
   capability: LocalizedText;
   evidence: LocalizedText;
-};
-
-export type SkillReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "skill";
 };
 
 export type Experience = {
@@ -251,6 +277,11 @@ export type ContactChannel = {
   href: string;
 };
 
+export type RelevantSubject = {
+  _type: "relevantSubject";
+  title: LocalizedString;
+};
+
 export type SanityImagePaletteSwatch = {
   _type: "sanity.imagePaletteSwatch";
   background?: string;
@@ -349,12 +380,13 @@ export type Geopoint = {
 };
 
 export type AllSanitySchemaTypes =
+  | SkillReference
+  | Education
+  | LocalizedString
   | Project
   | LocalizedText
   | Slug
-  | LocalizedString
   | Skill
-  | SkillReference
   | Experience
   | LocalizedStringList
   | ProjectReference
@@ -370,6 +402,7 @@ export type AllSanitySchemaTypes =
   | ResumeSet
   | LocalizedMetadata
   | ContactChannel
+  | RelevantSubject
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions
@@ -480,6 +513,72 @@ export type ABOUT_PAGE_QUERY_RESULT = {
   } | null;
 };
 
+// Source: ../../packages/content/src/education.ts
+// Variable: EDUCATION_PAGE_QUERY
+// Query: {  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{    _id,    displayName,    "defaultSharingImage": {      "url": defaultSharingImage.asset->url,      "width": defaultSharingImage.asset->metadata.dimensions.width,      "height": defaultSharingImage.asset->metadata.dimensions.height    },    contactChannels[]{_key, kind, label, href}  },  "educationEntries": *[    _type == "education" && !(_id in path("drafts.**"))  ]{    _id,    institution,    qualification,    field,    startYear,    endYear,    inProgress,    location,    url,    relevantSubjects[]{_key, title},    "skills": skills[]->{      _id, _type, canonicalName, displayName, capability, evidence    }  }}
+export type EDUCATION_PAGE_QUERY_RESULT = {
+  siteSettings:
+    | {
+        _id: string;
+        displayName: string;
+        defaultSharingImage: {
+          url: string | null;
+          width: number | null;
+          height: number | null;
+        };
+        contactChannels: Array<{
+          _key: string;
+          kind: "email" | "github" | "linkedin" | "other" | "phone";
+          label: LocalizedString;
+          href: string;
+        }>;
+      }
+    | {
+        _id: string;
+        displayName: null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | {
+        _id: string;
+        displayName: LocalizedString | null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | null;
+  educationEntries: Array<{
+    _id: string;
+    institution: LocalizedString;
+    qualification: LocalizedString;
+    field: LocalizedString;
+    startYear: number;
+    endYear: number | null;
+    inProgress: boolean;
+    location: LocalizedString | null;
+    url: string | null;
+    relevantSubjects: Array<{
+      _key: string;
+      title: LocalizedString;
+    }>;
+    skills: Array<{
+      _id: string;
+      _type: "skill";
+      canonicalName: string;
+      displayName: LocalizedString | null;
+      capability: LocalizedText;
+      evidence: LocalizedText;
+    }> | null;
+  }>;
+};
+
 // Source: ../../packages/content/src/experience.ts
 // Variable: EXPERIENCE_PAGE_QUERY
 // Query: {  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{    _id,    displayName,    "defaultSharingImage": {      "url": defaultSharingImage.asset->url,      "width": defaultSharingImage.asset->metadata.dimensions.width,      "height": defaultSharingImage.asset->metadata.dimensions.height    },    contactChannels[]{_key, kind, label, href}  },  "experiences": *[_type == "experience" && !(_id in path("drafts.**"))]{    _id,    employerPresentation,    employer,    confidentialClientLabel,    role,    startDate,    endDate,    current,    location,    employmentType,    employerUrl,    summary,    achievements,    "skills": skills[]->{      _id,      canonicalName,      displayName    }  }}
@@ -548,6 +647,7 @@ import "@sanity/client";
 declare module "@sanity/client" {
   interface SanityQueries {
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    defaultMetadata,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "aboutMe": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0]{\n    _id,\n    headline,\n    biography,\n    currentFocus,\n    "selectedSkills": selectedSkills[]->{\n      _id, canonicalName, displayName, capability, evidence\n    },\n    "featuredProjects": featuredProjects[]->{\n      _id, "slug": slug.current, title, summary, contribution\n    }\n  },\n  "profileMedia": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0].profileMedia->{\n    _id,\n    "portrait": {\n      "url": primaryPortrait.asset->url,\n      "width": primaryPortrait.asset->metadata.dimensions.width,\n      "height": primaryPortrait.asset->metadata.dimensions.height,\n      "hotspot": primaryPortrait.hotspot,\n      "crop": primaryPortrait.crop\n    },\n    alt,\n    caption\n  },\n  "resumeSet": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0].resumeSet->{\n    _id,\n    "english": {\n      "url": englishResume.asset->url,\n      "mimeType": englishResume.asset->mimeType,\n      "updatedAt": englishUpdatedAt\n    },\n    "croatian": {\n      "url": croatianResume.asset->url,\n      "mimeType": croatianResume.asset->mimeType,\n      "updatedAt": croatianUpdatedAt\n    }\n  }\n}': ABOUT_PAGE_QUERY_RESULT;
+    '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "educationEntries": *[\n    _type == "education" && !(_id in path("drafts.**"))\n  ]{\n    _id,\n    institution,\n    qualification,\n    field,\n    startYear,\n    endYear,\n    inProgress,\n    location,\n    url,\n    relevantSubjects[]{_key, title},\n    "skills": skills[]->{\n      _id, _type, canonicalName, displayName, capability, evidence\n    }\n  }\n}': EDUCATION_PAGE_QUERY_RESULT;
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "experiences": *[_type == "experience" && !(_id in path("drafts.**"))]{\n    _id,\n    employerPresentation,\n    employer,\n    confidentialClientLabel,\n    role,\n    startDate,\n    endDate,\n    current,\n    location,\n    employmentType,\n    employerUrl,\n    summary,\n    achievements,\n    "skills": skills[]->{\n      _id,\n      canonicalName,\n      displayName\n    }\n  }\n}': EXPERIENCE_PAGE_QUERY_RESULT;
   }
 }

@@ -1,11 +1,11 @@
-import type { AboutPageContent, Locale } from "@portfolio/content";
+import type { ContactChannel, Locale } from "@portfolio/content";
 import React, { type ReactNode } from "react";
 
 import {
   type Destination,
   destinationLabel,
   destinationRoute,
-  pairedAboutRoute,
+  pairedDestinationRoute,
   primaryNavigation,
 } from "../lib/routing";
 import { resumePublicPaths } from "../lib/public-assets";
@@ -30,8 +30,6 @@ const copy = {
     skip: "Preskoči na sadržaj",
   },
 } as const;
-
-type ContactChannel = AboutPageContent["contactChannels"][number];
 
 export function OperationalShell({
   children,
@@ -73,7 +71,10 @@ export function OperationalShell({
         </div>
         <div className="global-controls">
           <LanguagePreferenceLink
-            href={pairedRoute ?? pairedAboutRoute(locale)}
+            href={
+              pairedRoute ??
+              pairedDestinationRoute(locale, currentDestination ?? "about")
+            }
             locale={locale}
           />
           <ThemeControl locale={locale} />
