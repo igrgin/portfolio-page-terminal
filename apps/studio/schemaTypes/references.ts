@@ -10,8 +10,6 @@ import {
   type ValidationContext,
 } from "sanity";
 
-import { requiredSupportingSkillsField } from "./skill-reference";
-
 const skillCategoryOptions = skillCategories.map((value) => ({
   title: skillCategoryLabels[value].en,
   value,
@@ -172,38 +170,4 @@ export const skill = defineType({
   title: "Skill",
   type: "document",
   validation: (rule) => rule.custom(validateSkillEvidence),
-});
-
-export const project = defineType({
-  fields: [
-    defineField({
-      name: "title",
-      title: "Title",
-      type: "localizedString",
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: "slug",
-      options: { source: "title.en" },
-      title: "Canonical slug",
-      type: "slug",
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: "summary",
-      title: "Summary",
-      type: "localizedText",
-      validation: (rule) => rule.required(),
-    }),
-    defineField({
-      name: "contribution",
-      title: "Role and contribution",
-      type: "localizedText",
-      validation: (rule) => rule.required(),
-    }),
-    requiredSupportingSkillsField(),
-  ],
-  name: "project",
-  title: "Project",
-  type: "document",
 });

@@ -64,11 +64,53 @@ export type Project = {
   slug: Slug;
   summary: LocalizedText;
   contribution: LocalizedText;
+  startDate: string;
+  endDate?: string;
+  status: "inProgress" | "completed" | "maintained" | "archived";
+  featured: boolean;
+  order: number;
   skills: Array<
     {
       _key: string;
     } & SkillReference
   >;
+  repositoryUrl?: string;
+  demoUrl?: string;
+  documentationUrl?: string;
+  metadataOverride?: LocalizedMetadata;
+  heroMedia?: ProjectMedia;
+  media?: Array<
+    {
+      _key: string;
+    } & ProjectMedia
+  >;
+  publishSafe: boolean;
+};
+
+export type SanityImageAssetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+};
+
+export type ProjectMedia = {
+  _type: "projectMedia";
+  image: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  alternativeText: LocalizedString;
+  caption?: LocalizedText;
+};
+
+export type LocalizedMetadata = {
+  _type: "localizedMetadata";
+  title: LocalizedString;
+  description: LocalizedText;
 };
 
 export type LocalizedText = {
@@ -203,13 +245,6 @@ export type AboutMe = {
   profileMedia: ProfileMediaReference;
 };
 
-export type SanityImageAssetReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
-};
-
 export type ProfileMedia = {
   _id: string;
   _type: "profileMedia";
@@ -308,12 +343,6 @@ export type ResumeSet = {
   englishDisclaimer: string;
   croatianDisclaimer: string;
   internalVersionNote?: string;
-};
-
-export type LocalizedMetadata = {
-  _type: "localizedMetadata";
-  title: LocalizedString;
-  description: LocalizedText;
 };
 
 export type ContactChannel = {
@@ -430,6 +459,9 @@ export type AllSanitySchemaTypes =
   | Education
   | LocalizedString
   | Project
+  | SanityImageAssetReference
+  | ProjectMedia
+  | LocalizedMetadata
   | LocalizedText
   | Slug
   | Skill
@@ -440,7 +472,6 @@ export type AllSanitySchemaTypes =
   | ProjectReference
   | ProfileMediaReference
   | AboutMe
-  | SanityImageAssetReference
   | ProfileMedia
   | SanityImageCrop
   | SanityImageHotspot
@@ -448,7 +479,6 @@ export type AllSanitySchemaTypes =
   | SiteSettings
   | SanityFileAssetReference
   | ResumeSet
-  | LocalizedMetadata
   | ContactChannel
   | RelevantSubject
   | SanityImagePaletteSwatch
@@ -858,6 +888,133 @@ export type PRIVACY_PAGE_QUERY_RESULT = {
     | null;
 };
 
+// Source: ../../packages/content/src/projects.ts
+// Variable: PROJECTS_PAGE_QUERY
+// Query: {  "siteSettings": *[    _id == "siteSettings" && !(_id in path("drafts.**"))  ][0]{    _id,    displayName,    "defaultSharingImage": {      "url": defaultSharingImage.asset->url,      "width": defaultSharingImage.asset->metadata.dimensions.width,      "height": defaultSharingImage.asset->metadata.dimensions.height    },    contactChannels[]{_key, kind, label, href}  },  "projects": *[    _type == "project" && !(_id in path("drafts.**"))  ]{    _id,    _type,    title,    "slug": slug.current,    summary,    contribution,    startDate,    endDate,    status,    featured,    order,    "skills": skills[]->{  _id,  _type,  canonicalName,  displayName,  category,  capability,  evidence,  icon,  documentationUrl,  order,  "experienceEvidence": *[    _type == "experience" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    employerPresentation,    employer,    confidentialClientLabel,    role  },  "educationEvidence": *[    _type == "education" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    institution,    qualification  },  "projectEvidence": *[    _type == "project" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    title,    "slug": slug.current  }},    repositoryUrl,    demoUrl,    documentationUrl,    metadataOverride,    "heroMedia": heroMedia{  _key,  "image": {    "url": image.asset->url,    "width": image.asset->metadata.dimensions.width,    "height": image.asset->metadata.dimensions.height  },  alternativeText,  caption},    "media": media[]{  _key,  "image": {    "url": image.asset->url,    "width": image.asset->metadata.dimensions.width,    "height": image.asset->metadata.dimensions.height  },  alternativeText,  caption},    publishSafe,    sensitive  }}
+export type PROJECTS_PAGE_QUERY_RESULT = {
+  siteSettings:
+    | {
+        _id: string;
+        displayName: string;
+        defaultSharingImage: {
+          url: string | null;
+          width: number | null;
+          height: number | null;
+        };
+        contactChannels: Array<{
+          _key: string;
+          kind: "email" | "github" | "linkedin" | "other" | "phone";
+          label: LocalizedString;
+          href: string;
+        }>;
+      }
+    | {
+        _id: string;
+        displayName: null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | {
+        _id: string;
+        displayName: LocalizedString | null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | null;
+  projects: Array<{
+    _id: string;
+    _type: "project";
+    title: LocalizedString;
+    slug: string;
+    summary: LocalizedText;
+    contribution: LocalizedText;
+    startDate: string;
+    endDate: string | null;
+    status: "archived" | "completed" | "inProgress" | "maintained";
+    featured: boolean;
+    order: number;
+    skills: Array<{
+      _id: string;
+      _type: "skill";
+      canonicalName: string;
+      displayName: LocalizedString | null;
+      category:
+        | "aiAndMachineLearning"
+        | "backendEngineering"
+        | "developerTooling"
+        | "distributedDataSystems"
+        | "frontendEngineering"
+        | "platformsAndOperations";
+      capability: LocalizedText;
+      evidence: LocalizedText | null;
+      icon:
+        | "api"
+        | "browser"
+        | "cloud"
+        | "database"
+        | "neuralNetwork"
+        | "terminal"
+        | null;
+      documentationUrl: string | null;
+      order: number;
+      experienceEvidence: Array<{
+        _id: string;
+        _type: "experience";
+        employerPresentation: "confidentialClient" | "publicEmployer";
+        employer: string | null;
+        confidentialClientLabel: LocalizedString | null;
+        role: LocalizedString;
+      }>;
+      educationEvidence: Array<{
+        _id: string;
+        _type: "education";
+        institution: LocalizedString;
+        qualification: LocalizedString;
+      }>;
+      projectEvidence: Array<{
+        _id: string;
+        _type: "project";
+        title: LocalizedString;
+        slug: string;
+      }>;
+    }>;
+    repositoryUrl: string | null;
+    demoUrl: string | null;
+    documentationUrl: string | null;
+    metadataOverride: LocalizedMetadata | null;
+    heroMedia: {
+      _key: null;
+      image: {
+        url: string | null;
+        width: number | null;
+        height: number | null;
+      };
+      alternativeText: LocalizedString;
+      caption: LocalizedText | null;
+    } | null;
+    media: Array<{
+      _key: string;
+      image: {
+        url: string | null;
+        width: number | null;
+        height: number | null;
+      };
+      alternativeText: LocalizedString;
+      caption: LocalizedText | null;
+    }> | null;
+    publishSafe: boolean;
+    sensitive: null;
+  }>;
+};
+
 // Source: ../../packages/content/src/skills.ts
 // Variable: SKILLS_PAGE_QUERY
 // Query: {  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{    _id,    displayName,    "defaultSharingImage": {      "url": defaultSharingImage.asset->url,      "width": defaultSharingImage.asset->metadata.dimensions.width,      "height": defaultSharingImage.asset->metadata.dimensions.height    },    contactChannels[]{_key, kind, label, href}  },  "skills": *[    _type == "skill" && !(_id in path("drafts.**"))  ]{  _id,  _type,  canonicalName,  displayName,  category,  capability,  evidence,  icon,  documentationUrl,  order,  "experienceEvidence": *[    _type == "experience" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    employerPresentation,    employer,    confidentialClientLabel,    role  },  "educationEvidence": *[    _type == "education" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    institution,    qualification  },  "projectEvidence": *[    _type == "project" &&    !(_id in path("drafts.**")) &&    references(^._id)  ]{    _id,    _type,    title,    "slug": slug.current  }}}
@@ -955,6 +1112,7 @@ declare module "@sanity/client" {
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "educationEntries": *[\n    _type == "education" && !(_id in path("drafts.**"))\n  ]{\n    _id,\n    institution,\n    qualification,\n    field,\n    startYear,\n    endYear,\n    inProgress,\n    location,\n    url,\n    relevantSubjects[]{_key, title},\n    "skills": skills[]->{\n      _id, _type, canonicalName, displayName, capability, evidence\n    }\n  }\n}': EDUCATION_PAGE_QUERY_RESULT;
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "experiences": *[_type == "experience" && !(_id in path("drafts.**"))]{\n    _id,\n    employerPresentation,\n    employer,\n    confidentialClientLabel,\n    role,\n    startDate,\n    endDate,\n    current,\n    location,\n    employmentType,\n    employerUrl,\n    summary,\n    achievements,\n    "skills": skills[]->{\n      _id,\n      canonicalName,\n      displayName\n    }\n  }\n}': EXPERIENCE_PAGE_QUERY_RESULT;
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "privacyNotice": *[\n    _id == "privacyNotice" && !(_id in path("drafts.**"))\n  ][0]{\n    _id,\n    effectiveDate,\n    privacyRequestEmail,\n    controller,\n    purposesAndLegalBases,\n    processorsAndTransfers,\n    retention,\n    rightsAndRequests,\n    contactData,\n    localPreferences,\n    automatedDecisionMaking,\n    azopComplaint,\n    azopUrl\n  }\n}': PRIVACY_PAGE_QUERY_RESULT;
+    '{\n  "siteSettings": *[\n    _id == "siteSettings" && !(_id in path("drafts.**"))\n  ][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "projects": *[\n    _type == "project" && !(_id in path("drafts.**"))\n  ]{\n    _id,\n    _type,\n    title,\n    "slug": slug.current,\n    summary,\n    contribution,\n    startDate,\n    endDate,\n    status,\n    featured,\n    order,\n    "skills": skills[]->{\n  _id,\n  _type,\n  canonicalName,\n  displayName,\n  category,\n  capability,\n  evidence,\n  icon,\n  documentationUrl,\n  order,\n  "experienceEvidence": *[\n    _type == "experience" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    employerPresentation,\n    employer,\n    confidentialClientLabel,\n    role\n  },\n  "educationEvidence": *[\n    _type == "education" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    institution,\n    qualification\n  },\n  "projectEvidence": *[\n    _type == "project" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    title,\n    "slug": slug.current\n  }\n},\n    repositoryUrl,\n    demoUrl,\n    documentationUrl,\n    metadataOverride,\n    "heroMedia": heroMedia{\n  _key,\n  "image": {\n    "url": image.asset->url,\n    "width": image.asset->metadata.dimensions.width,\n    "height": image.asset->metadata.dimensions.height\n  },\n  alternativeText,\n  caption\n},\n    "media": media[]{\n  _key,\n  "image": {\n    "url": image.asset->url,\n    "width": image.asset->metadata.dimensions.width,\n    "height": image.asset->metadata.dimensions.height\n  },\n  alternativeText,\n  caption\n},\n    publishSafe,\n    sensitive\n  }\n}': PROJECTS_PAGE_QUERY_RESULT;
     '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "skills": *[\n    _type == "skill" && !(_id in path("drafts.**"))\n  ]{\n  _id,\n  _type,\n  canonicalName,\n  displayName,\n  category,\n  capability,\n  evidence,\n  icon,\n  documentationUrl,\n  order,\n  "experienceEvidence": *[\n    _type == "experience" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    employerPresentation,\n    employer,\n    confidentialClientLabel,\n    role\n  },\n  "educationEvidence": *[\n    _type == "education" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    institution,\n    qualification\n  },\n  "projectEvidence": *[\n    _type == "project" &&\n    !(_id in path("drafts.**")) &&\n    references(^._id)\n  ]{\n    _id,\n    _type,\n    title,\n    "slug": slug.current\n  }\n}\n}': SKILLS_PAGE_QUERY_RESULT;
   }
 }

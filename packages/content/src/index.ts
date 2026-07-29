@@ -47,6 +47,19 @@ export {
 } from "./privacy";
 
 export {
+  isOngoingProjectStatus,
+  loadPublishedProjects,
+  normalizePublishedProjects,
+  projectStatusLabels,
+  projectStatuses,
+  PROJECTS_PAGE_QUERY,
+  type ProjectMedia,
+  type ProjectPageEntry,
+  type ProjectStatus,
+  type ProjectsPageContent,
+} from "./projects";
+
+export {
   containsProhibitedSkillClaim,
   loadPublishedSkills,
   normalizeSkillEntry,
