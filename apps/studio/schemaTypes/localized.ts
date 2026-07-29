@@ -46,14 +46,24 @@ export const localizedStringList = defineType({
   fields: [
     defineField({
       name: "en",
-      of: [defineArrayMember({ type: "string" })],
+      of: [
+        defineArrayMember({
+          type: "string",
+          validation: (rule) => rule.required(),
+        }),
+      ],
       title: "English",
       type: "array",
       validation: (rule) => rule.required().min(1),
     }),
     defineField({
       name: "hr",
-      of: [defineArrayMember({ type: "string" })],
+      of: [
+        defineArrayMember({
+          type: "string",
+          validation: (rule) => rule.required(),
+        }),
+      ],
       title: "Croatian",
       type: "array",
       validation: (rule) => rule.required().min(1),

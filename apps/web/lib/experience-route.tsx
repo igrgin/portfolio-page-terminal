@@ -5,9 +5,12 @@ import {
 } from "@portfolio/content";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import React, { cache } from "react";
+import { cache } from "react";
 
 import { ExperiencePageView } from "../components/experience-page-view";
+import { StructuredData } from "../components/structured-data";
+import { unpublishedContentMetadata } from "./content-route";
+import { sharingImagePublicPath } from "./public-assets";
 import { destinationLabel, destinationRoute } from "./routing";
 import { absoluteSiteUrl, siteOrigin } from "./site-origin";
 
@@ -24,6 +27,15 @@ export function buildExperienceMetadata(
   );
   const title = `${destinationLabel(locale, "experience")} — ${content.displayName}`;
   const description = content.entries[0]!.summary;
+  const sharingImage = {
+    alt: content.displayName,
+    height: content.metadata.image.height,
+    url: absoluteSiteUrl(
+      sharingImagePublicPath(content.metadata.image.url),
+      origin,
+    ),
+    width: content.metadata.image.width,
+  };
 
   return {
     alternates: {
@@ -41,6 +53,7 @@ export function buildExperienceMetadata(
     metadataBase: origin,
     openGraph: {
       description,
+      images: [sharingImage],
       locale: locale === "en" ? "en_US" : "hr_HR",
       siteName: content.displayName,
       title,
@@ -49,8 +62,9 @@ export function buildExperienceMetadata(
     },
     title,
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       description,
+      images: [sharingImage],
       title,
     },
   };
@@ -92,10 +106,7 @@ export function experienceStructuredData(
 export async function experienceMetadata(locale: Locale): Promise<Metadata> {
   const content = await publishedExperience(locale);
   if (!content) {
-    return {
-      robots: { follow: false, index: false },
-      title: locale === "en" ? "Page not found" : "Stranica nije pronađena",
-    };
+    return unpublishedContentMetadata(locale);
   }
 
   return buildExperienceMetadata(content, locale);
@@ -112,12 +123,7 @@ export async function renderExperienceRoute(locale: Locale) {
   return (
     <>
       <ExperiencePageView content={content} locale={locale} />
-      <script
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(structuredData).replaceAll("<", "\\u003c"),
-        }}
-        type="application/ld+json"
-      />
+      <StructuredData value={structuredData} />
     </>
   );
 }

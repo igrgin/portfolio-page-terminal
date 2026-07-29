@@ -14,6 +14,11 @@ const publishedExperienceQueryResult = {
   siteSettings: {
     _id: "siteSettings",
     displayName: "Ivo Grgin",
+    defaultSharingImage: {
+      url: "https://cdn.sanity.io/images/project/production/share.jpg",
+      width: 1200,
+      height: 630,
+    },
     contactChannels: [
       {
         _key: "github",
@@ -183,6 +188,26 @@ test("the localized Experience page renders linked evidence and accessible dates
   );
 });
 
+test("the English Experience preview preserves English facts and disclosure", () => {
+  const content = normalizePublishedExperience(
+    publishedExperienceQueryResult,
+    "en",
+  );
+  assert.ok(content);
+
+  const html = renderToStaticMarkup(
+    <ExperiencePageView content={content} locale="en" />,
+  );
+
+  assert.match(html, /<h1[^>]*>Experience<\/h1>/);
+  assert.match(html, /Confidential financial-services client/);
+  assert.match(html, /Builds resilient event-processing systems\./);
+  assert.match(html, /Designed recoverable processing workflows\./);
+  assert.match(html, /<time dateTime="2024-03">[^<]+<\/time>/);
+  assert.match(html, /Present/);
+  assert.doesNotMatch(html, /Povjerljivi klijent/);
+});
+
 test("draft, invalid, unsafe, or reference-incomplete Experience stays private", () => {
   const draft = structuredClone(publishedExperienceQueryResult);
   draft.experiences[0]!._id = "drafts.experience.older";
@@ -196,6 +221,24 @@ test("draft, invalid, unsafe, or reference-incomplete Experience stays private",
   assert.deepEqual(
     normalizePublishedExperience(invalidDate, "en")?.entries.map(({ id }) => id),
     ["experience.current", "experience.older"],
+  );
+
+  const missingEndDate = structuredClone(publishedExperienceQueryResult);
+  Reflect.deleteProperty(missingEndDate.experiences[2]!, "endDate");
+  assert.deepEqual(
+    normalizePublishedExperience(missingEndDate, "en")?.entries.map(
+      ({ id }) => id,
+    ),
+    ["experience.current", "experience.older"],
+  );
+
+  const malformedEndDate = structuredClone(publishedExperienceQueryResult);
+  malformedEndDate.experiences[0]!.endDate = "2022-00";
+  assert.deepEqual(
+    normalizePublishedExperience(malformedEndDate, "en")?.entries.map(
+      ({ id }) => id,
+    ),
+    ["experience.current", "experience.recent"],
   );
 
   const endedCurrentRole = structuredClone(publishedExperienceQueryResult);
@@ -281,6 +324,14 @@ test("Experience discovery data uses the localized canonical route and public en
     metadata.description,
     "Builds resilient event-processing systems.",
   );
+  const sharingImage = {
+    alt: "Ivo Grgin",
+    height: 630,
+    url: "https://portfolio.example/media/ivo-grgin-profile-share.jpg",
+    width: 1200,
+  };
+  assert.deepEqual(metadata.openGraph?.images, [sharingImage]);
+  assert.deepEqual(metadata.twitter?.images, [sharingImage]);
 
   const structuredData = experienceStructuredData(content, "en", origin);
   assert.equal(structuredData["@type"], "CollectionPage");
