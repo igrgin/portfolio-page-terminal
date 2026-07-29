@@ -1,21 +1,38 @@
 {
-  "name": "portfolio-tui-visual-prototype",
+  "name": "portfolio-page-terminal",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
+  "packageManager": "npm@10.9.0",
+  "engines": {
+    "node": ">=22.13.0 <23",
+    "npm": ">=10.9.0 <11"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "start": "vite --host 0.0.0.0",
-    "build": "vite build"
+    "dev:web": "npm run dev --workspace @portfolio/web",
+    "dev:studio": "npm run dev --workspace @portfolio/studio",
+    "build": "npm run build:web && npm run build:studio",
+    "build:web": "npm run build --workspace @portfolio/web",
+    "build:studio": "npm run build --workspace @portfolio/studio",
+    "typegen": "npm run typegen --workspace @portfolio/studio",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "node --test tests/*.test.mjs",
+    "check:generated": "npm run typegen && git diff --exit-code -- apps/studio/schema.json packages/content/src/generated/sanity.types.ts",
+    "check:dependencies": "npm audit --audit-level=critical",
+    "check:secrets": "secretlint \"**/*\"",
+    "check": "npm run check:generated && npm run typecheck && npm test && npm run check:dependencies && npm run check:secrets && npm run build"
   },
-  "dependencies": {
-    "@fontsource/atkinson-hyperlegible": "5.3.0",
-    "@fontsource/ibm-plex-mono": "5.3.0",
-    "@fontsource/ibm-plex-sans": "5.3.0",
-    "@fontsource-variable/atkinson-hyperlegible-next": "5.3.0",
-    "@vitejs/plugin-react": "6.0.4",
-    "vite": "8.1.5",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
-  },
-  "devDependencies": {}
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.4",
+    "@types/node": "26.1.2",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "secretlint": "13.0.4",
+    "shadcn": "4.16.0",
+    "typescript": "6.0.3"
+  }
 }
