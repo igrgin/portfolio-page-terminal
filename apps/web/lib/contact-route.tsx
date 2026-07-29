@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import React, { cache } from "react";
 
 import { ContactPageView } from "../components/contact-page-view";
+import { contactFormAvailable } from "./contact-form-server";
 import {
   buildLocalizedPageMetadata,
   unpublishedContentMetadata,
@@ -54,5 +55,11 @@ export async function renderContactRoute(locale: Locale) {
     notFound();
   }
 
-  return <ContactPageView content={content} locale={locale} />;
+  return (
+    <ContactPageView
+      content={content}
+      formEnabled={contactFormAvailable(process.env)}
+      locale={locale}
+    />
+  );
 }

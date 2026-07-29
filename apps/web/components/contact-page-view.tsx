@@ -6,6 +6,7 @@ import type {
 import React from "react";
 
 import { destinationLabel } from "../lib/routing";
+import { ContactForm } from "./contact-form";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -54,8 +55,13 @@ function ContactChannelIcon({
 
 export function ContactPageView({
   content,
+  formEnabled = false,
   locale,
-}: Readonly<{ content: ContactPageContent; locale: Locale }>) {
+}: Readonly<{
+  content: ContactPageContent;
+  formEnabled?: boolean;
+  locale: Locale;
+}>) {
   const labels = copy[locale];
 
   return (
@@ -95,6 +101,7 @@ export function ContactPageView({
           </article>
         ))}
       </section>
+      {formEnabled && <ContactForm locale={locale} />}
     </OperationalShell>
   );
 }

@@ -169,14 +169,22 @@ test("Contact rejects unsafe, misordered, draft, or incomplete bilingual content
 });
 
 test("Contact renders four visible direct actions and a complete form-disabled experience", () => {
-  const content = normalizePublishedContact(
+  const englishContent = normalizePublishedContact(
     publishedContactQueryResult,
     "en",
   );
-  assert.ok(content);
+  const croatianContent = normalizePublishedContact(
+    publishedContactQueryResult,
+    "hr",
+  );
+  assert.ok(englishContent);
+  assert.ok(croatianContent);
 
   const html = renderToStaticMarkup(
-    <ContactPageView content={content} locale="en" />,
+    <ContactPageView content={englishContent} locale="en" />,
+  );
+  const croatian = renderToStaticMarkup(
+    <ContactPageView content={croatianContent} locale="hr" />,
   );
 
   assert.match(html, /<a aria-current="page" href="\/en\/contact"/);
@@ -201,6 +209,49 @@ test("Contact renders four visible direct actions and a complete form-disabled e
   );
 
   assert.doesNotMatch(html, /<form|disabled|coming soon|uskoro/i);
+  assert.doesNotMatch(croatian, /<form|disabled|coming soon|uskoro/i);
+  assert.match(croatian, />Pošalji e-poruku</);
+  assert.match(croatian, />Otvori LinkedIn</);
+  assert.match(croatian, />Otvori GitHub</);
+  assert.match(croatian, />Nazovi telefonom</);
+});
+
+test("Contact renders the bilingual form only when its complete release gate passes", () => {
+  const englishContent = normalizePublishedContact(
+    publishedContactQueryResult,
+    "en",
+  );
+  const croatianContent = normalizePublishedContact(
+    publishedContactQueryResult,
+    "hr",
+  );
+  assert.ok(englishContent);
+  assert.ok(croatianContent);
+
+  const english = renderToStaticMarkup(
+    <ContactPageView
+      content={englishContent}
+      formEnabled
+      locale="en"
+    />,
+  );
+  const croatian = renderToStaticMarkup(
+    <ContactPageView
+      content={croatianContent}
+      formEnabled
+      locale="hr"
+    />,
+  );
+
+  assert.match(english, /<form[^>]*aria-label="Contact form"/);
+  assert.match(english, /aria-hidden="true"[^>]*inert/);
+  assert.match(english, /href="\/en\/privacy"/);
+  assert.match(english, /Email and message are required/);
+  assert.match(english, /mailto:ivo@example\.com/);
+  assert.match(croatian, /<form[^>]*aria-label="Kontaktni obrazac"/);
+  assert.match(croatian, /href="\/hr\/privatnost"/);
+  assert.match(croatian, /E-pošta i poruka su obavezne/);
+  assert.match(croatian, /mailto:ivo@example\.com/);
 });
 
 test("Contact metadata exposes canonical English and Croatian routes", () => {

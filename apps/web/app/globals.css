@@ -776,6 +776,141 @@ p {
   font-size: 0.82rem;
 }
 
+.contact-form-panel {
+  max-width: 54rem;
+  padding-block: clamp(2rem, 5vw, 3.5rem);
+}
+
+.contact-form-panel > header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--tui-border-strong);
+}
+
+.contact-form-panel h2 {
+  margin-bottom: 0;
+}
+
+.contact-form-panel form {
+  display: grid;
+  gap: 1.1rem;
+  padding: clamp(1.1rem, 3vw, 1.75rem);
+  border: 1px solid var(--tui-border);
+  border-top: 0;
+  background: var(--tui-surface);
+}
+
+.contact-form-field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.contact-form-field label {
+  color: var(--tui-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.field-optional {
+  color: var(--tui-text-muted);
+  font-weight: 400;
+}
+
+.contact-form-field input,
+.contact-form-field textarea {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--tui-border-strong);
+  border-radius: 0;
+  background: var(--tui-canvas);
+  color: var(--tui-text-primary);
+  font: inherit;
+}
+
+.contact-form-field textarea {
+  min-height: 10rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.contact-form-field input:hover,
+.contact-form-field textarea:hover {
+  border-color: var(--tui-accent);
+}
+
+.contact-form-field [aria-invalid="true"] {
+  border-color: var(--tui-danger);
+}
+
+.field-error {
+  margin: 0;
+  color: var(--tui-danger);
+  font-size: 0.9rem;
+}
+
+.contact-honeypot {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.contact-form-notice {
+  padding: 0.85rem;
+  margin: 0;
+  border-left: 2px solid var(--tui-border-strong);
+  background: var(--tui-surface-raised);
+  font-size: 0.92rem;
+}
+
+.contact-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.contact-form-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.contact-form-status {
+  padding: 0.85rem;
+  border: 1px solid var(--tui-border-strong);
+  background: var(--tui-surface-raised);
+}
+
+.contact-form-status strong {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+}
+
+.contact-form-status p,
+.copy-status {
+  margin: 0.45rem 0 0;
+}
+
+.contact-form-status-accepted {
+  border-color: var(--tui-success);
+  color: var(--tui-success);
+}
+
+.contact-form-status-rate_limited {
+  border-color: var(--tui-warning);
+  color: var(--tui-warning);
+}
+
+.contact-form-status-ambiguous {
+  border-color: var(--tui-danger);
+}
+
+.copy-status {
+  color: var(--tui-text-primary);
+  font-size: 0.9rem;
+}
+
 .privacy-introduction {
   border-bottom: 1px solid var(--tui-border-strong);
 }
