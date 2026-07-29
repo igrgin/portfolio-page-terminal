@@ -1,0 +1,72 @@
+:root {
+  --tui-canvas: #0b1014;
+  --tui-surface: #11181e;
+  --tui-surface-raised: #172129;
+  --tui-text-primary: #edf2f3;
+  --tui-text-muted: #a8b6bb;
+  --tui-border: #314149;
+  --tui-border-strong: #60737b;
+  --tui-focus: #ffcb68;
+  --tui-accent: #46d5c5;
+  --tui-accent-subtle: #153b3a;
+  --tui-link: #70d9ff;
+  --tui-success: #6cdb8f;
+  --tui-warning: #ffcb68;
+  --tui-danger: #ff8080;
+  --tui-selection: #234f52;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --tui-canvas: #f3f5f2;
+  --tui-surface: #ffffff;
+  --tui-surface-raised: #e9efec;
+  --tui-text-primary: #172024;
+  --tui-text-muted: #52636b;
+  --tui-border: #bac8c6;
+  --tui-border-strong: #60756f;
+  --tui-focus: #8d4d00;
+  --tui-accent: #087d74;
+  --tui-accent-subtle: #d5eeea;
+  --tui-link: #006890;
+  --tui-success: #176b3a;
+  --tui-warning: #8d4d00;
+  --tui-danger: #a42d36;
+  --tui-selection: #bce4df;
+  color-scheme: light;
+}
+
+.tui-button-scaffold {
+  min-height: 2.75rem;
+  border: 1px solid var(--tui-border-strong);
+  background: transparent;
+  color: var(--tui-text-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.tui-button {
+  padding: 0.625rem 0.875rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.tui-button[data-tone="accent"] {
+  border-color: var(--tui-accent);
+  background: var(--tui-accent);
+  color: var(--tui-canvas);
+}
+
+.tui-button[data-tone="danger"] {
+  border-color: var(--tui-danger);
+  color: var(--tui-danger);
+}
+
+.tui-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.tui-button:focus-visible {
+  outline: 3px solid var(--tui-focus);
+  outline-offset: 3px;
+}
