@@ -2,11 +2,15 @@ import type { Locale, LocalizedValue } from "./index";
 
 export type UnknownRecord = Record<string, unknown>;
 
-export const contactChannelKinds = [
+export const requiredContactChannelKinds = [
   "email",
-  "phone",
   "linkedin",
   "github",
+  "phone",
+] as const;
+
+export const contactChannelKinds = [
+  ...requiredContactChannelKinds,
   "other",
 ] as const;
 
@@ -17,6 +21,27 @@ export type ContactChannel = Readonly<{
   kind: ContactChannelKind;
   label: string;
 }>;
+
+export function hasRequiredContactChannelOrder(
+  channels: readonly Readonly<{ kind?: unknown }>[],
+): boolean {
+  return (
+    channels.length >= requiredContactChannelKinds.length &&
+    requiredContactChannelKinds.every(
+      (kind, index) => channels[index]?.kind === kind,
+    )
+  );
+}
+
+const contactChannelProtocols: Readonly<
+  Record<ContactChannelKind, readonly string[]>
+> = {
+  email: ["mailto:"],
+  github: ["https:"],
+  linkedin: ["https:"],
+  other: ["https:"],
+  phone: ["tel:"],
+};
 
 export function record(value: unknown): UnknownRecord | null {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -77,15 +102,18 @@ export function normalizeContactChannels(
     const channel = record(entry);
     const kind = nonEmptyString(channel?.kind);
     const label = localizedStrings(channel?.label);
-    const href = safeUrl(channel?.href, ["https:", "mailto:", "tel:"]);
+    const supportedKind =
+      kind && contactChannelKinds.includes(kind as ContactChannelKind)
+        ? (kind as ContactChannelKind)
+        : null;
+    const href = supportedKind
+      ? safeUrl(channel?.href, contactChannelProtocols[supportedKind])
+      : null;
 
-    return kind &&
-      contactChannelKinds.includes(kind as ContactChannelKind) &&
-      label &&
-      href
+    return supportedKind && label && href
       ? {
           href,
-          kind: kind as ContactChannelKind,
+          kind: supportedKind,
           label: label[locale],
         }
       : null;

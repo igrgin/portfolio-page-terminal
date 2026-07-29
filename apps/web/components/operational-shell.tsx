@@ -130,9 +130,28 @@ export function OperationalShell({
           )}
         </aside>
 
-        <main className="main-pane" id="main-content">
-          {children}
-        </main>
+        <div className="content-pane">
+          <main className="main-pane" id="main-content">
+            {children}
+          </main>
+          <footer className="global-footer">
+            <a href={destinationRoute(locale, "contact")}>
+              {destinationLabel(locale, "contact")}
+            </a>
+            <span aria-hidden="true">·</span>
+            <a href={destinationRoute(locale, "privacy")}>
+              {destinationLabel(locale, "privacy")}
+            </a>
+            {contactChannels.map((channel) => (
+              <React.Fragment
+                key={`footer:${channel.kind}:${channel.href}`}
+              >
+                <span aria-hidden="true">·</span>
+                <a href={channel.href}>{channel.label}</a>
+              </React.Fragment>
+            ))}
+          </footer>
+        </div>
       </div>
     </div>
   );

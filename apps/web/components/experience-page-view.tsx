@@ -17,7 +17,6 @@ const copy = {
     heading: "Experience",
     introduction:
       "Published roles and résumé-safe evidence, ordered from the current role backwards.",
-    privacy: "Privacy",
     skills: "Supporting Skills",
   },
   hr: {
@@ -28,7 +27,6 @@ const copy = {
     heading: "Iskustvo",
     introduction:
       "Objavljene pozicije i dokazi sigurni za životopis, od trenutačne pozicije unatrag.",
-    privacy: "Privatnost",
     skills: "Povezane vještine",
   },
 } as const;
@@ -145,16 +143,6 @@ export function ExperiencePageView({
           </article>
         ))}
       </section>
-
-      <footer className="global-footer">
-        <a href={destinationRoute(locale, "privacy")}>{labels.privacy}</a>
-        <span aria-hidden="true">·</span>
-        {content.contactChannels.map((channel) => (
-          <a href={channel.href} key={`footer:${channel.kind}:${channel.href}`}>
-            {channel.label}
-          </a>
-        ))}
-      </footer>
     </OperationalShell>
   );
 }

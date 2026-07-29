@@ -7,6 +7,8 @@ import { schemaTypes } from "./schemaTypes";
 const singletons = [
   { id: "siteSettings", title: "Site settings", type: "siteSettings" },
   { id: "aboutMe", title: "About Me", type: "aboutMe" },
+  { id: "contact", title: "Contact", type: "contact" },
+  { id: "privacyNotice", title: "Privacy notice", type: "privacyNotice" },
   { id: "profileMedia", title: "Profile media", type: "profileMedia" },
   { id: "resumeSet", title: "Résumé set", type: "resumeSet" },
 ] as const;

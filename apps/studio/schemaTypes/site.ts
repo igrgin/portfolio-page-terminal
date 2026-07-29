@@ -1,5 +1,7 @@
 import {
   contactChannelKinds,
+  hasRequiredContactChannelOrder,
+  requiredContactChannelKinds,
   type ContactChannelKind,
 } from "@portfolio/content";
 import { defineArrayMember, defineField, defineType } from "sanity";
@@ -16,7 +18,6 @@ const englishResumeDisclaimer =
   "This résumé provides a broad overview of my experience and is not tailored to a specific role.";
 const croatianResumeDisclaimer =
   "Ovaj životopis pruža širi pregled mojeg iskustva i nije prilagođen pojedinoj poziciji.";
-
 export const contactChannel = defineType({
   fields: [
     defineField({
@@ -87,7 +88,19 @@ export const siteSettings = defineType({
       of: [defineArrayMember({ type: "contactChannel" })],
       title: "Ordered Contact channels",
       type: "array",
-      validation: (rule) => rule.required().min(1).unique(),
+      validation: (rule) =>
+        rule
+          .required()
+          .min(requiredContactChannelKinds.length)
+          .unique()
+          .custom((value) => {
+            const channels = value as
+              | readonly Readonly<{ kind?: string }>[]
+              | undefined;
+            return channels && hasRequiredContactChannelOrder(channels)
+              ? true
+              : "Start with this order: email, LinkedIn, GitHub, phone.";
+          }),
     }),
     defineField({
       name: "resumeSet",
