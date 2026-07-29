@@ -1,1067 +1,561 @@
 /**
- * PROTOTYPE — throw away after the visual direction is chosen.
- * Three variants of the public portfolio shell, switchable via ?variant=,
- * exercised on /about and /projects/distributed-event-platform.
+ * PROTOTYPE — throw away after the authoring direction is chosen.
+ * Three variants of the Project case-study editor, switchable via ?variant=,
+ * on the existing Vite prototype route.
  */
 import React, { useEffect, useMemo, useState } from "react";
-import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
-import "@fontsource/atkinson-hyperlegible/400.css";
-import "@fontsource/atkinson-hyperlegible/700.css";
-import "@fontsource-variable/atkinson-hyperlegible-next";
 import "./styles.css";
 
 const variants = [
-  { key: "a", name: "Operational shell" },
-  { key: "b", name: "Editorial dossier" },
-  { key: "c", name: "Evidence navigator" },
+  { key: "a", name: "Paired canvas" },
+  { key: "b", name: "Guided pass" },
+  { key: "c", name: "Outline + preview" },
 ];
 
-const copy = {
-  en: {
-    language: "EN",
-    about: "About Me",
-    experience: "Experience",
-    education: "Education",
-    skills: "Skills",
-    projects: "Projects",
-    contact: "Contact",
-    resume: "Résumé",
-    theme: "Theme",
-    font: "Typeface",
-    available: "Available for the right engineering problem",
-    role: "Software engineer across systems, data, and developer experience.",
-    intro:
-      "I design and build dependable software where backend systems, distributed data infrastructure, and the tools engineers use every day meet.",
-    bio:
-      "My work turns complex operational constraints into maintainable products. I care about clear boundaries, observable behavior, and interfaces that help people understand what a system is doing.",
-    explore: "Explore selected work",
-    getInTouch: "Start a conversation",
-    strongestEvidence: "Selected evidence",
-    evidence1: "Backend web systems",
-    evidence1Text: "Production services shaped around explicit domain boundaries.",
-    evidence2: "Distributed data",
-    evidence2Text: "Reliable flows designed for failure, recovery, and change.",
-    evidence3: "Developer tooling",
-    evidence3Text: "Tools that shorten feedback loops without hiding the system.",
-    currentFocus: "Current focus",
-    currentFocusText:
-      "Practical AI-assisted development, resilient platform foundations, and product-minded technical leadership.",
-    stack: "Working set",
-    projectsEyebrow: "Project index · selected work",
-    projectsIntro:
-      "A curated list of case studies. Select a project to open its full context, architecture, technical decisions, and outcomes.",
-    caseStudy: "Case study",
-    openProject: "Open project",
-    projectStatus: "Published",
-    moreProjects: "Additional project write-ups will appear here after editorial review.",
-    projectTitle: "Distributed event platform",
-    projectEyebrow: "Selected project · backend infrastructure",
-    projectSummary:
-      "A reference case study for an event-processing platform that keeps delivery observable and recoverable as workload and team ownership grow.",
-    responsibility: "Role",
-    responsibilityText: "Technical lead · architecture and delivery",
-    outcome: "Outcome",
-    outcomeText: "Predictable recovery and clearer operational ownership",
-    constraint: "Core constraint",
-    constraintText: "At-least-once delivery without invisible duplicate effects",
-    architecture: "Architecture",
-    decisions: "Technical decisions",
-    decision1: "Idempotency belongs at the consumer boundary",
-    decision1Text:
-      "Every state-changing consumer records a stable operation key before acknowledging work.",
-    decision2: "Retries are visible product behavior",
-    decision2Text:
-      "Retry state, dead-letter transitions, and operator actions share one observable vocabulary.",
-    decision3: "Ownership follows the event contract",
-    decision3Text:
-      "Schema evolution and operational responsibility are explicit at every boundary.",
-    tech: "Technologies",
-    repository: "View repository",
-    more: "Implementation notes",
-    moreText:
-      "This prototype uses representative, résumé-safe material to test density. Final claims and measurements require editorial review before publishing.",
-    navLabel: "Portfolio navigation",
-    page: "View",
-    status: "Status",
-    prototype: "Throwaway prototype",
-    portrait: "Ivo Grgin",
-    menu: "Menu",
-    close: "Close",
-    showNavigation: "Show navigation",
-    hideNavigation: "Hide navigation",
+const project = {
+  title: { en: "Distributed event platform", hr: "Platforma za distribuirane evente" },
+  summary: {
+    en: "Observable, recoverable event processing as workload and ownership grow.",
+    hr: "Pouzdana obrada evenata uz jasan observability kako rastu workload i ownership.",
   },
-  hr: {
-    language: "HR",
-    about: "O meni",
-    experience: "Iskustvo",
-    education: "Obrazovanje",
-    skills: "Vještine",
-    projects: "Projekti",
-    contact: "Kontakt",
-    resume: "Životopis",
-    theme: "Tema",
-    font: "Pismo",
-    available: "Otvoren za pravi inženjerski problem",
-    role: "Software engineer za backend sustave, distribuiranu data infrastrukturu i developer tooling.",
-    intro:
-      "Dizajniram i gradim pouzdan softver na sjecištu backend sustava, distribuirane data infrastrukture i alata koje inženjeri svakodnevno koriste.",
-    bio:
-      "Složena operativna ograničenja pretvaram u održive proizvode. Važne su mi jasne granice, dobar observability i sučelja koja ljudima pomažu razumjeti što sustav radi.",
-    explore: "Istraži odabrane projekte",
-    getInTouch: "Započni razgovor",
-    strongestEvidence: "Odabrano iskustvo",
-    evidence1: "Backend web-sustavi",
-    evidence1Text: "Produkcijski servisi oblikovani oko jasnih domenskih granica.",
-    evidence2: "Distribuirani data sustavi",
-    evidence2Text: "Pouzdani data flowovi dizajnirani za kvarove, recovery i promjene.",
-    evidence3: "Developer tooling",
-    evidence3Text: "Tooling koji skraćuje feedback loop bez skrivanja kompleksnosti sustava.",
-    currentFocus: "Trenutačni fokus",
-    currentFocusText:
-      "Praktična primjena AI-ja u razvoju, otporni platformski temelji i product-minded tehničko vodstvo.",
-    stack: "Tech stack",
-    projectsEyebrow: "Indeks projekata · odabrani radovi",
-    projectsIntro:
-      "Kurirana lista case studyja. Odaberi projekt za puni kontekst, arhitekturu, tehničke odluke i ishode.",
-    caseStudy: "Case study",
-    openProject: "Otvori projekt",
-    projectStatus: "Objavljeno",
-    moreProjects: "Dodatni project writeupovi pojavit će se ovdje nakon editorial reviewa.",
-    projectTitle: "Platforma za distribuirane evente",
-    projectEyebrow: "Odabrani projekt · backend infrastruktura",
-    projectSummary:
-      "Reprezentativni case study event-processing platforme koja zadržava dobar observability i pouzdan recovery dok rastu workload i broj timova koji je održavaju.",
-    responsibility: "Uloga",
-    responsibilityText: "Tech lead · arhitektura i delivery",
-    outcome: "Ishod",
-    outcomeText: "Predvidiv recovery i jasniji operational ownership",
-    constraint: "Glavno ograničenje",
-    constraintText: "At-least-once delivery bez skrivenih duplicate efekata",
-    architecture: "Arhitektura",
-    decisions: "Tehničke odluke",
-    decision1: "Idempotency se rješava na consumer boundaryju",
-    decision1Text:
-      "Svaki consumer koji mijenja state sprema stabilan operation key prije nego što ack-a event.",
-    decision2: "Retryji su vidljivo ponašanje sustava",
-    decision2Text:
-      "Retry state, DLQ prijelazi i operator actions dijele jedan operativni rječnik.",
-    decision3: "Ownership prati event contract",
-    decision3Text:
-      "Evolucija schema i operativni ownership eksplicitni su na svakoj granici.",
-    tech: "Tehnologije",
-    repository: "Otvori GitHub repo",
-    more: "Implementation bilješke",
-    moreText:
-      "Prototip koristi reprezentativan, publish-safe sadržaj kako bi ispitao gustoću. Finalne tvrdnje i metrike prije objave trebaju editorial review.",
-    navLabel: "Navigacija portfolija",
-    page: "Stranica",
-    status: "Status",
-    prototype: "Privremeni prototip",
-    portrait: "Ivo Grgin",
-    menu: "Izbornik",
-    close: "Zatvori",
-    showNavigation: "Prikaži navigaciju",
-    hideNavigation: "Sakrij navigaciju",
-  },
+  role: { en: "Technical lead · architecture and delivery", hr: "Tech lead · arhitektura i delivery" },
+  slug: "distributed-event-platform",
+  status: "Draft",
+  updated: "2 minutes ago",
+  tech: ["TypeScript", "Go", "Kafka", "PostgreSQL", "OpenTelemetry", "Kubernetes"],
 };
 
-const navItems = ["about", "experience", "education", "skills", "projects", "contact"];
-const technologies = ["TypeScript", "Go", "Kafka", "PostgreSQL", "OpenTelemetry", "Kubernetes"];
+const narrative = [
+  ["Context / problem", "Why the system existed and what had become unreliable.", "Zašto je sustav postojao i što je postalo nepouzdano."],
+  ["Constraints", "At-least-once delivery, changing schemas, and shared ownership.", "At-least-once delivery, promjene schema i podijeljeni ownership."],
+  ["Approach", "Idempotent consumers, visible retries, and explicit event contracts.", "Idempotent consumers, vidljivi retryji i eksplicitni event contracti."],
+  ["Outcome / impact", "Predictable recovery and clearer operational responsibility.", "Predvidiv recovery i jasnija operativna odgovornost."],
+  ["Lessons", "Retries are product behavior, not an implementation detail.", "Retryji su ponašanje proizvoda, a ne implementation detail."],
+];
 
-function updateWithTransition(update) {
-  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (!document.startViewTransition || prefersReducedMotion) {
-    update();
-    return;
-  }
+const mermaidSource = `sequenceDiagram
+  participant API
+  participant Queue
+  participant Worker
+  API->>Queue: publish(command)
+  Queue->>Worker: deliver(event)
+  Worker->>Worker: check idempotency key
+  Worker-->>Queue: acknowledge`;
 
-  document.documentElement.classList.add("has-active-view-transition");
-  const transition = document.startViewTransition(() => {
-    flushSync(update);
-  });
-  transition.finished.finally(() => {
-    document.documentElement.classList.remove("has-active-view-transition");
-  });
-}
-
-function usePrototypeState() {
-  const parseLocation = () => {
-    const params = new URLSearchParams(window.location.search);
-    const variant = variants.some((item) => item.key === params.get("variant"))
-      ? params.get("variant")
-      : "a";
-    const pathname = window.location.pathname;
-    const view = pathname.startsWith("/projects/")
-      ? "project"
-      : pathname === "/projects"
-        ? "projects"
-        : "about";
-    return { variant, view };
+function usePrototype() {
+  const getVariant = () => {
+    const value = new URLSearchParams(window.location.search).get("variant");
+    return variants.some((item) => item.key === value) ? value : "a";
   };
-
-  const [location, setLocation] = useState(parseLocation);
-  const [language, setLanguage] = useState("en");
-  const [theme, setTheme] = useState(() =>
-    window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark",
-  );
-  const [fontPair, setFontPair] = useState("plex");
+  const [variant, setVariantState] = useState(getVariant);
+  const [scenario, setScenario] = useState("ready");
+  const [locale, setLocale] = useState("en");
+  const [step, setStep] = useState(0);
+  const [section, setSection] = useState("Narrative");
 
   useEffect(() => {
-    const onPopState = () => updateWithTransition(() => setLocation(parseLocation()));
+    const onPopState = () => setVariantState(getVariant());
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.documentElement.dataset.font = fontPair;
-    document.documentElement.lang = language;
-  }, [theme, fontPair, language]);
-
-  const navigate = (view, variant = location.variant) => {
-    const paths = {
-      about: "/about",
-      projects: "/projects",
-      project: "/projects/distributed-event-platform",
-    };
-    const path = paths[view] ?? "/about";
-    updateWithTransition(() => {
-      window.history.pushState({}, "", `${path}?variant=${variant}`);
-      setLocation({ view, variant });
-      window.scrollTo({ top: 0, behavior: "instant" });
-    });
-  };
-
-  const setVariant = (variant) => {
+  const setVariant = (next) => {
     const params = new URLSearchParams(window.location.search);
-    params.set("variant", variant);
-    updateWithTransition(() => {
-      window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
-      setLocation((current) => ({ ...current, variant }));
-    });
+    params.set("variant", next);
+    window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
+    setVariantState(next);
   };
 
   return {
-    ...location,
-    language,
-    setLanguage,
-    theme,
-    setTheme,
-    fontPair,
-    setFontPair,
-    navigate,
+    variant,
     setVariant,
+    scenario,
+    setScenario,
+    locale,
+    setLocale,
+    step,
+    setStep,
+    section,
+    setSection,
   };
 }
 
-function ControlGroup({ state, labels, compact = false }) {
+function Icon({ children }) {
+  return <span aria-hidden="true" className="icon">{children}</span>;
+}
+
+function StatusDot({ tone = "ok" }) {
+  return <span className={`status-dot status-dot--${tone}`} aria-hidden="true" />;
+}
+
+function AppHeader({ state }) {
+  const issueCount = state.scenario === "failure" ? 3 : 0;
   return (
-    <div className={`control-group ${compact ? "control-group--compact" : ""}`}>
-      <button
-        type="button"
-        className="text-control"
-        onClick={() => state.setLanguage(state.language === "en" ? "hr" : "en")}
-        aria-label={state.language === "en" ? "Prikaži na hrvatskom" : "Show in English"}
-      >
-        {labels.language}
-      </button>
-      <button
-        type="button"
-        className="text-control"
-        onClick={() => state.setFontPair(state.fontPair === "plex" ? "atkinson" : "plex")}
-        aria-label={`${labels.font}: ${state.fontPair === "plex" ? "IBM Plex" : "Atkinson Hyperlegible"}`}
-      >
-        {state.fontPair === "plex" ? "Plex" : "Atkinson"}
-      </button>
-      <button
-        type="button"
-        className="icon-control"
-        onClick={() => state.setTheme(state.theme === "dark" ? "light" : "dark")}
-        aria-label={`${labels.theme}: ${state.theme === "dark" ? "dark" : "light"}`}
-      >
-        <span aria-hidden="true">{state.theme === "dark" ? "☾" : "☼"}</span>
-      </button>
-      <a className="resume-control" href="#prototype-resume">
-        {labels.resume} <span aria-hidden="true">↗</span>
+    <header className="app-header">
+      <a className="brand" href="#project">
+        <span className="brand__mark">S</span>
+        <span>
+          <strong>Portfolio Content</strong>
+          <small>Project workspace</small>
+        </span>
       </a>
-    </div>
-  );
-}
-
-function RouteLink({ state, view, children, className = "" }) {
-  const paths = {
-    about: "/about",
-    projects: "/projects",
-    project: "/projects/distributed-event-platform",
-  };
-  const active =
-    state.view === view || (view === "projects" && state.view === "project");
-  return (
-    <a
-      href={paths[view] ?? "/about"}
-      className={className}
-      aria-current={active ? "page" : undefined}
-      onClick={(event) => {
-        event.preventDefault();
-        state.navigate(view);
-      }}
-    >
-      {children}
-    </a>
-  );
-}
-
-function NavIcon({ name }) {
-  const common = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeLinecap: "round",
-    strokeLinejoin: "round",
-    strokeWidth: 1.7,
-  };
-
-  return (
-    <svg
-      className="nav-icon"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      focusable="false"
-      {...common}
-    >
-      {name === "about" && (
-        <>
-          <circle cx="12" cy="8" r="3.25" />
-          <path d="M5.5 19c.8-3.55 3-5.35 6.5-5.35s5.7 1.8 6.5 5.35" />
-        </>
-      )}
-      {name === "experience" && (
-        <>
-          <rect x="3.5" y="7" width="17" height="12" rx="1.5" />
-          <path d="M8.5 7V5.5h7V7M3.5 12.25c5.2 2.2 11.8 2.2 17 0M12 12.5v2" />
-        </>
-      )}
-      {name === "education" && (
-        <>
-          <path d="m3 9 9-4 9 4-9 4-9-4Z" />
-          <path d="M6.5 11v4.5c2.8 2.25 8.2 2.25 11 0V11M21 9v5" />
-        </>
-      )}
-      {name === "skills" && (
-        <>
-          <path d="m8.5 6-5 6 5 6M15.5 6l5 6-5 6M13.5 4l-3 16" />
-        </>
-      )}
-      {name === "projects" && (
-        <>
-          <path d="M3.5 6.5h6l1.75 2H20.5v9.5H3.5z" />
-          <path d="M3.5 9h17" />
-        </>
-      )}
-      {name === "contact" && (
-        <>
-          <rect x="3.5" y="5.5" width="17" height="13" rx="1.5" />
-          <path d="m4.5 7 7.5 6 7.5-6" />
-        </>
-      )}
-    </svg>
-  );
-}
-
-function Portrait({ label, small = false, treatment = "operational" }) {
-  return (
-    <figure
-      className={`portrait portrait--${treatment} ${small ? "portrait--small" : ""}`}
-      aria-label={label}
-    >
-      <div className="portrait__mark" aria-hidden="true">
-        <span className="portrait__silhouette" />
-        <span className="portrait__monogram">IG</span>
-        <span className="portrait__accent" />
-      </div>
-      <figcaption>
-        <strong>{label}</strong>
-        <span>software engineer</span>
-      </figcaption>
-    </figure>
-  );
-}
-
-function CtaRow({ state, labels }) {
-  return (
-    <div className="cta-row">
-      <RouteLink state={state} view="projects" className="button button--primary">
-        {labels.explore} <span aria-hidden="true">→</span>
-      </RouteLink>
-      <a className="button button--secondary" href="#contact">
-        {labels.getInTouch}
-      </a>
-      <a className="button button--quiet" href="#prototype-resume">
-        {labels.resume} <span aria-hidden="true">↓</span>
-      </a>
-    </div>
-  );
-}
-
-function EvidenceList({ labels, numbered = false }) {
-  const evidence = [
-    [labels.evidence1, labels.evidence1Text],
-    [labels.evidence2, labels.evidence2Text],
-    [labels.evidence3, labels.evidence3Text],
-  ];
-  return (
-    <div className={`evidence-list ${numbered ? "evidence-list--numbered" : ""}`}>
-      {evidence.map(([title, text], index) => (
-        <article className="evidence-item" key={title}>
-          {numbered && <span className="evidence-item__index">0{index + 1}</span>}
-          <div>
-            <h3>{title}</h3>
-            <p>{text}</p>
-          </div>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function ArchitectureDiagram({ labels, vertical = false }) {
-  return (
-    <div
-      className={`architecture ${vertical ? "architecture--vertical" : ""}`}
-      role="img"
-      aria-label={`${labels.architecture}: API receives events, publishes to a log, consumers update services, telemetry makes state visible.`}
-    >
-      <div className="architecture__node">
-        <span>01</span>
-        <strong>API</strong>
-        <small>ingest</small>
-      </div>
-      <i aria-hidden="true">→</i>
-      <div className="architecture__node architecture__node--accent">
-        <span>02</span>
-        <strong>event log</strong>
-        <small>durable</small>
-      </div>
-      <i aria-hidden="true">→</i>
-      <div className="architecture__node">
-        <span>03</span>
-        <strong>consumers</strong>
-        <small>idempotent</small>
-      </div>
-      <i aria-hidden="true">→</i>
-      <div className="architecture__node">
-        <span>04</span>
-        <strong>telemetry</strong>
-        <small>observable</small>
-      </div>
-    </div>
-  );
-}
-
-function DecisionList({ labels, compact = false }) {
-  const decisions = [
-    [labels.decision1, labels.decision1Text],
-    [labels.decision2, labels.decision2Text],
-    [labels.decision3, labels.decision3Text],
-  ];
-  return (
-    <ol className={`decision-list ${compact ? "decision-list--compact" : ""}`}>
-      {decisions.map(([title, text], index) => (
-        <li key={title}>
-          <span>{String(index + 1).padStart(2, "0")}</span>
-          <div>
-            <h3>{title}</h3>
-            <p>{text}</p>
-          </div>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function ProjectFacts({ labels, horizontal = false }) {
-  return (
-    <dl className={`project-facts ${horizontal ? "project-facts--horizontal" : ""}`}>
-      <div>
-        <dt>{labels.responsibility}</dt>
-        <dd>{labels.responsibilityText}</dd>
-      </div>
-      <div>
-        <dt>{labels.outcome}</dt>
-        <dd>{labels.outcomeText}</dd>
-      </div>
-      <div>
-        <dt>{labels.constraint}</dt>
-        <dd>{labels.constraintText}</dd>
-      </div>
-    </dl>
-  );
-}
-
-function TechnologyList({ labels }) {
-  return (
-    <section className="technology-block">
-      <h2>{labels.tech}</h2>
-      <ul className="technology-list" aria-label={labels.tech}>
-        {technologies.map((technology) => (
-          <li key={technology}>{technology}</li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function ProjectIndexEntry({ state, labels, treatment }) {
-  return (
-    <RouteLink
-      state={state}
-      view="project"
-      className={`project-entry project-entry--${treatment}`}
-    >
-      <span className="project-entry__index">01</span>
-      <div className="project-entry__body">
-        <div className="project-entry__meta">
-          <span>{labels.caseStudy}</span>
-          <span>{labels.projectStatus}</span>
-        </div>
-        <h2>{labels.projectTitle}</h2>
-        <p>{labels.projectSummary}</p>
-        <ul className="project-entry__tech" aria-label={labels.tech}>
-          {technologies.slice(0, 4).map((technology) => (
-            <li key={technology}>{technology}</li>
-          ))}
-        </ul>
-      </div>
-      <span className="project-entry__action">
-        {labels.openProject} <span aria-hidden="true">→</span>
-      </span>
-    </RouteLink>
-  );
-}
-
-function VariantA({ state, labels }) {
-  const currentLabel =
-    state.view === "about"
-      ? labels.about
-      : state.view === "projects"
-        ? labels.projects
-        : labels.projectTitle;
-  return (
-    <div className="variant-a">
-      <header className="a-topbar">
-        <div className="a-brand-zone">
-          <RouteLink state={state} view="about" className="wordmark">
-            <span aria-hidden="true">[</span> IVO GRGIN <span aria-hidden="true">]</span>
-          </RouteLink>
-        </div>
-        <div className="a-location">
-          <span>{labels.page}</span>
-          <strong>{currentLabel}</strong>
-        </div>
-        <ControlGroup state={state} labels={labels} compact />
-      </header>
-
-      <div className="a-workspace">
-        <aside className="a-sidebar" id="a-page-index">
-          <div className="a-sidebar__label">portfolio://</div>
-          <nav aria-label={labels.navLabel}>
-            {navItems.map((item) => {
-              const isRoute = item === "about" || item === "projects";
-              const active =
-                (item === "about" && state.view === "about") ||
-                (item === "projects" &&
-                  (state.view === "projects" || state.view === "project"));
-              const content = (
-                <>
-                  <NavIcon name={item} />
-                  <span>{labels[item]}</span>
-                </>
-              );
-              return isRoute ? (
-                <RouteLink
-                  key={item}
-                  state={state}
-                  view={item === "projects" ? "projects" : "about"}
-                  className={active ? "is-current" : ""}
-                >
-                  {content}
-                </RouteLink>
-              ) : (
-                <a key={item} href={`#${item}`}>
-                  {content}
-                </a>
-              );
-            })}
-          </nav>
-          <div className="a-sidebar__status">
-            <span className="status-dot" />
-            <span>{labels.available}</span>
-          </div>
-        </aside>
-
-        <main id="main-content" className={`a-main a-main--${state.view}`}>
-          <div className="route-view" key={`a-${state.view}`}>
-            {state.view === "about" ? (
-              <AAbout state={state} labels={labels} />
-            ) : state.view === "projects" ? (
-              <AProjects state={state} labels={labels} />
-            ) : (
-              <AProject state={state} labels={labels} />
-            )}
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function AAbout({ state, labels }) {
-  return (
-    <div className="a-about">
-      <section className="a-hero">
-        <div className="a-hero__copy">
-          <div className="eyebrow">
-            <span className="status-dot" /> {labels.available}
-          </div>
-          <h1>{labels.role}</h1>
-          <p className="lede">{labels.intro}</p>
-          <p>{labels.bio}</p>
-          <CtaRow state={state} labels={labels} />
-        </div>
-        <aside className="a-hero__aside">
-          <Portrait label={labels.portrait} treatment="operational" />
-          <div className="a-context">
-            <section>
-              <span className="mini-label">{labels.currentFocus}</span>
-              <p>{labels.currentFocusText}</p>
-            </section>
-            <TechnologyList labels={labels} />
-          </div>
-        </aside>
-      </section>
-      <section className="a-evidence-band panel-heading">
-        <div>
-          <span>01</span>
-          <h2>{labels.strongestEvidence}</h2>
-        </div>
-        <EvidenceList labels={labels} />
-      </section>
-    </div>
-  );
-}
-
-function AProjects({ state, labels }) {
-  return (
-    <section className="a-project-index">
-      <header className="project-index-header">
-        <p className="eyebrow">{labels.projectsEyebrow}</p>
-        <h1>{labels.projects}</h1>
-        <p className="lede">{labels.projectsIntro}</p>
-      </header>
-      <div className="a-project-list" role="list">
-        <ProjectIndexEntry state={state} labels={labels} treatment="operational" />
-      </div>
-      <p className="project-index-note">{labels.moreProjects}</p>
-    </section>
-  );
-}
-
-function AProject({ labels }) {
-  return (
-    <>
-      <section className="a-project-hero">
-        <div>
-          <p className="eyebrow">{labels.projectEyebrow}</p>
-          <h1>{labels.projectTitle}</h1>
-          <p className="lede">{labels.projectSummary}</p>
-        </div>
-        <a className="button button--primary" href="https://github.com/igrgin">
-          {labels.repository} <span aria-hidden="true">↗</span>
-        </a>
-      </section>
-      <ProjectFacts labels={labels} horizontal />
-      <section className="a-project-section">
-        <div className="section-line">
-          <span>01</span>
-          <h2>{labels.architecture}</h2>
-        </div>
-        <ArchitectureDiagram labels={labels} />
-      </section>
-      <section className="a-project-section">
-        <div className="section-line">
-          <span>02</span>
-          <h2>{labels.decisions}</h2>
-        </div>
-        <DecisionList labels={labels} />
-      </section>
-      <details className="notes-disclosure">
-        <summary>{labels.more}</summary>
-        <p>{labels.moreText}</p>
-      </details>
-    </>
-  );
-}
-
-function VariantB({ state, labels }) {
-  return (
-    <div className="variant-b">
-      <header className="b-header">
-        <div className="b-brand">
-          <RouteLink state={state} view="about">
-            Ivo Grgin
-          </RouteLink>
-          <span>Software engineer</span>
-        </div>
-        <nav aria-label={labels.navLabel}>
-          {navItems.map((item) =>
-            item === "about" || item === "projects" ? (
-              <RouteLink
-                key={item}
-                state={state}
-                view={item === "projects" ? "projects" : "about"}
-              >
-                {labels[item]}
-              </RouteLink>
-            ) : (
-              <a key={item} href={`#${item}`}>
-                {labels[item]}
-              </a>
-            ),
-          )}
-        </nav>
-        <ControlGroup state={state} labels={labels} compact />
-      </header>
-
-      <main id="main-content" className="b-main">
-        <div className="route-view" key={`b-${state.view}`}>
-          {state.view === "about" ? (
-            <BAbout state={state} labels={labels} />
-          ) : state.view === "projects" ? (
-            <BProjects state={state} labels={labels} />
-          ) : (
-            <BProject labels={labels} />
-          )}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-function BAbout({ state, labels }) {
-  return (
-    <>
-      <section className="b-hero">
-        <div className="b-hero__index">
-          <span>PROFILE / 001</span>
-          <Portrait label={labels.portrait} small treatment="editorial" />
-        </div>
-        <div className="b-hero__story">
-          <p className="b-kicker">{labels.available}</p>
-          <h1>{labels.role}</h1>
-          <p className="b-intro">{labels.intro}</p>
-          <p>{labels.bio}</p>
-          <CtaRow state={state} labels={labels} />
-        </div>
-      </section>
-      <section className="b-evidence">
-        <div className="b-section-title">
-          <span>02</span>
-          <h2>{labels.strongestEvidence}</h2>
-          <p>{labels.currentFocusText}</p>
-        </div>
-        <EvidenceList labels={labels} numbered />
-      </section>
-      <section className="b-toolkit">
-        <div>
-          <span className="mini-label">{labels.currentFocus}</span>
-          <p>{labels.currentFocusText}</p>
-        </div>
-        <TechnologyList labels={labels} />
-      </section>
-    </>
-  );
-}
-
-function BProjects({ state, labels }) {
-  return (
-    <section className="b-project-index">
-      <header className="b-project-index__header">
-        <p className="b-kicker">{labels.projectsEyebrow}</p>
-        <h1>{labels.projects}</h1>
-        <p className="b-intro">{labels.projectsIntro}</p>
-      </header>
-      <div className="b-project-list" role="list">
-        <ProjectIndexEntry state={state} labels={labels} treatment="editorial" />
-      </div>
-      <p className="project-index-note">{labels.moreProjects}</p>
-    </section>
-  );
-}
-
-function BProject({ labels }) {
-  return (
-    <article className="b-project">
-      <header className="b-project__header">
-        <p className="b-kicker">{labels.projectEyebrow}</p>
-        <h1>{labels.projectTitle}</h1>
-        <p className="b-intro">{labels.projectSummary}</p>
-        <a className="b-text-link" href="https://github.com/igrgin">
-          {labels.repository} <span aria-hidden="true">↗</span>
-        </a>
-      </header>
-      <ProjectFacts labels={labels} horizontal />
-      <figure className="b-architecture">
-        <figcaption>
-          <span>01</span>
-          {labels.architecture}
-        </figcaption>
-        <ArchitectureDiagram labels={labels} />
-      </figure>
-      <section className="b-decisions">
-        <header>
-          <span>02</span>
-          <h2>{labels.decisions}</h2>
-        </header>
-        <DecisionList labels={labels} />
-      </section>
-      <div className="b-project__footer">
-        <TechnologyList labels={labels} />
-        <details className="notes-disclosure">
-          <summary>{labels.more}</summary>
-          <p>{labels.moreText}</p>
-        </details>
-      </div>
-    </article>
-  );
-}
-
-function VariantC({ state, labels }) {
-  const [selectedEvidence, setSelectedEvidence] = useState(0);
-  const [navigationOpen, setNavigationOpen] = useState(
-    () => !window.matchMedia("(max-width: 760px)").matches,
-  );
-  const evidence = [
-    [labels.evidence1, labels.evidence1Text, "SYSTEMS"],
-    [labels.evidence2, labels.evidence2Text, "DATA"],
-    [labels.evidence3, labels.evidence3Text, "TOOLS"],
-  ];
-  const currentMode =
-    state.view === "about" ? "PROFILE" : state.view === "projects" ? "PROJECT INDEX" : "CASE STUDY";
-  const currentLabel =
-    state.view === "about"
-      ? labels.about
-      : state.view === "projects"
-        ? labels.projects
-        : labels.projectTitle;
-
-  useEffect(() => {
-    const mobileQuery = window.matchMedia("(max-width: 760px)");
-    const handleViewportChange = (event) => setNavigationOpen(!event.matches);
-    mobileQuery.addEventListener("change", handleViewportChange);
-    return () => mobileQuery.removeEventListener("change", handleViewportChange);
-  }, []);
-
-  useEffect(() => {
-    if (window.matchMedia("(max-width: 760px)").matches) {
-      setNavigationOpen(false);
-    }
-  }, [state.view]);
-
-  return (
-    <div className="variant-c">
-      <header className="c-header">
-        <RouteLink state={state} view="about" className="c-logo">
-          <span aria-hidden="true">I/G</span>
-          <span className="sr-only">Ivo Grgin</span>
-        </RouteLink>
+      <div className="header-status">
+        <span className="save-status"><StatusDot /> Saved {project.updated}</span>
         <button
+          className={`scenario-toggle ${state.scenario === "failure" ? "is-active" : ""}`}
           type="button"
-          className={`c-nav-toggle ${navigationOpen ? "is-open" : ""}`}
-          aria-controls="c-page-index"
-          aria-expanded={navigationOpen}
-          aria-label={navigationOpen ? labels.hideNavigation : labels.showNavigation}
-          title={navigationOpen ? labels.hideNavigation : labels.showNavigation}
-          onClick={() => setNavigationOpen((current) => !current)}
+          onClick={() => state.setScenario(state.scenario === "ready" ? "failure" : "ready")}
         >
-          <span className="nav-toggle-icon" aria-hidden="true" />
+          <Icon>⚠</Icon>
+          {state.scenario === "ready" ? "Test failure state" : `${issueCount} blocking issues`}
         </button>
-        <div className="c-current">
-          <span>{currentMode}</span>
-          <strong>{currentLabel}</strong>
+        <button className="preview-button" type="button"><Icon>◉</Icon> Preview</button>
+        <button className="publish-button" type="button" disabled={issueCount > 0}>
+          {issueCount > 0 ? "Publish blocked" : "Review & publish"}
+        </button>
+        <button className="avatar" type="button" aria-label="Owner menu">IG</button>
+      </div>
+    </header>
+  );
+}
+
+function ProjectHeader({ compact = false }) {
+  return (
+    <div className={`project-header ${compact ? "project-header--compact" : ""}`}>
+      <a href="#projects" className="back-link">← Projects</a>
+      <div className="project-heading">
+        <span className="doc-icon">P</span>
+        <div>
+          <span className="eyebrow">FULL CASE STUDY · DRAFT</span>
+          <h1>{project.title.en}</h1>
+          <p>/{project.slug} · Last published 12 days ago</p>
         </div>
-        <ControlGroup state={state} labels={labels} compact />
-      </header>
-      <div className={`c-layout ${navigationOpen ? "is-nav-open" : "is-nav-collapsed"}`}>
-        <aside
-          className="c-index"
-          id="c-page-index"
-          aria-hidden={!navigationOpen}
-          inert={!navigationOpen}
-        >
-          <span className="mini-label">INDEX</span>
-          <nav aria-label={labels.navLabel}>
-            {navItems.map((item, index) =>
-              item === "about" || item === "projects" ? (
-                <RouteLink
-                  key={item}
-                  state={state}
-                  view={item === "projects" ? "projects" : "about"}
-                >
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{labels[item]}</strong>
-                </RouteLink>
-              ) : (
-                <a key={item} href={`#${item}`}>
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{labels[item]}</strong>
-                </a>
-              ),
-            )}
-          </nav>
-          <div className="c-index__availability">
-            <span className="status-dot" />
-            {labels.available}
-          </div>
-        </aside>
-        <main id="main-content" className="c-main">
-          <div className="route-view" key={`c-${state.view}`}>
-            {state.view === "about" ? (
-              <CAbout
-                state={state}
-                labels={labels}
-                evidence={evidence}
-                selectedEvidence={selectedEvidence}
-                setSelectedEvidence={setSelectedEvidence}
-              />
-            ) : state.view === "projects" ? (
-              <CProjects state={state} labels={labels} />
-            ) : (
-              <CProject labels={labels} />
-            )}
-          </div>
-        </main>
       </div>
     </div>
   );
 }
 
-function CAbout({ state, labels, evidence, selectedEvidence, setSelectedEvidence }) {
+function Field({ label, value, locale, required = false, multiline = false, issue = false, hint }) {
+  const Tag = multiline ? "textarea" : "input";
   return (
-    <>
-      <section className="c-hero">
-        <div className="c-hero__copy">
-          <p className="eyebrow">IVO GRGIN · SOFTWARE ENGINEER</p>
-          <h1>{labels.role}</h1>
-          <p className="lede">{labels.intro}</p>
-          <CtaRow state={state} labels={labels} />
+    <label className={`field ${issue ? "field--issue" : ""}`}>
+      <span className="field__label">
+        {label} {required && <b>Required</b>}
+        {locale && <em>{locale.toUpperCase()}</em>}
+      </span>
+      <Tag value={value} rows={multiline ? 3 : undefined} readOnly aria-invalid={issue || undefined} />
+      {hint && <small>{hint}</small>}
+      {issue && <small className="error-text">Croatian value is required before publishing.</small>}
+    </label>
+  );
+}
+
+function LocaleHeading({ locale, complete = true }) {
+  return (
+    <div className="locale-heading">
+      <span className={`flag flag--${locale}`}>{locale.toUpperCase()}</span>
+      <strong>{locale === "en" ? "English" : "Hrvatski"}</strong>
+      <span className={complete ? "complete" : "incomplete"}>
+        <StatusDot tone={complete ? "ok" : "danger"} />
+        {complete ? "Complete" : "Needs attention"}
+      </span>
+    </div>
+  );
+}
+
+function ValidationPanel({ failure }) {
+  return (
+    <aside className="validation-panel">
+      <div className="panel-title">
+        <span>
+          <small>RELEASE READINESS</small>
+          <strong>{failure ? "3 issues to fix" : "Ready for review"}</strong>
+        </span>
+        <span className={`score ${failure ? "score--bad" : ""}`}>{failure ? "82" : "100"}</span>
+      </div>
+      <div className="check-list">
+        <div><StatusDot /><span><strong>Core details</strong><small>EN + HR complete</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>Localized narrative</strong><small>{failure ? "HR outcome is missing" : "5 paired sections"}</small></span></div>
+        <div><StatusDot /><span><strong>Technologies</strong><small>6 evidence links</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>Media accessibility</strong><small>{failure ? "1 missing HR alt text" : "2 assets described"}</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>Diagram build</strong><small>{failure ? "Syntax error · line 7" : "Light + dark SVG valid"}</small></span></div>
+        <div><StatusDot /><span><strong>External links</strong><small>Repository verified</small></span></div>
+      </div>
+      {failure ? (
+        <div className="failure-note">
+          <strong>Published version is safe</strong>
+          <p>These draft errors block a new release. The current public case study and last valid diagram stay unchanged.</p>
         </div>
-        <div className="c-hero__aside">
-          <Portrait label={labels.portrait} small treatment="navigator" />
-          <p>{labels.bio}</p>
+      ) : (
+        <div className="success-note">
+          <strong>Both localized versions match</strong>
+          <p>Factual coverage and required assets are complete. Open Review to compare public previews.</p>
         </div>
-      </section>
-      <section className="c-explorer">
-        <div className="c-explorer__title">
-          <span className="mini-label">{labels.strongestEvidence}</span>
-          <strong>{String(selectedEvidence + 1).padStart(2, "0")} / 03</strong>
+      )}
+    </aside>
+  );
+}
+
+function NarrativePair({ failure }) {
+  return (
+    <section className="editor-section">
+      <div className="section-heading">
+        <span><small>02</small><strong>Narrative</strong></span>
+        <p>Author equal factual coverage naturally in each language.</p>
+      </div>
+      <div className="paired-columns">
+        <div>
+          <LocaleHeading locale="en" />
+          {narrative.map(([label, en]) => (
+            <Field key={label} label={label} value={en} locale="en" multiline required />
+          ))}
         </div>
-        <div className="c-explorer__body">
-          <div className="c-explorer__tabs" role="tablist" aria-label={labels.strongestEvidence}>
-            {evidence.map(([title, , code], index) => (
-              <button
-                key={title}
-                type="button"
-                role="tab"
-                aria-selected={selectedEvidence === index}
-                onClick={() => setSelectedEvidence(index)}
-              >
-                <span>{code}</span>
-                {title}
+        <div>
+          <LocaleHeading locale="hr" complete={!failure} />
+          {narrative.map(([label, , hr], index) => (
+            <Field
+              key={label}
+              label={label}
+              value={failure && index === 3 ? "" : hr}
+              locale="hr"
+              multiline
+              required
+              issue={failure && index === 3}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StructuredAssets({ failure, locale = "both" }) {
+  return (
+    <section className="asset-stack">
+      <div className="asset-card">
+        <div className="asset-card__top">
+          <span className="asset-thumb image-thumb"><Icon>▧</Icon></span>
+          <span><strong>event-platform-overview.webp</strong><small>1600 × 900 · 184 KB · focal point set</small></span>
+          <button type="button">Replace</button>
+        </div>
+        {(locale === "both" || locale === "en") && <Field label="Alternative text" locale="en" value="Event platform observability dashboard showing consumer lag and retries." required />}
+        {(locale === "both" || locale === "hr") && <Field label="Alternative text" locale="hr" value={failure ? "" : "Nadzorna ploča event platforme s consumer lagom i retryjima."} required issue={failure} />}
+      </div>
+      <div className="asset-card diagram-card">
+        <div className="asset-card__top">
+          <span className="asset-thumb diagram-thumb"><Icon>⌘</Icon></span>
+          <span><strong>Retry and recovery flow</strong><small>Mermaid · sequenceDiagram · build-time SVG</small></span>
+          <span className={`build-badge ${failure ? "build-badge--bad" : ""}`}>{failure ? "BUILD FAILED" : "VALID"}</span>
+        </div>
+        <div className="diagram-editor">
+          <pre>{failure ? `${mermaidSource}\n  Worker-->>` : mermaidSource}</pre>
+          <div className="diagram-render">
+            {failure ? (
+              <div className="last-valid">
+                <span>LAST VALID RENDER</span>
+                <MiniDiagram />
+                <small>Draft source failed. Preview keeps the last valid SVG.</small>
+              </div>
+            ) : <MiniDiagram />}
+          </div>
+        </div>
+        <div className="two-fields">
+          <Field label="Caption" locale="en" value="A command is retried safely at the consumer boundary." required />
+          <Field label="Caption" locale="hr" value="Command se sigurno retryja na consumer boundaryju." required />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MiniDiagram() {
+  return (
+    <div className="mini-diagram" aria-label="Rendered architecture diagram">
+      <span>API</span><i>→</i><span>QUEUE</span><i>→</i><span>WORKER</span>
+      <b>idempotency check</b>
+    </div>
+  );
+}
+
+function VariantA({ state }) {
+  const failure = state.scenario === "failure";
+  return (
+    <div className="studio studio--a">
+      <AppHeader state={state} />
+      <ProjectHeader />
+      <div className="a-layout">
+        <main>
+          <section className="editor-section">
+            <div className="section-heading">
+              <span><small>01</small><strong>Project identity</strong></span>
+              <p>Shared facts and paired public copy.</p>
+            </div>
+            <div className="paired-columns">
+              <div>
+                <LocaleHeading locale="en" />
+                <Field label="Title" value={project.title.en} locale="en" required />
+                <Field label="One-line summary" value={project.summary.en} locale="en" multiline required />
+                <Field label="Role / contribution" value={project.role.en} locale="en" required />
+              </div>
+              <div>
+                <LocaleHeading locale="hr" />
+                <Field label="Title" value={project.title.hr} locale="hr" required />
+                <Field label="One-line summary" value={project.summary.hr} locale="hr" multiline required />
+                <Field label="Role / contribution" value={project.role.hr} locale="hr" required />
+              </div>
+            </div>
+          </section>
+          <NarrativePair failure={failure} />
+          <section className="editor-section">
+            <div className="section-heading">
+              <span><small>03</small><strong>Media & diagrams</strong></span>
+              <p>Accessible assets; Mermaid is validated and rendered during the build.</p>
+            </div>
+            <StructuredAssets failure={failure} />
+          </section>
+        </main>
+        <ValidationPanel failure={failure} />
+      </div>
+    </div>
+  );
+}
+
+const steps = [
+  ["Core", "Title, role, dates, disclosure"],
+  ["Story", "Five narrative sections"],
+  ["Evidence", "Skills, links, technologies"],
+  ["Media", "Images and Mermaid diagrams"],
+  ["Review", "Compare EN + HR previews"],
+];
+
+function GuidedSidebar({ state, failure }) {
+  return (
+    <aside className="guided-sidebar">
+      <ProjectHeader compact />
+      <nav aria-label="Case study authoring steps">
+        {steps.map(([name, description], index) => {
+          const done = index < state.step || (!failure && index < 4);
+          const issue = failure && (index === 1 || index === 3);
+          return (
+            <button key={name} type="button" className={state.step === index ? "is-current" : ""} onClick={() => state.setStep(index)}>
+              <span className={issue ? "step-number step-number--bad" : done ? "step-number step-number--done" : "step-number"}>
+                {issue ? "!" : done ? "✓" : index + 1}
+              </span>
+              <span><strong>{name}</strong><small>{description}</small></span>
+            </button>
+          );
+        })}
+      </nav>
+      <div className="sidebar-summary">
+        <span><StatusDot tone={failure ? "danger" : "ok"} /> {failure ? "3 issues" : "All checks pass"}</span>
+        <small>Public version: v6 · safe</small>
+      </div>
+    </aside>
+  );
+}
+
+function VariantB({ state }) {
+  const failure = state.scenario === "failure";
+  const step = steps[state.step];
+  return (
+    <div className="studio studio--b">
+      <AppHeader state={state} />
+      <div className="guided-layout">
+        <GuidedSidebar state={state} failure={failure} />
+        <main className="guided-main">
+          <header className="guided-title">
+            <span className="eyebrow">STEP {state.step + 1} OF 5</span>
+            <h1>{step[0]}</h1>
+            <p>{step[1]}. Finish both localized versions before moving on.</p>
+          </header>
+          <div className="locale-tabs" role="tablist">
+            {["en", "hr"].map((locale) => (
+              <button key={locale} type="button" role="tab" aria-selected={state.locale === locale} onClick={() => state.setLocale(locale)}>
+                <span className={`flag flag--${locale}`}>{locale.toUpperCase()}</span>
+                {locale === "en" ? "English" : "Hrvatski"}
+                <span className="tab-status">{failure && locale === "hr" ? "2 issues" : "Complete"}</span>
               </button>
             ))}
+            <button type="button" className="compare-tab">⇄ Compare languages</button>
           </div>
-          <article className="c-explorer__detail" role="tabpanel">
-            <span aria-hidden="true">0{selectedEvidence + 1}</span>
-            <div>
-              <h2>{evidence[selectedEvidence][0]}</h2>
-              <p>{evidence[selectedEvidence][1]}</p>
-              <p>{labels.currentFocusText}</p>
-              <RouteLink state={state} view="projects" className="b-text-link">
-                {labels.explore} <span aria-hidden="true">→</span>
-              </RouteLink>
+          {state.step === 0 && (
+            <div className="guided-fields">
+              <Field label="Title" locale={state.locale} value={project.title[state.locale]} required />
+              <Field label="One-line summary" locale={state.locale} value={project.summary[state.locale]} multiline required />
+              <Field label="Role / contribution" locale={state.locale} value={project.role[state.locale]} required />
+              <div className="two-fields">
+                <Field label="Canonical slug" value={project.slug} required hint="Shared across languages" />
+                <Field label="Disclosure level" value="Full case study" required hint="Publish-safe content only" />
+              </div>
             </div>
+          )}
+          {state.step === 1 && (
+            <div className="guided-fields">
+              {narrative.map(([label, en, hr], index) => (
+                <Field key={label} label={label} locale={state.locale} value={failure && state.locale === "hr" && index === 3 ? "" : state.locale === "en" ? en : hr} multiline required issue={failure && state.locale === "hr" && index === 3} />
+              ))}
+            </div>
+          )}
+          {state.step === 2 && (
+            <div className="guided-fields">
+              <div className="choice-block">
+                <span className="field__label">Technologies & Skill evidence</span>
+                <div className="tag-list">{project.tech.map((item) => <span key={item}>{item}<button type="button" aria-label={`Remove ${item}`}>×</button></span>)}</div>
+                <button type="button" className="add-button">+ Add evidence</button>
+              </div>
+              <Field label="Repository URL" value="https://github.com/igrgin/event-platform" hint="Verified · public repository" />
+              <Field label="Demo / documentation URL" value="https://docs.example.dev/event-platform" hint="Verified · HTTPS" />
+            </div>
+          )}
+          {state.step === 3 && <StructuredAssets failure={failure} locale={state.locale} />}
+          {state.step === 4 && <ReviewScreen failure={failure} />}
+          <footer className="guided-footer">
+            <button type="button" disabled={state.step === 0} onClick={() => state.setStep(Math.max(0, state.step - 1))}>← Previous</button>
+            <span>Changes are draft-only until explicit publication.</span>
+            <button className="next-button" type="button" disabled={state.step === 4} onClick={() => state.setStep(Math.min(4, state.step + 1))}>Save & continue →</button>
+          </footer>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function ReviewScreen({ failure }) {
+  return (
+    <div className="review-screen">
+      <div className="review-toolbar">
+        <span><StatusDot tone={failure ? "danger" : "ok"} /> {failure ? "Publication blocked" : "Ready to publish"}</span>
+        <div><button type="button">Desktop</button><button type="button">Mobile</button></div>
+      </div>
+      <div className="preview-pair">
+        {["en", "hr"].map((locale) => (
+          <article key={locale}>
+            <span className={`flag flag--${locale}`}>{locale.toUpperCase()}</span>
+            <h2>{project.title[locale]}</h2>
+            <p>{project.summary[locale]}</p>
+            <MiniDiagram />
+            <h3>{locale === "en" ? "Outcome / impact" : "Ishod / utjecaj"}</h3>
+            <p>{failure && locale === "hr" ? <mark>Missing required section</mark> : narrative[3][locale === "en" ? 1 : 2]}</p>
           </article>
-        </div>
-      </section>
-      <TechnologyList labels={labels} />
-    </>
+        ))}
+      </div>
+    </div>
   );
 }
 
-function CProjects({ state, labels }) {
+const outline = [
+  ["Overview", "✓"],
+  ["Narrative", "✓"],
+  ["Technologies", "✓"],
+  ["Links", "✓"],
+  ["Media", "✓"],
+  ["Diagrams", "✓"],
+  ["Search & sharing", "✓"],
+];
+
+function OutlineSidebar({ state, failure }) {
   return (
-    <section className="c-project-index">
-      <header className="c-project-index__header">
-        <div>
-          <p className="eyebrow">{labels.projectsEyebrow}</p>
-          <h1>{labels.projects}</h1>
-        </div>
-        <p className="lede">{labels.projectsIntro}</p>
-      </header>
-      <div className="c-project-list" role="list">
-        <ProjectIndexEntry state={state} labels={labels} treatment="navigator" />
+    <aside className="outline-sidebar">
+      <ProjectHeader compact />
+      <div className="outline-locales">
+        <button type="button" className={state.locale === "en" ? "is-current" : ""} onClick={() => state.setLocale("en")}>EN <span>Complete</span></button>
+        <button type="button" className={state.locale === "hr" ? "is-current" : ""} onClick={() => state.setLocale("hr")}>HR <span>{failure ? "2 issues" : "Complete"}</span></button>
       </div>
-      <div className="c-project-index__footer">
-        <span className="mini-label">01 / 01</span>
-        <p>{labels.moreProjects}</p>
-      </div>
-    </section>
+      <nav aria-label="Document outline">
+        {outline.map(([name, status]) => (
+          <button key={name} type="button" className={state.section === name ? "is-current" : ""} onClick={() => state.setSection(name)}>
+            <span>{name === "Narrative" || name === "Media" ? "▾" : "·"}</span>
+            <strong>{name}</strong>
+            <em>{failure && ((name === "Narrative" && state.locale === "hr") || name === "Diagrams") ? "!" : status}</em>
+          </button>
+        ))}
+      </nav>
+      <button type="button" className="add-section">+ Add optional media</button>
+    </aside>
   );
 }
 
-function CProject({ labels }) {
+function PreviewPane({ state, failure }) {
+  const locale = state.locale;
   return (
-    <div className="c-project">
-      <header className="c-project__hero">
-        <div>
-          <p className="eyebrow">{labels.projectEyebrow}</p>
-          <h1>{labels.projectTitle}</h1>
-          <p className="lede">{labels.projectSummary}</p>
-        </div>
-        <a className="button button--primary" href="https://github.com/igrgin">
-          {labels.repository} <span aria-hidden="true">↗</span>
-        </a>
-      </header>
-      <div className="c-project__workspace">
-        <aside>
-          <ProjectFacts labels={labels} />
-          <TechnologyList labels={labels} />
-        </aside>
-        <div className="c-project__story">
-          <section>
-            <div className="section-line">
-              <span>01</span>
-              <h2>{labels.architecture}</h2>
+    <aside className="live-preview">
+      <div className="preview-chrome">
+        <span><StatusDot tone={failure ? "warning" : "ok"} /> Draft preview</span>
+        <div><button type="button">↻</button><button type="button">↗</button></div>
+      </div>
+      <div className="browser-bar"><span>portfolio.dev/{locale}/projects/{project.slug}</span></div>
+      <article className="public-page">
+        <span className="eyebrow">BACKEND INFRASTRUCTURE · CASE STUDY</span>
+        <h1>{project.title[locale]}</h1>
+        <p className="preview-lede">{project.summary[locale]}</p>
+        <div className="preview-facts"><span>ROLE<strong>{project.role[locale]}</strong></span><span>STATUS<strong>Published project</strong></span></div>
+        <MiniDiagram />
+        <h2>{locale === "en" ? "Outcome / impact" : "Ishod / utjecaj"}</h2>
+        {failure && locale === "hr" ? <div className="preview-warning">This required section is missing. The public v6 content remains unchanged.</div> : <p>{narrative[3][locale === "en" ? 1 : 2]}</p>}
+        <div className="tag-list">{project.tech.slice(0, 4).map((item) => <span key={item}>{item}</span>)}</div>
+      </article>
+    </aside>
+  );
+}
+
+function VariantC({ state }) {
+  const failure = state.scenario === "failure";
+  const locale = state.locale;
+  return (
+    <div className="studio studio--c">
+      <AppHeader state={state} />
+      <div className="outline-layout">
+        <OutlineSidebar state={state} failure={failure} />
+        <main className="block-editor">
+          <div className="block-editor__heading">
+            <span className="eyebrow">{locale.toUpperCase()} · {state.section}</span>
+            <h1>{state.section}</h1>
+            <p>Edit structured content on the left; inspect its real public composition on the right.</p>
+          </div>
+          {state.section === "Narrative" ? (
+            <div className="block-list">
+              {narrative.map(([label, en, hr], index) => (
+                <div className={`content-block ${failure && locale === "hr" && index === 3 ? "content-block--issue" : ""}`} key={label}>
+                  <div className="drag">⠿</div>
+                  <div>
+                    <span className="field__label">{label} · {locale.toUpperCase()}</span>
+                    <textarea value={failure && locale === "hr" && index === 3 ? "" : locale === "en" ? en : hr} rows="3" readOnly />
+                    {failure && locale === "hr" && index === 3 && <small className="error-text">Required localized block is empty.</small>}
+                  </div>
+                  <button type="button" aria-label={`Options for ${label}`}>•••</button>
+                </div>
+              ))}
+              <button className="insert-block" type="button">+ Insert narrative block</button>
             </div>
-            <ArchitectureDiagram labels={labels} />
-          </section>
-          <section>
-            <div className="section-line">
-              <span>02</span>
-              <h2>{labels.decisions}</h2>
+          ) : state.section === "Diagrams" || state.section === "Media" ? (
+            <StructuredAssets failure={failure} locale={locale} />
+          ) : (
+            <div className="block-list">
+              <div className="content-block">
+                <div className="drag">⠿</div>
+                <div>
+                  <span className="field__label">{state.section} block · {locale.toUpperCase()}</span>
+                  <textarea value={`${state.section} content for ${locale.toUpperCase()} is represented here.`} rows="4" readOnly />
+                </div>
+                <button type="button">•••</button>
+              </div>
+              <button className="insert-block" type="button">+ Insert structured block</button>
             </div>
-            <DecisionList labels={labels} compact />
-          </section>
-          <details className="notes-disclosure">
-            <summary>{labels.more}</summary>
-            <p>{labels.moreText}</p>
-          </details>
-        </div>
+          )}
+          {failure && (
+            <div className="diagnostic-drawer">
+              <span><StatusDot tone="danger" /><strong>3 release blockers</strong></span>
+              <button type="button">Review diagnostics ↑</button>
+            </div>
+          )}
+        </main>
+        <PreviewPane state={state} failure={failure} />
       </div>
     </div>
   );
@@ -1069,61 +563,32 @@ function CProject({ labels }) {
 
 function PrototypeSwitcher({ current, onChange }) {
   const currentIndex = variants.findIndex((item) => item.key === current);
-  const cycle = (direction) => {
-    const next = (currentIndex + direction + variants.length) % variants.length;
-    onChange(variants[next].key);
-  };
-
+  const cycle = (direction) => onChange(variants[(currentIndex + direction + variants.length) % variants.length].key);
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      const target = event.target;
-      if (
-        target instanceof HTMLElement &&
-        (target.matches("input, textarea, select") || target.isContentEditable)
-      ) {
-        return;
-      }
+    const onKeyDown = (event) => {
+      if (event.target instanceof HTMLElement && (event.target.matches("input, textarea, select") || event.target.isContentEditable)) return;
       if (event.key === "ArrowLeft") cycle(-1);
       if (event.key === "ArrowRight") cycle(1);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [currentIndex]);
-
   return (
     <div className="prototype-switcher" aria-label="Prototype variant switcher">
-      <button type="button" onClick={() => cycle(-1)} aria-label="Previous variant">
-        ←
-      </button>
-      <span>
-        <small>PROTOTYPE</small>
-        <strong>
-          {current.toUpperCase()} — {variants[currentIndex].name}
-        </strong>
-      </span>
-      <button type="button" onClick={() => cycle(1)} aria-label="Next variant">
-        →
-      </button>
+      <button type="button" onClick={() => cycle(-1)} aria-label="Previous variant">←</button>
+      <span><small>PROTOTYPE</small><strong>{current.toUpperCase()} — {variants[currentIndex].name}</strong></span>
+      <button type="button" onClick={() => cycle(1)} aria-label="Next variant">→</button>
     </div>
   );
 }
 
 function App() {
-  const state = usePrototypeState();
-  const labels = useMemo(() => copy[state.language], [state.language]);
-
-  const Variant =
-    state.variant === "b" ? VariantB : state.variant === "c" ? VariantC : VariantA;
-
+  const state = usePrototype();
+  const Variant = useMemo(() => state.variant === "b" ? VariantB : state.variant === "c" ? VariantC : VariantA, [state.variant]);
   return (
     <>
-      <a className="skip-link" href="#main-content">
-        Skip to content
-      </a>
-      <Variant state={state} labels={labels} />
-      {import.meta.env.MODE !== "production" && (
-        <PrototypeSwitcher current={state.variant} onChange={state.setVariant} />
-      )}
+      <Variant state={state} />
+      {import.meta.env.MODE !== "production" && <PrototypeSwitcher current={state.variant} onChange={state.setVariant} />}
     </>
   );
 }
