@@ -66,3 +66,7 @@ export function pairedDestinationRoute(
 ) {
   return destinationRoute(locale === "en" ? "hr" : "en", destination);
 }
+
+export function projectRoute(locale: Locale, slug: string) {
+  return `${destinationRoute(locale, "projects")}/${slug}`;
+}

@@ -27,6 +27,20 @@ export function sharingImagePublicPath(remoteUrl: string): string {
   return `/media/ivo-grgin-profile-share.${imageExtension(remoteUrl)}`;
 }
 
+export function projectMediaPublicPath(
+  slug: string,
+  key: string,
+  remoteUrl: string,
+): string {
+  const safeKey = key
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `/media/projects/${slug}/${safeKey || "media"}.${imageExtension(
+    remoteUrl,
+  )}`;
+}
+
 export function croppedPortraitPosition(
   portrait: AboutPageContent["portrait"],
 ): Readonly<{ x: number; y: number }> {

@@ -2,11 +2,16 @@ import { mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { hasSanityConfiguration, loadPublishedAbout } from "@portfolio/content";
+import {
+  hasSanityConfiguration,
+  loadPublishedAbout,
+  loadPublishedProjects,
+} from "@portfolio/content";
 
 import {
   croppedPortraitSource,
   portraitPublicPath,
+  projectMediaPublicPath,
   resumePublicPaths,
   sharingImagePublicPath,
 } from "../lib/public-assets";
@@ -57,27 +62,43 @@ async function main() {
   }
 
   siteOrigin({ required: true });
-  const content = await loadPublishedAbout("en");
-  if (!content) {
+  const [about, projects] = await Promise.all([
+    loadPublishedAbout("en"),
+    loadPublishedProjects("en"),
+  ]);
+  if (!about) {
     throw new Error(
       "Published About Me content is missing or invalid; preserving the last successful deployment.",
     );
   }
+  const publishedProjects = projects?.entries ?? [];
 
   await resetGeneratedDirectories();
   await Promise.all([
     download(
-      croppedPortraitSource(content.portrait),
-      portraitPublicPath(content.portrait.url),
+      croppedPortraitSource(about.portrait),
+      portraitPublicPath(about.portrait.url),
       "image/",
     ),
     download(
-      content.metadata.image.url,
-      sharingImagePublicPath(content.metadata.image.url),
+      about.metadata.image.url,
+      sharingImagePublicPath(about.metadata.image.url),
       "image/",
     ),
-    download(content.resumes.en.url, resumePublicPaths.en, "application/pdf"),
-    download(content.resumes.hr.url, resumePublicPaths.hr, "application/pdf"),
+    download(about.resumes.en.url, resumePublicPaths.en, "application/pdf"),
+    download(about.resumes.hr.url, resumePublicPaths.hr, "application/pdf"),
+    ...publishedProjects.flatMap((project) =>
+      [
+        ...(project.heroMedia ? [project.heroMedia] : []),
+        ...project.media,
+      ].map((media) =>
+        download(
+          media.url,
+          projectMediaPublicPath(project.slug, media.key, media.url),
+          "image/",
+        ),
+      ),
+    ),
   ]);
 }
 

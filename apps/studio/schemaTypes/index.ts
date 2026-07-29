@@ -8,7 +8,8 @@ import {
   localizedStringList,
   localizedText,
 } from "./localized";
-import { project, skill } from "./references";
+import { project, projectMedia } from "./project";
+import { skill } from "./references";
 import { contactChannel, profileMedia, resumeSet, siteSettings } from "./site";
 
 export const schemaTypes = [
@@ -16,6 +17,7 @@ export const schemaTypes = [
   localizedText,
   localizedStringList,
   localizedMetadata,
+  projectMedia,
   relevantSubject,
   contactChannel,
   siteSettings,
