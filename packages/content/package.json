@@ -9,5 +9,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "groq": "6.7.0"
   }
 }

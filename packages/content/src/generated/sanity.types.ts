@@ -15,6 +15,211 @@
 export declare const internalGroqTypeReferenceTo: unique symbol;
 
 // Source: schema.json
+export type Project = {
+  _id: string;
+  _type: "project";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  title: LocalizedString;
+  slug: Slug;
+  summary: LocalizedText;
+  contribution: LocalizedText;
+};
+
+export type LocalizedText = {
+  _type: "localizedText";
+  en: string;
+  hr: string;
+};
+
+export type Slug = {
+  _type: "slug";
+  current: string;
+  source?: string;
+};
+
+export type LocalizedString = {
+  _type: "localizedString";
+  en: string;
+  hr: string;
+};
+
+export type Skill = {
+  _id: string;
+  _type: "skill";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  canonicalName: string;
+  displayName?: LocalizedString;
+  capability: LocalizedText;
+  evidence: LocalizedText;
+};
+
+export type SkillReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "skill";
+};
+
+export type ProjectReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "project";
+};
+
+export type ProfileMediaReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "profileMedia";
+};
+
+export type AboutMe = {
+  _id: string;
+  _type: "aboutMe";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  headline: LocalizedString;
+  biography: LocalizedText;
+  currentFocus: LocalizedText;
+  selectedSkills: Array<
+    {
+      _key: string;
+    } & SkillReference
+  >;
+  featuredProjects: Array<
+    {
+      _key: string;
+    } & ProjectReference
+  >;
+  profileMedia: ProfileMediaReference;
+};
+
+export type SanityImageAssetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "sanity.imageAsset";
+};
+
+export type ProfileMedia = {
+  _id: string;
+  _type: "profileMedia";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  primaryPortrait: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  alt: LocalizedString;
+  caption?: LocalizedString;
+  sharingImage?: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+};
+
+export type SanityImageCrop = {
+  _type: "sanity.imageCrop";
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+};
+
+export type SanityImageHotspot = {
+  _type: "sanity.imageHotspot";
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+};
+
+export type ResumeSetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "resumeSet";
+};
+
+export type SiteSettings = {
+  _id: string;
+  _type: "siteSettings";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  displayName: string;
+  defaultMetadata: LocalizedMetadata;
+  defaultSharingImage: {
+    asset?: SanityImageAssetReference;
+    media?: unknown;
+    hotspot?: SanityImageHotspot;
+    crop?: SanityImageCrop;
+    _type: "image";
+  };
+  contactChannels: Array<
+    {
+      _key: string;
+    } & ContactChannel
+  >;
+  resumeSet: ResumeSetReference;
+};
+
+export type SanityFileAssetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "sanity.fileAsset";
+};
+
+export type ResumeSet = {
+  _id: string;
+  _type: "resumeSet";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  englishResume: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  englishUpdatedAt: string;
+  croatianResume: {
+    asset?: SanityFileAssetReference;
+    media?: unknown;
+    _type: "file";
+  };
+  croatianUpdatedAt: string;
+  englishDisclaimer: string;
+  croatianDisclaimer: string;
+  internalVersionNote?: string;
+};
+
+export type LocalizedMetadata = {
+  _type: "localizedMetadata";
+  title: LocalizedString;
+  description: LocalizedText;
+};
+
+export type ContactChannel = {
+  _type: "contactChannel";
+  kind: "email" | "phone" | "linkedin" | "github" | "other";
+  label: LocalizedString;
+  href: string;
+};
+
 export type SanityImagePaletteSwatch = {
   _type: "sanity.imagePaletteSwatch";
   background?: string;
@@ -51,22 +256,6 @@ export type SanityImageMetadata = {
   thumbHash?: string;
   hasAlpha?: boolean;
   isOpaque?: boolean;
-};
-
-export type SanityImageHotspot = {
-  _type: "sanity.imageHotspot";
-  x: number;
-  y: number;
-  height: number;
-  width: number;
-};
-
-export type SanityImageCrop = {
-  _type: "sanity.imageCrop";
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
 };
 
 export type SanityFileAsset = {
@@ -128,21 +317,140 @@ export type Geopoint = {
   alt?: number;
 };
 
-export type Slug = {
-  _type: "slug";
-  current: string;
-  source?: string;
-};
-
 export type AllSanitySchemaTypes =
+  | Project
+  | LocalizedText
+  | Slug
+  | LocalizedString
+  | Skill
+  | SkillReference
+  | ProjectReference
+  | ProfileMediaReference
+  | AboutMe
+  | SanityImageAssetReference
+  | ProfileMedia
+  | SanityImageCrop
+  | SanityImageHotspot
+  | ResumeSetReference
+  | SiteSettings
+  | SanityFileAssetReference
+  | ResumeSet
+  | LocalizedMetadata
+  | ContactChannel
   | SanityImagePaletteSwatch
   | SanityImagePalette
   | SanityImageDimensions
   | SanityImageMetadata
-  | SanityImageHotspot
-  | SanityImageCrop
   | SanityFileAsset
   | SanityAssetSourceData
   | SanityImageAsset
-  | Geopoint
-  | Slug;
+  | Geopoint;
+
+// Source: ../../packages/content/src/about.ts
+// Variable: ABOUT_PAGE_QUERY
+// Query: {  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{    _id,    displayName,    defaultMetadata,    "defaultSharingImage": {      "url": defaultSharingImage.asset->url,      "width": defaultSharingImage.asset->metadata.dimensions.width,      "height": defaultSharingImage.asset->metadata.dimensions.height    },    contactChannels[]{_key, kind, label, href}  },  "aboutMe": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0]{    _id,    headline,    biography,    currentFocus,    "selectedSkills": selectedSkills[]->{      _id, canonicalName, displayName, capability, evidence    },    "featuredProjects": featuredProjects[]->{      _id, "slug": slug.current, title, summary, contribution    }  },  "profileMedia": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0].profileMedia->{    _id,    "portrait": {      "url": primaryPortrait.asset->url,      "width": primaryPortrait.asset->metadata.dimensions.width,      "height": primaryPortrait.asset->metadata.dimensions.height,      "hotspot": primaryPortrait.hotspot,      "crop": primaryPortrait.crop    },    alt,    caption  },  "resumeSet": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0].resumeSet->{    _id,    "english": {      "url": englishResume.asset->url,      "mimeType": englishResume.asset->mimeType,      "updatedAt": englishUpdatedAt    },    "croatian": {      "url": croatianResume.asset->url,      "mimeType": croatianResume.asset->mimeType,      "updatedAt": croatianUpdatedAt    }  }}
+export type ABOUT_PAGE_QUERY_RESULT = {
+  siteSettings:
+    | {
+        _id: string;
+        displayName: string;
+        defaultMetadata: LocalizedMetadata;
+        defaultSharingImage: {
+          url: string | null;
+          width: number | null;
+          height: number | null;
+        };
+        contactChannels: Array<{
+          _key: string;
+          kind: "email" | "github" | "linkedin" | "other" | "phone";
+          label: LocalizedString;
+          href: string;
+        }>;
+      }
+    | {
+        _id: string;
+        displayName: null;
+        defaultMetadata: null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | {
+        _id: string;
+        displayName: LocalizedString | null;
+        defaultMetadata: null;
+        defaultSharingImage: {
+          url: null;
+          width: null;
+          height: null;
+        };
+        contactChannels: null;
+      }
+    | null;
+  aboutMe:
+    | {
+        _id: string;
+        headline: LocalizedString;
+        biography: LocalizedText;
+        currentFocus: LocalizedText;
+        selectedSkills: Array<{
+          _id: string;
+          canonicalName: string;
+          displayName: LocalizedString | null;
+          capability: LocalizedText;
+          evidence: LocalizedText;
+        }>;
+        featuredProjects: Array<{
+          _id: string;
+          slug: string;
+          title: LocalizedString;
+          summary: LocalizedText;
+          contribution: LocalizedText;
+        }>;
+      }
+    | {
+        _id: string;
+        headline: null;
+        biography: null;
+        currentFocus: null;
+        selectedSkills: null;
+        featuredProjects: null;
+      }
+    | null;
+  profileMedia: {
+    _id: string;
+    portrait: {
+      url: string | null;
+      width: number | null;
+      height: number | null;
+      hotspot: SanityImageHotspot | null;
+      crop: SanityImageCrop | null;
+    };
+    alt: LocalizedString;
+    caption: LocalizedString | null;
+  } | null;
+  resumeSet: {
+    _id: string;
+    english: {
+      url: string | null;
+      mimeType: string | null;
+      updatedAt: string;
+    };
+    croatian: {
+      url: string | null;
+      mimeType: string | null;
+      updatedAt: string;
+    };
+  } | null;
+};
+
+// Query TypeMap
+import "@sanity/client";
+declare module "@sanity/client" {
+  interface SanityQueries {
+    '{\n  "siteSettings": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0]{\n    _id,\n    displayName,\n    defaultMetadata,\n    "defaultSharingImage": {\n      "url": defaultSharingImage.asset->url,\n      "width": defaultSharingImage.asset->metadata.dimensions.width,\n      "height": defaultSharingImage.asset->metadata.dimensions.height\n    },\n    contactChannels[]{_key, kind, label, href}\n  },\n  "aboutMe": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0]{\n    _id,\n    headline,\n    biography,\n    currentFocus,\n    "selectedSkills": selectedSkills[]->{\n      _id, canonicalName, displayName, capability, evidence\n    },\n    "featuredProjects": featuredProjects[]->{\n      _id, "slug": slug.current, title, summary, contribution\n    }\n  },\n  "profileMedia": *[_id == "aboutMe" && !(_id in path("drafts.**"))][0].profileMedia->{\n    _id,\n    "portrait": {\n      "url": primaryPortrait.asset->url,\n      "width": primaryPortrait.asset->metadata.dimensions.width,\n      "height": primaryPortrait.asset->metadata.dimensions.height,\n      "hotspot": primaryPortrait.hotspot,\n      "crop": primaryPortrait.crop\n    },\n    alt,\n    caption\n  },\n  "resumeSet": *[_id == "siteSettings" && !(_id in path("drafts.**"))][0].resumeSet->{\n    _id,\n    "english": {\n      "url": englishResume.asset->url,\n      "mimeType": englishResume.asset->mimeType,\n      "updatedAt": englishUpdatedAt\n    },\n    "croatian": {\n      "url": croatianResume.asset->url,\n      "mimeType": croatianResume.asset->mimeType,\n      "updatedAt": croatianUpdatedAt\n    }\n  }\n}': ABOUT_PAGE_QUERY_RESULT;
+  }
+}
