@@ -1,4 +1,6 @@
-import { defineArrayMember, defineField, defineType } from "sanity";
+import { defineField, defineType } from "sanity";
+
+import { requiredSupportingSkillsField } from "./skill-reference";
 
 const monthPattern = /^\d{4}-(?:0[1-9]|1[0-2])$/;
 
@@ -152,19 +154,7 @@ export const experience = defineType({
       type: "localizedStringList",
       validation: (rule) => rule.required(),
     }),
-    defineField({
-      name: "skills",
-      of: [
-        defineArrayMember({
-          to: [{ type: "skill" }],
-          type: "reference",
-          weak: false,
-        }),
-      ],
-      title: "Supporting Skills",
-      type: "array",
-      validation: (rule) => rule.required().min(1).unique(),
-    }),
+    requiredSupportingSkillsField(),
   ],
   name: "experience",
   preview: {
