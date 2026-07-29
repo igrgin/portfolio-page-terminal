@@ -58,7 +58,6 @@ function usePrototype() {
   const [locale, setLocale] = useState("en");
   const [step, setStep] = useState(0);
   const [section, setSection] = useState("Narrative");
-  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     const onPopState = () => setVariantState(getVariant());
@@ -71,7 +70,6 @@ function usePrototype() {
     params.set("variant", next);
     window.history.replaceState({}, "", `${window.location.pathname}?${params}`);
     setVariantState(next);
-    setPreviewOpen(false);
   };
 
   return {
@@ -85,8 +83,6 @@ function usePrototype() {
     setStep,
     section,
     setSection,
-    previewOpen,
-    setPreviewOpen,
   };
 }
 
@@ -100,12 +96,6 @@ function StatusDot({ tone = "ok" }) {
 
 function AppHeader({ state }) {
   const issueCount = state.scenario === "failure" ? 3 : 0;
-  const openPreview = () => {
-    if (state.variant === "a") state.setPreviewOpen(true);
-    if (state.variant === "b") state.setStep(4);
-  };
-  const previewLabel =
-    state.variant === "b" ? "Open review" : state.variant === "c" ? "Preview visible" : "Preview";
   return (
     <header className="app-header">
       <a className="brand" href="#project">
@@ -125,9 +115,9 @@ function AppHeader({ state }) {
           <Icon>⚠</Icon>
           {state.scenario === "ready" ? "Test failure state" : `${issueCount} blocking issues`}
         </button>
-        <button className="preview-button" type="button" onClick={openPreview}>
-          <Icon>◉</Icon> {previewLabel}
-        </button>
+        <span className="preview-button preview-button--status">
+          <StatusDot /> Live preview
+        </span>
         <button className="publish-button" type="button" disabled={issueCount > 0}>
           {issueCount > 0 ? "Publish blocked" : "Review & publish"}
         </button>
@@ -211,6 +201,32 @@ function ValidationPanel({ failure }) {
         </div>
       )}
     </aside>
+  );
+}
+
+function ValidationStrip({ failure }) {
+  const checks = failure
+    ? ["Core complete", "HR narrative missing", "Alt text missing", "Diagram invalid"]
+    : ["Core complete", "Locales paired", "Media accessible", "Diagram valid"];
+  return (
+    <section className={`validation-strip ${failure ? "validation-strip--bad" : ""}`}>
+      <span className="validation-strip__summary">
+        <StatusDot tone={failure ? "danger" : "ok"} />
+        <span>
+          <small>RELEASE READINESS</small>
+          <strong>{failure ? "3 issues block publishing" : "Ready for review"}</strong>
+        </span>
+      </span>
+      <div>
+        {checks.map((check, index) => (
+          <span key={check}>
+            <StatusDot tone={failure && index > 0 ? "danger" : "ok"} />
+            {check}
+          </span>
+        ))}
+      </div>
+      <small>Public v6 remains safe until the draft passes every check.</small>
+    </section>
   );
 }
 
@@ -303,6 +319,7 @@ function VariantA({ state }) {
       <ProjectHeader />
       <div className="a-layout">
         <main>
+          <ValidationStrip failure={failure} />
           <section className="editor-section">
             <div className="section-heading">
               <span><small>01</small><strong>Project identity</strong></span>
@@ -332,36 +349,7 @@ function VariantA({ state }) {
             <StructuredAssets failure={failure} />
           </section>
         </main>
-        <ValidationPanel failure={failure} />
-      </div>
-      {state.previewOpen && (
-        <PreviewModal failure={failure} onClose={() => state.setPreviewOpen(false)} />
-      )}
-    </div>
-  );
-}
-
-function PreviewModal({ failure, onClose }) {
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
-  return (
-    <div className="preview-modal" role="dialog" aria-modal="true" aria-labelledby="preview-title">
-      <div className="preview-modal__backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="preview-modal__panel">
-        <header>
-          <span>
-            <small>ON-DEMAND PREVIEW</small>
-            <strong id="preview-title">Compare localized public pages</strong>
-          </span>
-          <button type="button" onClick={onClose} aria-label="Close preview">×</button>
-        </header>
-        <ReviewScreen failure={failure} />
+        <PreviewPane state={state} failure={failure} />
       </div>
     </div>
   );
@@ -455,38 +443,41 @@ function VariantB({ state }) {
             </div>
           )}
           {state.step === 3 && <StructuredAssets failure={failure} locale={state.locale} />}
-          {state.step === 4 && <ReviewScreen failure={failure} />}
+          {state.step === 4 && <ReleaseReview failure={failure} />}
           <footer className="guided-footer">
             <button type="button" disabled={state.step === 0} onClick={() => state.setStep(Math.max(0, state.step - 1))}>← Previous</button>
             <span>Changes are draft-only until explicit publication.</span>
             <button className="next-button" type="button" disabled={state.step === 4} onClick={() => state.setStep(Math.min(4, state.step + 1))}>Save & continue →</button>
           </footer>
         </main>
+        <PreviewPane state={state} failure={failure} />
       </div>
     </div>
   );
 }
 
-function ReviewScreen({ failure }) {
+function ReleaseReview({ failure }) {
   return (
-    <div className="review-screen">
-      <div className="review-toolbar">
-        <span><StatusDot tone={failure ? "danger" : "ok"} /> {failure ? "Publication blocked" : "Ready to publish"}</span>
-        <div><button type="button">Desktop</button><button type="button">Mobile</button></div>
+    <section className="release-review">
+      <div className="release-review__heading">
+        <span><StatusDot tone={failure ? "danger" : "ok"} /></span>
+        <div>
+          <span className="eyebrow">EXPLICIT PUBLICATION</span>
+          <h2>{failure ? "This draft cannot be published" : "This draft is ready to publish"}</h2>
+          <p>The live preview remains visible while you verify the release checklist.</p>
+        </div>
       </div>
-      <div className="preview-pair">
-        {["en", "hr"].map((locale) => (
-          <article key={locale}>
-            <span className={`flag flag--${locale}`}>{locale.toUpperCase()}</span>
-            <h2>{project.title[locale]}</h2>
-            <p>{project.summary[locale]}</p>
-            <MiniDiagram />
-            <h3>{locale === "en" ? "Outcome / impact" : "Ishod / utjecaj"}</h3>
-            <p>{failure && locale === "hr" ? <mark>Missing required section</mark> : narrative[3][locale === "en" ? 1 : 2]}</p>
-          </article>
-        ))}
+      <div className="release-checks">
+        <div><StatusDot /><span><strong>Shared project facts</strong><small>Slug, dates, links, technologies</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>English and Croatian coverage</strong><small>{failure ? "Croatian outcome is missing" : "Equal factual coverage"}</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>Accessible media</strong><small>{failure ? "Croatian alt text is missing" : "Localized descriptions complete"}</small></span></div>
+        <div><StatusDot tone={failure ? "danger" : "ok"} /><span><strong>Build-time diagram</strong><small>{failure ? "Mermaid syntax error on line 7" : "Light and dark SVG validated"}</small></span></div>
       </div>
-    </div>
+      <div className={failure ? "failure-note" : "success-note"}>
+        <strong>{failure ? "The current public version stays unchanged" : "Publication creates one atomic bilingual release"}</strong>
+        <p>{failure ? "Fix the blocking draft issues, then review again." : "English, Croatian, media, and generated diagrams publish together."}</p>
+      </div>
+    </section>
   );
 }
 
@@ -528,7 +519,23 @@ function PreviewPane({ state, failure }) {
     <aside className="live-preview">
       <div className="preview-chrome">
         <span><StatusDot tone={failure ? "warning" : "ok"} /> Draft preview</span>
-        <div><button type="button">↻</button><button type="button">↗</button></div>
+        <div className="preview-chrome__actions">
+          <span className="preview-locale-switch" aria-label="Preview locale">
+            {["en", "hr"].map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={locale === item ? "is-current" : ""}
+                aria-pressed={locale === item}
+                onClick={() => state.setLocale(item)}
+              >
+                {item.toUpperCase()}
+              </button>
+            ))}
+          </span>
+          <button type="button" aria-label="Refresh preview">↻</button>
+          <button type="button" aria-label="Open preview in new tab">↗</button>
+        </div>
       </div>
       <div className="browser-bar"><span>portfolio.dev/{locale}/projects/{project.slug}</span></div>
       <article className="public-page">
