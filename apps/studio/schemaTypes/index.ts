@@ -1,4 +1,5 @@
 import { aboutMe } from "./about";
+import { contact, privacyNotice } from "./contact-privacy";
 import { education, relevantSubject } from "./education";
 import { experience } from "./experience";
 import {
@@ -19,6 +20,8 @@ export const schemaTypes = [
   contactChannel,
   siteSettings,
   aboutMe,
+  contact,
+  privacyNotice,
   experience,
   profileMedia,
   resumeSet,

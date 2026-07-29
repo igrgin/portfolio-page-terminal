@@ -17,6 +17,13 @@ export {
 } from "./about";
 
 export {
+  CONTACT_PAGE_QUERY,
+  loadPublishedContact,
+  normalizePublishedContact,
+  type ContactPageContent,
+} from "./contact";
+
+export {
   EDUCATION_PAGE_QUERY,
   EDUCATION_YEAR_RANGE,
   loadPublishedEducation,
@@ -33,8 +40,17 @@ export {
 } from "./experience";
 
 export {
+  loadPublishedPrivacy,
+  normalizePublishedPrivacy,
+  PRIVACY_PAGE_QUERY,
+  type PrivacyPageContent,
+} from "./privacy";
+
+export {
   contactChannelKinds,
+  hasRequiredContactChannelOrder,
   hasSanityConfiguration,
+  requiredContactChannelKinds,
   type ContactChannel,
   type ContactChannelKind,
 } from "./sanity";

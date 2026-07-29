@@ -313,9 +313,14 @@ p {
   gap: 0.4rem 0.65rem;
 }
 
+.content-pane {
+  min-width: 0;
+}
+
 .main-pane {
   width: min(100%, 1260px);
   padding: clamp(1.75rem, 3.5vw, 3.25rem);
+  padding-bottom: 0;
 }
 
 .about-hero {
@@ -712,11 +717,119 @@ p {
   background: var(--tui-accent-subtle);
 }
 
+.contact-availability {
+  max-width: 66ch;
+  padding-left: 0.8rem;
+  margin-block: 1rem 0;
+  border-left: 2px solid var(--tui-border-strong);
+  color: var(--tui-text-muted);
+}
+
+.contact-channels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--tui-border-strong);
+  border-left: 1px solid var(--tui-border);
+}
+
+.contact-channel {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding: clamp(1.15rem, 3vw, 1.75rem);
+  border-right: 1px solid var(--tui-border);
+  border-bottom: 1px solid var(--tui-border);
+  background: var(--tui-surface);
+}
+
+.contact-channel-email {
+  border-color: var(--tui-border-strong);
+  background: var(--tui-accent-subtle);
+}
+
+.contact-channel-phone {
+  background: transparent;
+  color: var(--tui-text-muted);
+}
+
+.contact-channel-icon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--tui-accent);
+}
+
+.contact-channel-phone .contact-channel-icon {
+  color: var(--tui-text-muted);
+}
+
+.contact-channel h2 {
+  margin-bottom: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.contact-channel a {
+  display: inline-flex;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.privacy-introduction {
+  border-bottom: 1px solid var(--tui-border-strong);
+}
+
+.privacy-effective-date {
+  margin-block: 1rem 0;
+  color: var(--tui-text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.privacy-effective-date strong {
+  color: var(--tui-text-primary);
+}
+
+.privacy-section {
+  display: grid;
+  max-width: 76ch;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 1rem;
+  padding-block: 1.35rem;
+  border-bottom: 1px solid var(--tui-border);
+}
+
+.privacy-section-index {
+  padding-top: 0.2rem;
+  color: var(--tui-accent);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.privacy-section h2 {
+  margin-bottom: 0.55rem;
+  font-size: 1.15rem;
+}
+
+.privacy-section p {
+  margin-bottom: 0;
+}
+
+.privacy-section a {
+  display: inline-flex;
+  margin-top: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
 .global-footer {
   display: flex;
+  width: min(100%, 1260px);
   flex-wrap: wrap;
   gap: 0.45rem 0.7rem;
-  padding-top: 1.1rem;
+  padding: 1.1rem clamp(1.75rem, 3.5vw, 3.25rem)
+    clamp(1.75rem, 3.5vw, 3.25rem);
   color: var(--tui-text-muted);
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -975,7 +1088,11 @@ p {
   }
 
   .main-pane {
-    padding: 1.5rem 1.25rem 4rem;
+    padding: 1.5rem 1.25rem 0;
+  }
+
+  .global-footer {
+    padding: 1.1rem 1.25rem 4rem;
   }
 
   .experience-entry {
@@ -1017,6 +1134,10 @@ p {
   .education-entry {
     grid-template-columns: 2rem minmax(0, 1fr);
     gap: 0.6rem 0.75rem;
+  }
+
+  .contact-channels {
+    grid-template-columns: 1fr;
   }
 
   .education-period {

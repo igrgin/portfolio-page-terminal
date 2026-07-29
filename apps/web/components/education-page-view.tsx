@@ -1,7 +1,7 @@
 import type { EducationPageContent, Locale } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel, destinationRoute } from "../lib/routing";
+import { destinationLabel } from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -10,7 +10,6 @@ const copy = {
     heading: "Education",
     inProgress: "In progress",
     introduction: "Background",
-    privacy: "Privacy",
     relevantSubjects: "Relevant subjects",
     skills: "Related skills",
     summary:
@@ -21,7 +20,6 @@ const copy = {
     heading: "Obrazovanje",
     inProgress: "U tijeku",
     introduction: "Pozadina",
-    privacy: "Privatnost",
     relevantSubjects: "Relevantni predmeti",
     skills: "Povezane vještine",
     summary:
@@ -120,16 +118,6 @@ export function EducationPageView({
           );
         })}
       </section>
-
-      <footer className="global-footer">
-        <a href={destinationRoute(locale, "privacy")}>{labels.privacy}</a>
-        <span aria-hidden="true">·</span>
-        {content.contactChannels.map((channel) => (
-          <a href={channel.href} key={`footer:${channel.kind}:${channel.href}`}>
-            {channel.label}
-          </a>
-        ))}
-      </footer>
     </OperationalShell>
   );
 }

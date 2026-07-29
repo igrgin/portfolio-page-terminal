@@ -16,7 +16,6 @@ const copy = {
     featuredProjects: "Featured work",
     introduction: "Introduction",
     openProject: "Open project",
-    privacy: "Privacy",
     contribution: "Contribution",
     selectedSkills: "Selected evidence",
   },
@@ -26,7 +25,6 @@ const copy = {
     featuredProjects: "Odabrani projekti",
     introduction: "Uvod",
     openProject: "Otvori projekt",
-    privacy: "Privatnost",
     contribution: "Doprinos",
     selectedSkills: "Odabrano iskustvo",
   },
@@ -153,16 +151,6 @@ export function AboutPageView({
           </div>
         </section>
       )}
-
-      <footer className="global-footer">
-        <a href={destinationRoute(locale, "privacy")}>{labels.privacy}</a>
-        <span aria-hidden="true">·</span>
-        {content.contactChannels.map((channel) => (
-          <a href={channel.href} key={`footer:${channel.kind}:${channel.href}`}>
-            {channel.label}
-          </a>
-        ))}
-      </footer>
     </OperationalShell>
   );
 }
