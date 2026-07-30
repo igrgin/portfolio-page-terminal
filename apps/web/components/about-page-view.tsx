@@ -1,7 +1,12 @@
 import type { AboutPageContent, Locale } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel, destinationRoute } from "../lib/routing";
+import {
+  applicationRoute,
+  type ApplicationRouteMode,
+  destinationLabel,
+  destinationRoute,
+} from "../lib/routing";
 import {
   croppedPortraitDimensions,
   croppedPortraitPosition,
@@ -33,8 +38,14 @@ const copy = {
 export function AboutPageView({
   content,
   locale,
-}: Readonly<{ content: AboutPageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: AboutPageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
+  const route = (path: string) => applicationRoute(path, routeMode);
   const portraitDimensions = croppedPortraitDimensions(content.portrait);
   const portraitPosition = croppedPortraitPosition(content.portrait);
 
@@ -45,6 +56,11 @@ export function AboutPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "about")}
+      resumeUrls={{
+        en: content.resumes.en.url,
+        hr: content.resumes.hr.url,
+      }}
+      routeMode={routeMode}
     >
       <section aria-labelledby="about-heading" className="about-hero">
         <div className="hero-copy">
@@ -58,14 +74,14 @@ export function AboutPageView({
           <div className="cta-row">
             <a
               className="button button-primary"
-              href={destinationRoute(locale, "projects")}
+              href={route(destinationRoute(locale, "projects"))}
             >
               {destinationLabel(locale, "projects")}{" "}
               <span aria-hidden="true">→</span>
             </a>
             <a
               className="button button-secondary"
-              href={destinationRoute(locale, "contact")}
+              href={route(destinationRoute(locale, "contact"))}
             >
               {destinationLabel(locale, "contact")}
             </a>
@@ -78,7 +94,11 @@ export function AboutPageView({
               <img
                 alt={content.portrait.alt}
                 height={portraitDimensions.height}
-                src={portraitPublicPath(content.portrait.url)}
+                src={
+                  routeMode === "draft"
+                    ? content.portrait.url
+                    : portraitPublicPath(content.portrait.url)
+                }
                 style={{
                   objectPosition: `${portraitPosition.x * 100}% ${
                     portraitPosition.y * 100
@@ -142,7 +162,9 @@ export function AboutPageView({
                   </p>
                 </div>
                 <a
-                  href={`${destinationRoute(locale, "projects")}/${project.slug}`}
+                  href={route(
+                    `${destinationRoute(locale, "projects")}/${project.slug}`,
+                  )}
                 >
                   {labels.openProject} <span aria-hidden="true">→</span>
                 </a>

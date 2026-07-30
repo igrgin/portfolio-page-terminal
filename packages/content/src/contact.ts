@@ -12,6 +12,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
 } from "./sanity";
 
 export type ContactPageContent = Readonly<{
@@ -102,7 +103,8 @@ export function normalizePublishedContact(
 
 export async function loadPublishedContact(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<ContactPageContent | null> {
-  const result = await loadSanityQuery(CONTACT_PAGE_QUERY, "Contact");
+  const result = await loadSanityQuery(CONTACT_PAGE_QUERY, "Contact", options);
   return normalizePublishedContact(result, locale);
 }

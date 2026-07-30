@@ -2,6 +2,7 @@ import { defineConfig } from "sanity";
 import { structureTool } from "sanity/structure";
 
 import { studioEnvironment } from "./environment";
+import { protectBatchPublicationActions } from "./publication-actions";
 import { schemaTypes } from "./schemaTypes";
 
 const singletons = [
@@ -16,10 +17,19 @@ const singletonTypes = new Set(singletons.map(({ type }) => type));
 
 export default defineConfig({
   document: {
-    actions: (actions, context) =>
-      singletonTypes.has(context.schemaType as (typeof singletons)[number]["type"])
-        ? actions.filter(({ action }) => action !== "duplicate" && action !== "delete")
-        : actions,
+    actions: (actions, context) => {
+      const protectedActions = protectBatchPublicationActions(
+        actions,
+        context.schemaType,
+      );
+      return singletonTypes.has(
+        context.schemaType as (typeof singletons)[number]["type"],
+      )
+        ? protectedActions.filter(
+            ({ action }) => action !== "duplicate" && action !== "delete",
+          )
+        : protectedActions;
+    },
   },
   name: "portfolio",
   title: "Portfolio",
@@ -43,6 +53,10 @@ export default defineConfig({
             list.documentTypeListItem("education").title("Education"),
             list.documentTypeListItem("skill").title("Skills"),
             list.documentTypeListItem("project").title("Projects"),
+            list.divider(),
+            list
+              .documentTypeListItem("publicationBatch")
+              .title("Publication batches"),
           ]),
     }),
   ],

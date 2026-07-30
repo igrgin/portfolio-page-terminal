@@ -5,7 +5,12 @@ import type {
 } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel, destinationRoute } from "../lib/routing";
+import {
+  applicationRoute,
+  type ApplicationRouteMode,
+  destinationLabel,
+  destinationRoute,
+} from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -100,9 +105,15 @@ function ProjectLinks({
 export function ProjectsPageView({
   content,
   locale,
-}: Readonly<{ content: ProjectsPageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: ProjectsPageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
   const projectsRoute = destinationRoute(locale, "projects");
+  const route = (path: string) => applicationRoute(path, routeMode);
 
   return (
     <OperationalShell
@@ -111,6 +122,7 @@ export function ProjectsPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "projects")}
+      routeMode={routeMode}
     >
       <header className="section-introduction">
         <p className="eyebrow">{labels.introduction}</p>
@@ -154,7 +166,7 @@ export function ProjectsPageView({
                 <ul>
                   {project.skills.map((skill) => (
                     <li key={skill.id}>
-                      <a href={destinationRoute(locale, "skills")}>
+                      <a href={route(destinationRoute(locale, "skills"))}>
                         {skill.name}
                       </a>
                     </li>
@@ -164,7 +176,7 @@ export function ProjectsPageView({
               <div className="project-entry-actions">
                 <a
                   className="button button-primary"
-                  href={`${projectsRoute}/${project.slug}`}
+                  href={route(`${projectsRoute}/${project.slug}`)}
                 >
                   {labels.openProject}
                   <span aria-hidden="true"> →</span>

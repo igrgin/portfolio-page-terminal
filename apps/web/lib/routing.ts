@@ -70,3 +70,12 @@ export function pairedDestinationRoute(
 export function projectRoute(locale: Locale, slug: string) {
   return `${destinationRoute(locale, "projects")}/${slug}`;
 }
+
+export type ApplicationRouteMode = "draft" | "public";
+
+export function applicationRoute(
+  path: string,
+  mode: ApplicationRouteMode = "public",
+) {
+  return mode === "draft" ? `/draft${path}` : path;
+}

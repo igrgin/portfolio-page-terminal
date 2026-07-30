@@ -43,6 +43,37 @@ invalid, preserving the last successful public site. When Sanity variables are a
 local builds deliberately leave localized content routes unpublished rather than
 inventing fallback content.
 
+### Publication readiness and Draft Mode
+
+Create a named Publication batch in Studio, include the complete changed-draft
+set, attach asset evidence and active free-tier measurements, confirm the factual
+and privacy reviews, then run **Run batch readiness**. The report lists all
+bilingual, reference, URL, date, ordering, slug, asset, diagram, accessibility,
+privacy, and release-limit failures together. Its revision fingerprint changes
+after any selected/reference document, asset evidence, confirmation, or limit
+edit; stale validation cannot open Draft Mode. Direct content Publish actions
+remain disabled so readiness cannot be bypassed; the batch publication workflow
+owns release publication.
+
+Configure the Web runtime with:
+
+- `DRAFT_MODE_SECRET` — a random server-only value of at least 32 characters;
+- `SANITY_API_READ_TOKEN` — a least-privilege server-only Sanity Viewer token;
+- the existing `SANITY_PROJECT_ID` and `SANITY_DATASET`.
+
+Generate an access token for the exact green revision, optionally choosing a
+shorter lifetime than the 15-minute maximum:
+
+```sh
+npm run draft:token -- <revision> 600
+```
+
+Open `/draft`, submit the token, and review the real application separately under
+`/draft/en/...` and `/draft/hr/...`. Draft URLs and responses are non-indexable,
+all internal application links remain inside the isolated batch preview, Sanity
+credentials never enter the browser, and the visible banner provides an explicit
+exit. The HTTP-only session expires with the signed token.
+
 ### Project diagrams
 
 Full Project case studies may contain paired English/Croatian Mermaid diagrams.

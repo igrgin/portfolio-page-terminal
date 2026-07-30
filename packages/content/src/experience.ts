@@ -11,6 +11,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
 } from "./sanity";
 
 const employerPresentations = [
@@ -302,7 +303,12 @@ export function normalizePublishedExperience(
 
 export async function loadPublishedExperience(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<ExperiencePageContent | null> {
-  const result = await loadSanityQuery(EXPERIENCE_PAGE_QUERY, "Experience");
+  const result = await loadSanityQuery(
+    EXPERIENCE_PAGE_QUERY,
+    "Experience",
+    options,
+  );
   return normalizePublishedExperience(result, locale);
 }

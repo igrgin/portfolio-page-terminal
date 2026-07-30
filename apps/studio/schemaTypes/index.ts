@@ -9,6 +9,13 @@ import {
   localizedText,
 } from "./localized";
 import { project, projectDiagram, projectMedia } from "./project";
+import {
+  publicationAssetCheck,
+  publicationBatch,
+  publicationReadinessIssue,
+  publicationReleaseLimits,
+  publicationValidation,
+} from "./publication-batch";
 import { skill } from "./references";
 import { contactChannel, profileMedia, resumeSet, siteSettings } from "./site";
 
@@ -19,6 +26,10 @@ export const schemaTypes = [
   localizedMetadata,
   projectMedia,
   projectDiagram,
+  publicationReadinessIssue,
+  publicationAssetCheck,
+  publicationReleaseLimits,
+  publicationValidation,
   relevantSubject,
   contactChannel,
   siteSettings,
@@ -31,4 +42,5 @@ export const schemaTypes = [
   skill,
   project,
   education,
+  publicationBatch,
 ];

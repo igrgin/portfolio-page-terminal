@@ -2,6 +2,8 @@ import type { ContactChannel, Locale } from "@portfolio/content";
 import React, { type ReactNode } from "react";
 
 import {
+  applicationRoute,
+  type ApplicationRouteMode,
   type Destination,
   destinationLabel,
   destinationRoute,
@@ -40,6 +42,8 @@ export function OperationalShell({
   locationLabel,
   locationPrefix,
   pairedRoute,
+  resumeUrls,
+  routeMode = "public",
 }: Readonly<{
   children: ReactNode;
   contactChannels?: readonly ContactChannel[];
@@ -49,8 +53,11 @@ export function OperationalShell({
   locationLabel: string;
   locationPrefix?: string;
   pairedRoute?: string;
+  resumeUrls?: Readonly<Partial<Record<Locale, string>>>;
+  routeMode?: ApplicationRouteMode;
 }>) {
   const labels = copy[locale];
+  const route = (path: string) => applicationRoute(path, routeMode);
 
   return (
     <div className="operational-shell">
@@ -60,7 +67,7 @@ export function OperationalShell({
 
       <header className="topbar">
         <div className="brand-zone">
-          <a className="wordmark" href={destinationRoute(locale, "about")}>
+          <a className="wordmark" href={route(destinationRoute(locale, "about"))}>
             <span aria-hidden="true">[</span> {displayName.toUpperCase()}{" "}
             <span aria-hidden="true">]</span>
           </a>
@@ -71,10 +78,10 @@ export function OperationalShell({
         </div>
         <div className="global-controls">
           <LanguagePreferenceLink
-            href={
+            href={route(
               pairedRoute ??
-              pairedDestinationRoute(locale, currentDestination ?? "about")
-            }
+                pairedDestinationRoute(locale, currentDestination ?? "about"),
+            )}
             locale={locale}
           />
           <ThemeControl locale={locale} />
@@ -85,7 +92,11 @@ export function OperationalShell({
           >
             {(["en", "hr"] as const).map((resumeLocale) => (
               <a
-                href={resumePublicPaths[resumeLocale]}
+                href={
+                  routeMode === "draft" && resumeUrls?.[resumeLocale]
+                    ? resumeUrls[resumeLocale]
+                    : resumePublicPaths[resumeLocale]
+                }
                 key={resumeLocale}
                 type="application/pdf"
               >
@@ -105,7 +116,7 @@ export function OperationalShell({
                 aria-current={
                   currentDestination === destination ? "page" : undefined
                 }
-                href={destinationRoute(locale, destination)}
+                href={route(destinationRoute(locale, destination))}
                 key={destination}
               >
                 <NavIcon destination={destination} />
@@ -135,11 +146,11 @@ export function OperationalShell({
             {children}
           </main>
           <footer className="global-footer">
-            <a href={destinationRoute(locale, "contact")}>
+            <a href={route(destinationRoute(locale, "contact"))}>
               {destinationLabel(locale, "contact")}
             </a>
             <span aria-hidden="true">·</span>
-            <a href={destinationRoute(locale, "privacy")}>
+            <a href={route(destinationRoute(locale, "privacy"))}>
               {destinationLabel(locale, "privacy")}
             </a>
             {contactChannels.map((channel) => (

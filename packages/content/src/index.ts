@@ -109,4 +109,23 @@ export {
   requiredContactChannelKinds,
   type ContactChannel,
   type ContactChannelKind,
+  type SanityEnvironment,
+  type SanityQueryOptions,
 } from "./sanity";
+
+export {
+  collectStrongReferenceIds,
+  isPublicationValidationCurrent,
+  loadStrongReferenceClosure,
+  publicationBatchRevision,
+  publicationLimitMaximums,
+  publicationManagedDocumentTypes,
+  publishedDocumentId,
+  validatePublicationBatch,
+  type PublicationAssetCheck,
+  type PublicationBatchCandidate,
+  type PublicationReadinessCategory,
+  type PublicationReadinessIssue,
+  type PublicationReadinessReport,
+  type PublicationReleaseLimits,
+} from "./publication-batch";

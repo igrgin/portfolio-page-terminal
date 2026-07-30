@@ -126,7 +126,29 @@ export function normalizeContactChannels(
     : null;
 }
 
-type SanityEnvironment = Readonly<Record<string, string | undefined>>;
+export type SanityEnvironment = Readonly<Record<string, string | undefined>>;
+
+type SanityFetcher = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
+type SanityQueryBaseOptions = Readonly<{
+  environment?: SanityEnvironment;
+  fetcher?: SanityFetcher;
+}>;
+
+export type SanityQueryOptions =
+  | (SanityQueryBaseOptions &
+      Readonly<{
+        mode?: "published";
+      }>)
+  | (SanityQueryBaseOptions &
+      Readonly<{
+        documentIds: readonly string[];
+        mode: "draft";
+        token: string;
+      }>);
 
 export function hasSanityConfiguration(
   environment: SanityEnvironment = process.env,
@@ -161,40 +183,190 @@ export function hasSanityConfiguration(
   return true;
 }
 
-function sanityEndpoint(query: string): string | null {
-  if (!hasSanityConfiguration()) {
+function sanityEndpoint(
+  query: string,
+  environment: SanityEnvironment,
+  perspective: "previewDrafts" | "published",
+): string | null {
+  if (!hasSanityConfiguration(environment)) {
     return null;
   }
 
   const projectId =
-    process.env.SANITY_PROJECT_ID ?? process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
+    environment.SANITY_PROJECT_ID ??
+    environment.NEXT_PUBLIC_SANITY_PROJECT_ID;
   const dataset =
-    process.env.SANITY_DATASET ??
-    process.env.NEXT_PUBLIC_SANITY_DATASET ??
+    environment.SANITY_DATASET ??
+    environment.NEXT_PUBLIC_SANITY_DATASET ??
     "production";
-  const search = new URLSearchParams({ query });
-  return `https://${projectId}.apicdn.sanity.io/v2025-02-19/data/query/${dataset}?${search}`;
+  const search = new URLSearchParams({
+    query,
+    ...(perspective === "previewDrafts" ? { perspective } : {}),
+  });
+  const host =
+    perspective === "previewDrafts"
+      ? `${projectId}.api.sanity.io`
+      : `${projectId}.apicdn.sanity.io`;
+  return `https://${host}/v2025-02-19/data/query/${dataset}?${search}`;
 }
 
-export async function loadSanityQuery(
-  query: string,
-  queryName: string,
-): Promise<unknown> {
-  const endpoint = sanityEndpoint(query);
-  if (!endpoint) {
-    return null;
+function draftQuery(query: string): string {
+  return query
+    .replace(
+      /\s*&&\s*!\(_id in path\("drafts\.\*\*"\)\)/gu,
+      "",
+    )
+    .replace(
+      /!\(_id in path\("drafts\.\*\*"\)\)\s*&&\s*/gu,
+      "",
+    )
+    .replace(/!\(_id in path\("drafts\.\*\*"\)\)/gu, "true");
+}
+
+function normalizedDraftValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizedDraftValue);
+  }
+  const object = record(value);
+  if (!object) {
+    return value;
+  }
+  return Object.fromEntries(
+    Object.entries(object).map(([key, child]) => [
+      key,
+      key === "_id" && typeof child === "string"
+        ? child.replace(/^drafts\./, "")
+        : normalizedDraftValue(child),
+    ]),
+  );
+}
+
+function contentId(value: unknown): string | null {
+  const id = nonEmptyString(record(value)?._id);
+  return id ? id.replace(/^drafts\./, "") : null;
+}
+
+export function overlayBatchDrafts(
+  published: unknown,
+  preview: unknown,
+  documentIds: readonly string[],
+): unknown {
+  const allowedIds = new Set(
+    documentIds.map((id) => id.replace(/^drafts\./, "")),
+  );
+
+  function overlay(publicValue: unknown, previewValue: unknown): unknown {
+    const previewId = contentId(previewValue);
+    if (previewId) {
+      return allowedIds.has(previewId)
+        ? normalizedDraftValue(previewValue)
+        : publicValue;
+    }
+    if (Array.isArray(publicValue) || Array.isArray(previewValue)) {
+      const publicEntries = Array.isArray(publicValue) ? publicValue : [];
+      const previewEntries = Array.isArray(previewValue) ? previewValue : [];
+      const merged = [...publicEntries];
+      for (const previewEntry of previewEntries) {
+        const id = contentId(previewEntry);
+        if (!id || !allowedIds.has(id)) {
+          continue;
+        }
+        const publicIndex = merged.findIndex(
+          (entry) => contentId(entry) === id,
+        );
+        if (publicIndex >= 0) {
+          merged[publicIndex] = normalizedDraftValue(previewEntry);
+        } else {
+          merged.push(normalizedDraftValue(previewEntry));
+        }
+      }
+      return merged;
+    }
+    const publicObject = record(publicValue);
+    const previewObject = record(previewValue);
+    if (publicObject || previewObject) {
+      const keys = new Set([
+        ...Object.keys(publicObject ?? {}),
+        ...Object.keys(previewObject ?? {}),
+      ]);
+      return Object.fromEntries(
+        [...keys].map((key) => [
+          key,
+          overlay(publicObject?.[key], previewObject?.[key]),
+        ]),
+      );
+    }
+    return publicValue;
   }
 
-  const response = await fetch(endpoint, {
-    cache: "force-cache",
-    headers: { Accept: "application/json" },
-  });
+  return overlay(published, preview);
+}
+
+async function fetchSanityResult(
+  endpoint: string,
+  queryName: string,
+  fetcher: SanityFetcher,
+  init: RequestInit,
+): Promise<unknown> {
+  const response = await fetcher(endpoint, init);
   if (!response.ok) {
     throw new Error(
       `Sanity ${queryName} query failed with status ${response.status}.`,
     );
   }
-
   const payload: unknown = await response.json();
   return record(payload)?.result;
+}
+
+export async function loadSanityQuery(
+  query: string,
+  queryName: string,
+  options: SanityQueryOptions = {},
+): Promise<unknown> {
+  const environment = options.environment ?? process.env;
+  const publishedEndpoint = sanityEndpoint(
+    query,
+    environment,
+    "published",
+  );
+  if (!publishedEndpoint) {
+    return null;
+  }
+  const fetcher = options.fetcher ?? fetch;
+  const published = await fetchSanityResult(
+    publishedEndpoint,
+    queryName,
+    fetcher,
+    {
+      cache: "force-cache",
+      headers: { Accept: "application/json" },
+    },
+  );
+  if (options.mode !== "draft") {
+    return published;
+  }
+  if (!nonEmptyString(options.token) || options.documentIds.length === 0) {
+    throw new Error("Draft Mode requires a server-side token and batch scope.");
+  }
+  const previewEndpoint = sanityEndpoint(
+    draftQuery(query),
+    environment,
+    "previewDrafts",
+  );
+  if (!previewEndpoint) {
+    return null;
+  }
+  const preview = await fetchSanityResult(
+    previewEndpoint,
+    queryName,
+    fetcher,
+    {
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${options.token}`,
+      },
+    },
+  );
+  return overlayBatchDrafts(published, preview, options.documentIds);
 }

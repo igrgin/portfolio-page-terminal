@@ -6,7 +6,12 @@ import type {
 } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel, destinationRoute } from "../lib/routing";
+import {
+  applicationRoute,
+  type ApplicationRouteMode,
+  destinationLabel,
+  destinationRoute,
+} from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -71,14 +76,18 @@ function SkillIcon({ icon }: Readonly<{ icon?: SkillIconName }>) {
   );
 }
 
-function evidenceHref(locale: Locale, kind: SkillEvidenceKind) {
+function evidenceHref(
+  locale: Locale,
+  kind: SkillEvidenceKind,
+  routeMode: ApplicationRouteMode,
+) {
   switch (kind) {
     case "education":
-      return destinationRoute(locale, "education");
+      return applicationRoute(destinationRoute(locale, "education"), routeMode);
     case "experience":
-      return destinationRoute(locale, "experience");
+      return applicationRoute(destinationRoute(locale, "experience"), routeMode);
     case "project":
-      return destinationRoute(locale, "projects");
+      return applicationRoute(destinationRoute(locale, "projects"), routeMode);
     case "note":
       return null;
   }
@@ -87,7 +96,12 @@ function evidenceHref(locale: Locale, kind: SkillEvidenceKind) {
 export function SkillsPageView({
   content,
   locale,
-}: Readonly<{ content: SkillPageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: SkillPageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
 
   return (
@@ -97,6 +111,7 @@ export function SkillsPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "skills")}
+      routeMode={routeMode}
     >
       <header className="section-introduction">
         <p className="eyebrow">{labels.introduction}</p>
@@ -146,7 +161,7 @@ export function SkillsPageView({
                 <h3 id={`skill-evidence-${index}`}>{labels.evidence}</h3>
                 <ul>
                   {entry.evidence.map((evidence, evidenceIndex) => {
-                    const href = evidenceHref(locale, evidence.kind);
+                const href = evidenceHref(locale, evidence.kind, routeMode);
                     return (
                       <li
                         key={`${evidence.kind}:${evidenceIndex}:${evidence.label}`}
@@ -167,7 +182,14 @@ export function SkillsPageView({
       </section>
 
       <footer className="global-footer">
-        <a href={destinationRoute(locale, "privacy")}>{labels.privacy}</a>
+        <a
+          href={applicationRoute(
+            destinationRoute(locale, "privacy"),
+            routeMode,
+          )}
+        >
+          {labels.privacy}
+        </a>
         <span aria-hidden="true">·</span>
         {content.contactChannels.map((channel) => (
           <a href={channel.href} key={`footer:${channel.kind}:${channel.href}`}>
