@@ -52,6 +52,12 @@ _Avoid_: Sanity Content Release, individual publish, deployment
 The authoritative, version-controlled contract in `SPEC.md` that consolidates settled product and technical requirements for implementation. Linked Wayfinder tickets retain the decision history and rationale rather than competing with the specification.
 _Avoid_: Planning notes, issue dump, implementation plan
 
+**Source-visible portfolio repository**:
+The public source repository shared for evaluation of the portfolio implementation
+without granting a license to copy, modify, or redistribute it. Public visibility
+allows technical cloning and forking but does not make the portfolio open source.
+_Avoid_: Open-source project, reusable portfolio template
+
 **Skill evidence**:
 A publish-safe account of where a public Skill has been applied, expressed through portfolio work or a precisely scoped note when the underlying work is confidential or unpublished.
 _Avoid_: Skill rating, proficiency percentage, unsubstantiated claim

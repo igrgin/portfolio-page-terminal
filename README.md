@@ -2,6 +2,9 @@
 
 Production workspace for Ivo Grgin's bilingual TUI-styled portfolio.
 
+This is a source-visible portfolio repository shared for evaluation. No license is
+granted to copy, modify, or redistribute the source or its personal content.
+
 ## Workspace
 
 - `apps/web` — TypeScript Next.js App Router application
@@ -10,9 +13,10 @@ Production workspace for Ivo Grgin's bilingual TUI-styled portfolio.
   primitives, and semantic TUI tokens
 - `packages/content` — shared content contracts and generated-type boundary
 
-Install the exact lockfile with Node.js 22.13 or newer:
+Install the exact lockfile with Node.js 22.23.2:
 
 ```sh
+nvm use
 npm ci
 ```
 
@@ -46,6 +50,20 @@ npm run check
 ```
 
 Individual build commands are `npm run build:web` and `npm run build:studio`.
+
+## Dependency security
+
+Run the dependency-security report with:
+
+```sh
+npm run check:dependencies
+```
+
+The report groups npm's affected dependency entries into distinct advisories and
+shows their dependency paths and available patches. Critical findings fail the
+check, high findings produce a non-blocking GitHub warning, and moderate or low
+findings remain visible in the report. Dependency changes and vulnerability fixes
+are always reviewed and applied manually.
 
 ## Conditional Contact form
 
