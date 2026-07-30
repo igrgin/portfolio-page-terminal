@@ -438,8 +438,11 @@ the decision history and rationale; they do not compete with this specification.
   enabling Draft Mode, keep credentials server-only, use non-indexable URLs, and
   provide a reliable exit/expiry path.
 - **SEC-05 — Dependencies.** CI MUST run dependency, secret, and build checks.
-  Critical exploitable findings MUST block release; supported dependencies MUST be
-  patched through reviewed lockfile changes.
+  Critical dependency or code findings and detected usable credentials MUST block
+  release. High findings MUST produce a non-blocking warning; moderate and low
+  findings MUST remain visible in the report. Supported dependencies MUST be patched
+  through manually reviewed lockfile changes; automation MUST NOT apply fixes or open
+  dependency-update pull requests.
 - **SEC-06 — Incident readiness.** A working owner/contact path, provider contacts,
   recovery procedure, and personal-data incident assessment checklist MUST exist
   before launch.

@@ -26,6 +26,18 @@ test("the root exposes independent Web and Studio quality commands", () => {
   }
 });
 
+test("local and CI Node versions match the supported runtime", () => {
+  const manifest = readJson("package.json");
+  const nvmVersion = readFileSync(new URL(".nvmrc", root), "utf8").trim();
+  const workflow = readFileSync(
+    new URL(".github/workflows/quality.yml", root),
+    "utf8",
+  );
+
+  assert.equal(manifest.engines.node, `>=${nvmVersion} <23`);
+  assert.match(workflow, new RegExp(`node-version: ${nvmVersion.replaceAll(".", "\\.")}`));
+});
+
 test("runtime foundations are exact-pinned behind portfolio-owned packages", () => {
   const web = readJson("apps/web/package.json");
   const studio = readJson("apps/studio/package.json");
