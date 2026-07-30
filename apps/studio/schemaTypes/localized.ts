@@ -1,6 +1,9 @@
 import { defineArrayMember, defineField, defineType } from "sanity";
 
+import { PairedLocalizedInput } from "../components/project-authoring";
+
 export const localizedString = defineType({
+  components: { input: PairedLocalizedInput },
   fields: [
     defineField({
       name: "en",
@@ -16,11 +19,13 @@ export const localizedString = defineType({
     }),
   ],
   name: "localizedString",
+  options: { columns: 2 },
   title: "Localized string",
   type: "object",
 });
 
 export const localizedText = defineType({
+  components: { input: PairedLocalizedInput },
   fields: [
     defineField({
       name: "en",
@@ -38,6 +43,7 @@ export const localizedText = defineType({
     }),
   ],
   name: "localizedText",
+  options: { columns: 2 },
   title: "Localized text",
   type: "object",
 });

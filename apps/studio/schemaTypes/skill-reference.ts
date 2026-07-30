@@ -1,7 +1,12 @@
 import { defineArrayMember, defineField } from "sanity";
 
-export function requiredSupportingSkillsField() {
+type SupportingSkillsFieldGroup = "shared";
+
+export function requiredSupportingSkillsField(
+  group?: SupportingSkillsFieldGroup,
+) {
   return defineField({
+    ...(group ? { group } : {}),
     name: "skills",
     of: [
       defineArrayMember({

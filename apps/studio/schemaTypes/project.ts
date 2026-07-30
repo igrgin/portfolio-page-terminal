@@ -15,6 +15,7 @@ import {
   type ValidationContext,
 } from "sanity";
 
+import { ProjectAuthoringInput } from "../components/project-authoring";
 import { requiredSupportingSkillsField } from "./skill-reference";
 
 const projectStatusOptions = projectStatuses.map((value) => ({
@@ -44,6 +45,7 @@ type ProjectSchemaParent = Readonly<{
 
 function caseStudyField(name: ProjectCaseStudyField, title: string) {
   return defineField({
+    group: "localized",
     hidden: ({ parent }) =>
       (parent as ProjectSchemaParent | undefined)?.disclosureLevel !== "full",
     name,
@@ -107,14 +109,17 @@ export const projectMedia = defineType({
 });
 
 export const project = defineType({
+  components: { input: ProjectAuthoringInput },
   fields: [
     defineField({
+      group: "localized",
       name: "title",
       title: "Title",
       type: "localizedString",
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "shared",
       name: "slug",
       options: { source: "title.en" },
       title: "Canonical slug",
@@ -122,18 +127,21 @@ export const project = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "localized",
       name: "summary",
       title: "Summary",
       type: "localizedText",
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "localized",
       name: "contribution",
       title: "Role and contribution",
       type: "localizedText",
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "shared",
       initialValue: "summary",
       name: "disclosureLevel",
       options: { layout: "radio", list: projectDisclosureOptions },
@@ -152,6 +160,7 @@ export const project = defineType({
       caseStudyField(name, projectCaseStudyTitles[name]),
     ),
     defineField({
+      group: "shared",
       name: "startDate",
       title: "Start month",
       type: "string",
@@ -161,6 +170,7 @@ export const project = defineType({
         }),
     }),
     defineField({
+      group: "shared",
       name: "endDate",
       title: "End month",
       type: "string",
@@ -172,6 +182,7 @@ export const project = defineType({
           .custom(validateProjectEndDate),
     }),
     defineField({
+      group: "shared",
       initialValue: "inProgress",
       name: "status",
       options: { layout: "radio", list: projectStatusOptions },
@@ -180,6 +191,7 @@ export const project = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "shared",
       initialValue: false,
       name: "featured",
       title: "Featured",
@@ -187,26 +199,30 @@ export const project = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      group: "shared",
       initialValue: 0,
       name: "order",
       title: "Editorial order",
       type: "number",
       validation: (rule) => rule.required().integer().min(0),
     }),
-    requiredSupportingSkillsField(),
+    requiredSupportingSkillsField("shared"),
     defineField({
+      group: "shared",
       name: "repositoryUrl",
       title: "Optional repository URL",
       type: "url",
       validation: (rule) => rule.uri({ scheme: ["https"] }),
     }),
     defineField({
+      group: "shared",
       name: "demoUrl",
       title: "Optional demo URL",
       type: "url",
       validation: (rule) => rule.uri({ scheme: ["https"] }),
     }),
     defineField({
+      group: "shared",
       name: "documentationUrl",
       title: "Optional documentation URL",
       type: "url",
@@ -215,16 +231,19 @@ export const project = defineType({
     defineField({
       description:
         "Optional reviewed search/share copy. Leave empty to derive it from the Project title and summary.",
+      group: "localized",
       name: "metadataOverride",
       title: "Optional metadata override",
       type: "localizedMetadata",
     }),
     defineField({
+      group: "shared",
       name: "heroMedia",
       title: "Optional hero media",
       type: "projectMedia",
     }),
     defineField({
+      group: "shared",
       name: "media",
       of: [defineArrayMember({ type: "projectMedia" })],
       title: "Optional ordered media",
@@ -234,6 +253,7 @@ export const project = defineType({
     defineField({
       description:
         "Confirm that the Project contains only material approved for public release.",
+      group: "shared",
       initialValue: false,
       name: "publishSafe",
       title: "Publish-safe confirmation",
@@ -247,6 +267,17 @@ export const project = defineType({
               : "Confirm that this Project is safe to publish.",
           ),
     }),
+  ],
+  groups: [
+    {
+      default: true,
+      name: "localized",
+      title: "Paired EN / HR copy",
+    },
+    {
+      name: "shared",
+      title: "Shared canonical facts",
+    },
   ],
   name: "project",
   orderings: [
