@@ -47,6 +47,17 @@ export function diagramAssetPublicPath(
 }
 
 const flowchartOpening = /^flowchart (?:TB|TD|BT|RL|LR)$/;
+const constrainedFlowchartConnectors = [
+  "-->",
+  "---",
+  "-.>",
+  "-.->",
+  "==>",
+  "<-->",
+  "--o",
+  "--x",
+  "~~~",
+] as const;
 const forbiddenMermaidSource = [
   {
     message:
@@ -84,7 +95,9 @@ const forbiddenMermaidSource = [
 function isConstrainedFlowchartLine(line: string): boolean {
   return (
     /^(?:%%|subgraph\b|end$|direction (?:TB|TD|BT|RL|LR)$)/i.test(line) ||
-    /(?:-->|---|-\.-?>|==>|<-->|--[ox]|~~~)/.test(line) ||
+    constrainedFlowchartConnectors.some((connector) =>
+      line.includes(connector),
+    ) ||
     /^[a-z_][a-z0-9_-]*\s*(?:\[[\s\S]*\]|\([\s\S]*\)|\{[\s\S]*\})$/i.test(line)
   );
 }

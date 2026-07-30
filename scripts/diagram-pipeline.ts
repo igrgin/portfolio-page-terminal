@@ -39,6 +39,18 @@ const prohibitedSvgElements = new Set([
 ]);
 const renderLocales = ["en", "hr"] as const satisfies readonly Locale[];
 
+export function chromiumArguments(runningInCi = process.env.CI === "true") {
+  return [
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-extensions",
+    "--disable-sync",
+    "--host-resolver-rules=MAP * 0.0.0.0, EXCLUDE localhost",
+    ...(runningInCi ? ["--no-sandbox", "--disable-setuid-sandbox"] : []),
+  ];
+}
+
 const themeVariables: Readonly<
   Record<DiagramTheme, Readonly<Record<string, string>>>
 > = {
@@ -348,14 +360,7 @@ async function renderAsset(
       puppeteerPath,
       `${JSON.stringify(
         {
-          args: [
-            "--disable-background-networking",
-            "--disable-component-update",
-            "--disable-default-apps",
-            "--disable-extensions",
-            "--disable-sync",
-            "--host-resolver-rules=MAP * 0.0.0.0, EXCLUDE localhost",
-          ],
+          args: chromiumArguments(),
           headless: "shell",
         },
         null,

@@ -15,6 +15,7 @@ import {
 } from "../packages/content/src/projects";
 import {
   DIAGRAM_RENDERER_VERSION,
+  chromiumArguments,
   diagramAssetPublicPath,
   generatedSvgUpgradeFingerprint,
   injectDiagramAccessibility,
@@ -125,6 +126,22 @@ test("only complete bilingual constrained flowcharts and sequences are approved"
     }).ok,
     false,
   );
+});
+
+test("the renderer preserves network isolation and limits sandbox relaxation to CI", () => {
+  assert.deepEqual(chromiumArguments(false), [
+    "--disable-background-networking",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-extensions",
+    "--disable-sync",
+    "--host-resolver-rules=MAP * 0.0.0.0, EXCLUDE localhost",
+  ]);
+  assert.deepEqual(chromiumArguments(true), [
+    ...chromiumArguments(false),
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+  ]);
 });
 
 test("only published, safe, full Project diagrams enter the build pipeline", () => {
