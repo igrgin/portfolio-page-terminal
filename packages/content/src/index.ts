@@ -114,6 +114,7 @@ export {
 } from "./sanity";
 
 export {
+  collectStrongReferenceIds,
   isPublicationValidationCurrent,
   publicationBatchRevision,
   publicationLimitMaximums,

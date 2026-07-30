@@ -136,7 +136,6 @@ export async function validateDraftAccessToken(
 export function draftSessionCookie(
   token: string,
   expiresAt: number,
-  _options: Readonly<{ production?: boolean }> = {},
 ) {
   return {
     name: draftSessionCookieName,

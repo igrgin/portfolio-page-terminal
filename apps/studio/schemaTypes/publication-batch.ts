@@ -1,7 +1,4 @@
-import {
-  isPublicationValidationCurrent,
-  publicationLimitMaximums,
-} from "@portfolio/content";
+import { publicationLimitMaximums } from "@portfolio/content";
 import {
   defineArrayMember,
   defineField,
@@ -9,7 +6,12 @@ import {
   type ValidationContext,
 } from "sanity";
 
-import { PublicationBatchInput } from "../components/publication-readiness";
+import {
+  PublicationBatchInput,
+  runPublicationReadiness,
+  type PublicationBatchFormValue,
+  type ReadinessClient,
+} from "../components/publication-readiness";
 
 const contentDocumentTypes = [
   "siteSettings",
@@ -40,24 +42,13 @@ async function validateCurrentReadiness(
   ) {
     return "Run complete batch readiness and resolve every issue before publication.";
   }
-  const documentIds = (value.documents ?? [])
-    .map(({ _ref }) => _ref?.replace(/^drafts\./, ""))
-    .filter((id): id is string => Boolean(id));
-  if (documentIds.length === 0) {
-    return "Include at least one changed draft.";
-  }
-  const documents = await context
-    .getClient({ apiVersion: "2025-02-19" })
-    .withConfig({ perspective: "previewDrafts" })
-    .fetch<Record<string, unknown>[]>(`*[_id in $documentIds]`, {
-      documentIds,
-    });
-  return isPublicationValidationCurrent(
-    value.validation.revision,
-    documents,
-  )
+  const report = await runPublicationReadiness(
+    context.getClient({ apiVersion: "2025-02-19" }) as ReadinessClient,
+    value as PublicationBatchFormValue,
+  );
+  return report.ready && report.revision === value.validation.revision
     ? true
-    : "The validated revision is stale. Re-run readiness after the latest edit.";
+    : "The validated revision is stale or blocked. Re-run readiness after the latest edit.";
 }
 
 export const publicationReadinessIssue = defineType({
@@ -209,7 +200,7 @@ export const publicationBatch = defineType({
     }),
     defineField({
       description:
-        "Include every changed draft in the strong-reference closure. Readiness also compares this list with the complete draft inventory.",
+        "Include every changed draft in this dependency-closed release group.",
       name: "documents",
       of: [
         defineArrayMember({

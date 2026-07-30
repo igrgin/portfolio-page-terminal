@@ -2,6 +2,7 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 
 import { validatePortfolioDiagram } from "./diagrams";
+import { EDUCATION_YEAR_RANGE } from "./education";
 import {
   hasRequiredContactChannelOrder,
   nonEmptyString,
@@ -79,30 +80,85 @@ export function publishedDocumentId(value: string): string {
 }
 
 export function publicationBatchRevision(
-  documents: readonly UnknownRecord[],
+  candidate: PublicationBatchCandidate,
 ): string {
-  const source = documents
-    .map((document) => ({
-      id: publishedDocumentId(nonEmptyString(document._id) ?? ""),
-      rev: nonEmptyString(document._rev) ?? "",
-      updatedAt: nonEmptyString(document._updatedAt) ?? "",
-    }))
-    .sort((left, right) => left.id.localeCompare(right.id))
-    .map(({ id, rev, updatedAt }) => `${id}\u0000${rev}\u0000${updatedAt}`)
-    .join("\u0001");
+  const revisionRows = (documents: readonly UnknownRecord[]) =>
+    documents
+      .map((document) => ({
+        id: publishedDocumentId(nonEmptyString(document._id) ?? ""),
+        rev: nonEmptyString(document._rev) ?? "",
+        updatedAt: nonEmptyString(document._updatedAt) ?? "",
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id));
+  const source = JSON.stringify({
+    assetChecks: [...candidate.assetChecks]
+      .map((asset) => ({
+        assetId: publishedDocumentId(asset.assetId),
+        documentId: publishedDocumentId(asset.documentId),
+        filename: asset.filename,
+        kind: asset.kind,
+        metadataSafe: asset.metadataSafe,
+        mimeType: asset.mimeType,
+        privacySafe: asset.privacySafe,
+        selectableText: asset.selectableText ?? null,
+        sizeBytes: asset.sizeBytes,
+        stableFilename: asset.stableFilename ?? null,
+      }))
+      .sort((left, right) => left.assetId.localeCompare(right.assetId)),
+    changedDocumentIds: candidate.changedDocumentIds
+      .map(publishedDocumentId)
+      .sort(),
+    documents: revisionRows(candidate.documents),
+    factualParityConfirmed: candidate.factualParityConfirmed,
+    limits: {
+      compressedWorkerBytes: candidate.limits.compressedWorkerBytes,
+      dynamicCpuMilliseconds: candidate.limits.dynamicCpuMilliseconds,
+      staticFileCount: candidate.limits.staticFileCount,
+    },
+    name: candidate.name.trim(),
+    privacyReviewed: candidate.privacyReviewed,
+    referenceDocuments: revisionRows(candidate.referenceDocuments ?? []),
+  });
 
   return bytesToHex(sha256(utf8ToBytes(source)));
 }
 
 export function isPublicationValidationCurrent(
   validatedRevision: string | null | undefined,
-  documents: readonly UnknownRecord[],
+  candidate: PublicationBatchCandidate,
 ): boolean {
   return (
     typeof validatedRevision === "string" &&
     validatedRevision.length > 0 &&
-    validatedRevision === publicationBatchRevision(documents)
+    validatedRevision === publicationBatchRevision(candidate)
   );
+}
+
+export function collectStrongReferenceIds(
+  value: unknown,
+  references = new Set<string>(),
+): Set<string> {
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectStrongReferenceIds(entry, references));
+    return references;
+  }
+  const object = record(value);
+  if (!object) {
+    return references;
+  }
+  const reference = nonEmptyString(object._ref);
+  if (
+    reference &&
+    object._weak !== true &&
+    !reference.startsWith("image-") &&
+    !reference.startsWith("file-")
+  ) {
+    references.add(publishedDocumentId(reference));
+  }
+  Object.values(object).forEach((entry) =>
+    collectStrongReferenceIds(entry, references),
+  );
+  return references;
 }
 
 function validPublicationDate(value: string): boolean {
@@ -177,6 +233,17 @@ export function validatePublicationBatch(
         "documents",
         `Changed document ${changedId} is outside the Publication batch.`,
         changedId,
+      );
+    }
+  }
+  for (const selectedId of selectedIds) {
+    if (!changedIds.has(selectedId)) {
+      issue(
+        "batch",
+        "BATCH_DOCUMENT_NOT_DRAFT",
+        "documents",
+        `Selected document ${selectedId} has no changed draft.`,
+        selectedId,
       );
     }
   }
@@ -330,7 +397,7 @@ export function validatePublicationBatch(
         );
       }
 
-      if (/(?:Url|href)$/u.test(key) && child != null) {
+      if (/(?:url|href)$/iu.test(key) && child != null) {
         const url = nonEmptyString(child);
         let safe = false;
         if (url) {
@@ -356,7 +423,7 @@ export function validatePublicationBatch(
       }
 
       if (
-        /Date$/u.test(key) &&
+        /(?:Date|UpdatedAt)$/u.test(key) &&
         child != null &&
         key !== "_updatedAt" &&
         (typeof child !== "string" || !validPublicationDate(child))
@@ -366,6 +433,23 @@ export function validatePublicationBatch(
           "DATE_INVALID",
           childPath,
           "Use a valid ISO year-month or calendar date.",
+          documentId,
+        );
+      }
+
+      if (
+        (key === "startYear" || key === "endYear") &&
+        child != null &&
+        (typeof child !== "number" ||
+          !Number.isInteger(child) ||
+          child < EDUCATION_YEAR_RANGE.earliest ||
+          child > EDUCATION_YEAR_RANGE.latest)
+      ) {
+        issue(
+          "date",
+          "YEAR_INVALID",
+          childPath,
+          `Use a year from ${EDUCATION_YEAR_RANGE.earliest} through ${EDUCATION_YEAR_RANGE.latest}.`,
           documentId,
         );
       }
@@ -662,6 +746,6 @@ export function validatePublicationBatch(
     documentIds,
     issues,
     ready: issues.length === 0,
-    revision: publicationBatchRevision(documents),
+    revision: publicationBatchRevision(candidate),
   };
 }

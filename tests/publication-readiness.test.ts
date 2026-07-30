@@ -9,7 +9,14 @@ import {
   validatePublicationBatch,
   type PublicationBatchCandidate,
 } from "../packages/content/src";
-import { PublicationReadinessSummary } from "../apps/studio/components/publication-readiness";
+import {
+  PublicationReadinessSummary,
+  runPublicationReadiness,
+} from "../apps/studio/components/publication-readiness";
+import {
+  BatchManagedPublishAction,
+  protectBatchPublicationActions,
+} from "../apps/studio/publication-actions";
 
 function validCandidate(): PublicationBatchCandidate {
   return {
@@ -189,14 +196,151 @@ test("any document edit invalidates the exact validated batch revision", () => {
   };
 
   assert.equal(
-    isPublicationValidationCurrent(validated.revision, candidate.documents),
+    isPublicationValidationCurrent(validated.revision, candidate),
     true,
   );
   assert.equal(
-    isPublicationValidationCurrent(validated.revision, edited.documents),
+    isPublicationValidationCurrent(validated.revision, edited),
     false,
   );
   assert.notEqual(validatePublicationBatch(edited).revision, validated.revision);
+});
+
+test("every readiness input and referenced revision invalidates validation", () => {
+  const candidate = {
+    ...validCandidate(),
+    referenceDocuments: [
+      {
+        _id: "skill.kafka",
+        _rev: "skill-r1",
+        _type: "skill",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        capability: { en: "Streams", hr: "Tokovi" },
+        order: 1,
+      },
+    ],
+  };
+  const validated = validatePublicationBatch(candidate);
+
+  for (const edited of [
+    { ...candidate, factualParityConfirmed: false },
+    {
+      ...candidate,
+      limits: { ...candidate.limits, staticFileCount: 1_001 },
+    },
+    {
+      ...candidate,
+      referenceDocuments: candidate.referenceDocuments.map((document) => ({
+        ...document,
+        _rev: "skill-r2",
+      })),
+    },
+  ]) {
+    assert.equal(
+      isPublicationValidationCurrent(validated.revision, edited),
+      false,
+    );
+  }
+});
+
+test("lowercase URLs, résumé dates, and education years are exhaustively validated", () => {
+  const candidate = validCandidate();
+  const report = validatePublicationBatch({
+    ...candidate,
+    documents: [
+      {
+        ...candidate.documents[0],
+        croatianUpdatedAt: "2026-02-30",
+        endYear: 1899,
+        englishUpdatedAt: "not-a-date",
+        startYear: 2200,
+        url: "http://example.com",
+      },
+    ],
+  });
+
+  assert.ok(
+    report.issues.some(
+      ({ category, path }) => category === "url" && path === "url",
+    ),
+  );
+  for (const path of [
+    "croatianUpdatedAt",
+    "endYear",
+    "englishUpdatedAt",
+    "startYear",
+  ]) {
+    assert.ok(
+      report.issues.some(
+        ({ category, path: issuePath }) =>
+          category === "date" && issuePath === path,
+      ),
+    );
+  }
+});
+
+test("unrelated drafts do not contaminate a dependency-closed batch", async () => {
+  const candidate = validCandidate();
+  const client = {
+    fetch: async () => [],
+    withConfig(configuration: Record<string, unknown>) {
+      const perspective = configuration.perspective;
+      return {
+        fetch: async (
+          _query: string,
+          parameters?: Record<string, unknown>,
+        ) => {
+          if (perspective === "raw") {
+            assert.deepEqual(parameters?.draftIds, [
+              "drafts.project.platform",
+            ]);
+            return [{ _id: "drafts.project.platform" }];
+          }
+          return candidate.documents;
+        },
+        withConfig: client.withConfig,
+      };
+    },
+  };
+
+  const report = await runPublicationReadiness(client, {
+    assetChecks: candidate.assetChecks,
+    documents: [{ _ref: "project.platform" }],
+    factualParityConfirmed: candidate.factualParityConfirmed,
+    limits: candidate.limits,
+    name: candidate.name,
+    privacyReviewed: candidate.privacyReviewed,
+  });
+
+  assert.equal(report.ready, true);
+  assert.equal(
+    report.issues.some(({ code }) => code === "STRONG_REFERENCE_CLOSURE"),
+    false,
+  );
+});
+
+test("ordinary content Publish actions are visibly blocked by batch workflow", () => {
+  const Publish = Object.assign(() => ({ label: "Publish" }), {
+    action: "publish" as const,
+  });
+  const Delete = Object.assign(() => ({ label: "Delete" }), {
+    action: "delete" as const,
+  });
+
+  assert.deepEqual(
+    protectBatchPublicationActions([Publish, Delete], "project"),
+    [BatchManagedPublishAction, Delete],
+  );
+  assert.deepEqual(
+    protectBatchPublicationActions([Publish, Delete], "publicationBatch"),
+    [Publish, Delete],
+  );
+  assert.deepEqual(BatchManagedPublishAction({} as never), {
+    disabled: true,
+    label: "Publish through a ready batch",
+    title:
+      "Direct publication is disabled. Validate and publish the complete Publication batch.",
+  });
 });
 
 test("the Studio readiness summary keeps every blocker visible", () => {

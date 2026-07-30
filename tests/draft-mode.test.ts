@@ -17,7 +17,10 @@ import { loadDraftBatchScope } from "../apps/web/lib/draft-content";
 import {
   loadSanityQuery,
 } from "../packages/content/src/sanity";
-import { publicationBatchRevision } from "../packages/content/src";
+import {
+  validatePublicationBatch,
+  type PublicationBatchCandidate,
+} from "../packages/content/src";
 import { DraftModeBanner } from "../apps/web/components/draft-mode-banner";
 import { resolveDraftDestination } from "../apps/web/lib/draft-application";
 import { buildDraftMetadata } from "../apps/web/lib/draft-route";
@@ -69,9 +72,7 @@ test("the browser receives only a secure expiring session cookie, never server c
   const session = await validateDraftAccessToken(token, secret, now);
   assert.ok(session);
 
-  const cookie = draftSessionCookie(token, session.expiresAt, {
-    production: true,
-  });
+  const cookie = draftSessionCookie(token, session.expiresAt);
 
   assert.equal(cookie.name, "__Host-portfolio-draft");
   assert.equal(cookie.options.httpOnly, true);
@@ -107,7 +108,6 @@ test("the Draft Mode HTTP boundary rejects invalid tokens, strips valid tokens, 
   const invalidResponse = await startDraftSession(invalidRequest, {
     cookieStore,
     now,
-    production: true,
     secret,
   });
   assert.equal(invalidResponse.status, 401);
@@ -131,7 +131,6 @@ test("the Draft Mode HTTP boundary rejects invalid tokens, strips valid tokens, 
   const validResponse = await startDraftSession(validRequest, {
     cookieStore,
     now,
-    production: true,
     secret,
   });
   assert.equal(validResponse.status, 303);
@@ -230,28 +229,55 @@ test("a Draft Mode session is isolated to a still-current validated batch revisi
     {
       _id: "drafts.project.allowed",
       _rev: "project-r2",
+      _type: "project",
       _updatedAt: "2026-07-30T12:00:00.000Z",
-    },
-    {
-      _id: "drafts.skill.kafka",
-      _rev: "skill-r3",
-      _updatedAt: "2026-07-30T12:00:00.000Z",
+      contribution: { en: "Built it", hr: "Izgradio" },
+      endDate: "2026-07",
+      order: 1,
+      publishSafe: true,
+      slug: { current: "allowed" },
+      startDate: "2026-01",
+      status: "completed",
+      summary: { en: "Allowed", hr: "Dopušteno" },
+      title: { en: "Allowed", hr: "Dopušteno" },
     },
   ];
-  const revision = publicationBatchRevision(documents);
+  const candidate: PublicationBatchCandidate = {
+    assetChecks: [],
+    changedDocumentIds: ["project.allowed"],
+    documents,
+    factualParityConfirmed: true,
+    limits: {
+      compressedWorkerBytes: 2_000_000,
+      dynamicCpuMilliseconds: 8,
+      staticFileCount: 1_000,
+    },
+    name: "July portfolio refresh",
+    privacyReviewed: true,
+    referenceDocuments: [],
+  };
+  const validation = validatePublicationBatch(candidate);
+  assert.equal(validation.ready, true);
+  const revision = validation.revision;
   const requested: Array<Readonly<{ input: string; init?: RequestInit }>> = [];
   const fetcher = async (
     input: string | URL | globalThis.Request,
     init?: RequestInit,
   ) => {
     requested.push({ input: String(input), ...(init ? { init } : {}) });
-    return Response.json({
-      result: {
-        documents,
-        name: "July portfolio refresh",
-        validation: { ready: true, revision },
-      },
-    });
+    return requested.length === 1
+      ? Response.json({
+          result: {
+            batch: {
+              ...candidate,
+              validation: { ready: true, revision },
+            },
+            contentDocuments: [],
+          },
+        })
+      : Response.json({
+          result: [{ _id: "drafts.project.allowed" }],
+        });
   };
   const environment = {
     SANITY_DATASET: "production",
@@ -264,25 +290,38 @@ test("a Draft Mode session is isolated to a still-current validated batch revisi
       fetcher,
     }),
     {
-      documentIds: ["project.allowed", "skill.kafka"],
+      documentIds: ["project.allowed"],
       name: "July portfolio refresh",
       revision,
     },
   );
   assert.match(requested[0]!.input, /api\.sanity\.io/);
+  assert.match(requested[0]!.input, /perspective=previewDrafts/);
   assert.equal(
     (requested[0]!.init?.headers as Record<string, string>).Authorization,
     "Bearer server-only-sanity-read-token",
   );
+  assert.match(requested[1]!.input, /perspective=raw/);
+  assert.match(requested[1]!.input, /drafts\.project\.allowed/);
 
-  const editedFetcher = async () =>
-    Response.json({
-      result: {
-        documents: [{ ...documents[0], _rev: "project-r3" }, documents[1]],
-        name: "July portfolio refresh",
-        validation: { ready: true, revision },
-      },
-    });
+  let editedRequestCount = 0;
+  const editedFetcher = async () => {
+    editedRequestCount += 1;
+    return editedRequestCount === 1
+      ? Response.json({
+          result: {
+            batch: {
+              ...candidate,
+              documents: [{ ...documents[0], _rev: "project-r3" }],
+              validation: { ready: true, revision },
+            },
+            contentDocuments: [],
+          },
+        })
+      : Response.json({
+          result: [{ _id: "drafts.project.allowed" }],
+        });
+  };
   assert.equal(
     await loadDraftBatchScope(revision, "server-only-sanity-read-token", {
       environment,

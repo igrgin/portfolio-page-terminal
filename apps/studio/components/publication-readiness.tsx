@@ -5,7 +5,10 @@ import type {
   PublicationReadinessReport,
   PublicationReleaseLimits,
 } from "@portfolio/content";
-import { validatePublicationBatch } from "@portfolio/content";
+import {
+  collectStrongReferenceIds,
+  validatePublicationBatch,
+} from "@portfolio/content";
 import React from "react";
 import {
   type ObjectInputProps,
@@ -95,7 +98,7 @@ export function PublicationReadinessSummary({
 }
 
 type BatchReference = Readonly<{ _ref?: string }>;
-type PublicationBatchFormValue = Readonly<{
+export type PublicationBatchFormValue = Readonly<{
   assetChecks?: readonly PublicationAssetCheck[];
   documents?: readonly BatchReference[];
   factualParityConfirmed?: boolean;
@@ -105,36 +108,13 @@ type PublicationBatchFormValue = Readonly<{
   validation?: PublicationReadinessReport;
 }>;
 
-type ReadinessClient = Readonly<{
+export type ReadinessClient = Readonly<{
   fetch: <T>(
     query: string,
     parameters?: Record<string, unknown>,
   ) => Promise<T>;
   withConfig: (configuration: Record<string, unknown>) => ReadinessClient;
 }>;
-
-function collectReferenceIds(value: unknown, references = new Set<string>()) {
-  if (Array.isArray(value)) {
-    value.forEach((entry) => collectReferenceIds(entry, references));
-    return references;
-  }
-  if (!value || typeof value !== "object") {
-    return references;
-  }
-  const object = value as Record<string, unknown>;
-  if (
-    typeof object._ref === "string" &&
-    object._weak !== true &&
-    !object._ref.startsWith("image-") &&
-    !object._ref.startsWith("file-")
-  ) {
-    references.add(object._ref.replace(/^drafts\./, ""));
-  }
-  Object.values(object).forEach((entry) =>
-    collectReferenceIds(entry, references),
-  );
-  return references;
-}
 
 export async function runPublicationReadiness(
   client: ReadinessClient,
@@ -149,12 +129,9 @@ export async function runPublicationReadiness(
     `*[_id in $documentIds]`,
     { documentIds },
   );
-  const changedDocuments = await rawClient.fetch<
-    ReadonlyArray<Readonly<{ _id: string }>>
-  >(`*[_id in path("drafts.**") && _type != "publicationBatch"]{_id}`);
   const visitedIds = new Set(documentIds);
   const referenceDocuments: Record<string, unknown>[] = [];
-  let pendingIds = [...collectReferenceIds(documents)].filter(
+  let pendingIds = [...collectStrongReferenceIds(documents)].filter(
     (id) => !visitedIds.has(id),
   );
   while (pendingIds.length > 0) {
@@ -164,10 +141,16 @@ export async function runPublicationReadiness(
       { documentIds: pendingIds },
     );
     referenceDocuments.push(...referenced);
-    pendingIds = [...collectReferenceIds(referenced)].filter(
+    pendingIds = [...collectStrongReferenceIds(referenced)].filter(
       (id) => !visitedIds.has(id),
     );
   }
+  const draftIds = [...visitedIds]
+    .map((id) => `drafts.${id}`)
+    .sort();
+  const changedDocuments = await rawClient.fetch<
+    ReadonlyArray<Readonly<{ _id: string }>>
+  >(`*[_id in $draftIds]{_id}`, { draftIds });
   const limits = value.limits;
   const candidate: PublicationBatchCandidate = {
     assetChecks: value.assetChecks ?? [],
@@ -258,8 +241,8 @@ export function PublicationBatchInput(props: ObjectInputProps) {
           {running ? "Running complete validation…" : "Run batch readiness"}
         </button>
         <span>
-          Validation covers the complete changed-draft inventory and becomes
-          stale after any document edit.
+          Validation covers this batch and its strong-reference closure. Any
+          document or readiness-evidence edit makes it stale.
         </span>
       </div>
       {error && <p role="alert">{error}</p>}

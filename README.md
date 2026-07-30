@@ -50,7 +50,10 @@ set, attach asset evidence and active free-tier measurements, confirm the factua
 and privacy reviews, then run **Run batch readiness**. The report lists all
 bilingual, reference, URL, date, ordering, slug, asset, diagram, accessibility,
 privacy, and release-limit failures together. Its revision fingerprint changes
-after any selected document edit; stale validation cannot open Draft Mode.
+after any selected/reference document, asset evidence, confirmation, or limit
+edit; stale validation cannot open Draft Mode. Direct content Publish actions
+remain disabled so readiness cannot be bypassed; the batch publication workflow
+owns release publication.
 
 Configure the Web runtime with:
 

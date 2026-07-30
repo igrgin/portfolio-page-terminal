@@ -14,7 +14,6 @@ export type DraftCookieStore = Readonly<{
 type StartDraftSessionOptions = Readonly<{
   cookieStore: DraftCookieStore;
   now?: Date;
-  production?: boolean;
   secret: string;
 }>;
 
@@ -72,11 +71,7 @@ export async function startDraftSession(
     });
   }
 
-  options.cookieStore.set(
-    draftSessionCookie(token, access.expiresAt, {
-      production: options.production,
-    }),
-  );
+  options.cookieStore.set(draftSessionCookie(token, access.expiresAt));
   return new Response(null, {
     headers: {
       ...securityHeaders(),
