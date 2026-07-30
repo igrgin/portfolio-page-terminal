@@ -12,10 +12,7 @@ import {
   safeUrl,
   type ContactChannel,
 } from "./sanity";
-import {
-  normalizeSkillEntry,
-  SKILL_PUBLIC_PROJECTION,
-} from "./skills";
+import { normalizeSkillEntry, SKILL_PUBLIC_PROJECTION } from "./skills";
 
 export const projectStatuses = [
   "inProgress",
@@ -25,6 +22,29 @@ export const projectStatuses = [
 ] as const;
 
 export type ProjectStatus = (typeof projectStatuses)[number];
+
+export const projectDisclosureLevels = ["summary", "full"] as const;
+
+export type ProjectDisclosureLevel = (typeof projectDisclosureLevels)[number];
+
+export function isProjectDisclosureLevel(
+  value: unknown,
+): value is ProjectDisclosureLevel {
+  return (
+    typeof value === "string" &&
+    projectDisclosureLevels.some((level) => level === value)
+  );
+}
+
+export const projectCaseStudyFieldKeys = [
+  "context",
+  "constraints",
+  "approach",
+  "outcome",
+  "lessons",
+] as const;
+
+export type ProjectCaseStudyField = (typeof projectCaseStudyFieldKeys)[number];
 
 export function isOngoingProjectStatus(
   value: unknown,
@@ -50,8 +70,12 @@ export type ProjectMedia = Readonly<{
   width: number;
 }>;
 
+export type ProjectCaseStudy = Readonly<Record<ProjectCaseStudyField, string>>;
+
 export type ProjectPageEntry = Readonly<{
+  caseStudy?: ProjectCaseStudy;
   contribution: string;
+  disclosureLevel: ProjectDisclosureLevel;
   endDate?: string;
   featured: boolean;
   heroMedia?: ProjectMedia;
@@ -126,6 +150,12 @@ export const PROJECTS_PAGE_QUERY = defineQuery(`{
     "slug": slug.current,
     summary,
     contribution,
+    disclosureLevel,
+    context,
+    constraints,
+    approach,
+    outcome,
+    lessons,
     startDate,
     endDate,
     status,
@@ -188,6 +218,26 @@ function normalizeProjectMedia(
     : null;
 }
 
+function normalizeProjectCaseStudy(
+  project: Readonly<Record<string, unknown>>,
+  locale: Locale,
+): ProjectCaseStudy | null {
+  const localizedSections = projectCaseStudyFieldKeys.map((field) => {
+    const localized = localizedStrings(project[field]);
+    return localized ? ([field, localized[locale]] as const) : null;
+  });
+  const completeSections = localizedSections.filter(
+    (
+      section,
+    ): section is readonly [ProjectCaseStudyField, string] =>
+      section !== null,
+  );
+
+  return completeSections.length !== projectCaseStudyFieldKeys.length
+    ? null
+    : (Object.fromEntries(completeSections) as ProjectCaseStudy);
+}
+
 function normalizeProjectEntry(
   value: unknown,
   locale: Locale,
@@ -207,6 +257,16 @@ function normalizeProjectEntry(
       : null;
   const summary = localizedStrings(project?.summary);
   const contribution = localizedStrings(project?.contribution);
+  const disclosureLevel =
+    project?.disclosureLevel == null
+      ? "summary"
+      : isProjectDisclosureLevel(project.disclosureLevel)
+        ? project.disclosureLevel
+        : null;
+  const caseStudy =
+    disclosureLevel === "full" && project
+      ? normalizeProjectCaseStudy(project, locale)
+      : null;
   const startDate = projectMonth(project?.startDate);
   const status =
     typeof project?.status === "string" &&
@@ -237,21 +297,15 @@ function normalizeProjectEntry(
       ? null
       : safeUrl(project.repositoryUrl, ["https:"]);
   const demo =
-    project?.demoUrl == null
-      ? null
-      : safeUrl(project.demoUrl, ["https:"]);
+    project?.demoUrl == null ? null : safeUrl(project.demoUrl, ["https:"]);
   const documentation =
     project?.documentationUrl == null
       ? null
       : safeUrl(project.documentationUrl, ["https:"]);
   const metadataOverride =
-    project?.metadataOverride == null
-      ? null
-      : record(project.metadataOverride);
+    project?.metadataOverride == null ? null : record(project.metadataOverride);
   const metadataTitle =
-    metadataOverride == null
-      ? title
-      : localizedStrings(metadataOverride.title);
+    metadataOverride == null ? title : localizedStrings(metadataOverride.title);
   const metadataDescription =
     metadataOverride == null
       ? summary
@@ -264,14 +318,12 @@ function normalizeProjectEntry(
     project?.media == null
       ? []
       : Array.isArray(project.media)
-        ? project.media.map((entry) =>
-            normalizeProjectMedia(entry, locale),
-          )
+        ? project.media.map((entry) => normalizeProjectMedia(entry, locale))
         : null;
   const mediaKeys =
-    media?.filter((entry): entry is ProjectMedia => entry !== null).map(
-      ({ key }) => key.toLowerCase(),
-    ) ?? [];
+    media
+      ?.filter((entry): entry is ProjectMedia => entry !== null)
+      .map(({ key }) => key.toLowerCase()) ?? [];
 
   if (
     project?._type !== "project" ||
@@ -282,6 +334,8 @@ function normalizeProjectEntry(
     !slug ||
     !summary ||
     !contribution ||
+    !disclosureLevel ||
+    (disclosureLevel === "full" && !caseStudy) ||
     !startDate ||
     !status ||
     (ongoing ? hasEndDate : endDate === null) ||
@@ -307,7 +361,9 @@ function normalizeProjectEntry(
   const metadataImage = heroMedia ?? defaultSharingImage;
 
   return {
+    ...(caseStudy ? { caseStudy } : {}),
     contribution: contribution[locale],
+    disclosureLevel,
     ...(endDate ? { endDate } : {}),
     featured,
     ...(heroMedia ? { heroMedia } : {}),

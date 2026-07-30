@@ -48,11 +48,17 @@ export {
 
 export {
   isOngoingProjectStatus,
+  isProjectDisclosureLevel,
   loadPublishedProjects,
   normalizePublishedProjects,
+  projectCaseStudyFieldKeys,
+  projectDisclosureLevels,
   projectStatusLabels,
   projectStatuses,
   PROJECTS_PAGE_QUERY,
+  type ProjectCaseStudy,
+  type ProjectCaseStudyField,
+  type ProjectDisclosureLevel,
   type ProjectMedia,
   type ProjectPageEntry,
   type ProjectStatus,
