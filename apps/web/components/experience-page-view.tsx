@@ -5,7 +5,12 @@ import type {
 } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel, destinationRoute } from "../lib/routing";
+import {
+  applicationRoute,
+  type ApplicationRouteMode,
+  destinationLabel,
+  destinationRoute,
+} from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -67,9 +72,15 @@ function ExperienceDateRange({
 export function ExperiencePageView({
   content,
   locale,
-}: Readonly<{ content: ExperiencePageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: ExperiencePageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
   const pairedLocale = locale === "en" ? "hr" : "en";
+  const route = (path: string) => applicationRoute(path, routeMode);
 
   return (
     <OperationalShell
@@ -79,6 +90,7 @@ export function ExperiencePageView({
       locale={locale}
       locationLabel={destinationLabel(locale, "experience")}
       pairedRoute={destinationRoute(pairedLocale, "experience")}
+      routeMode={routeMode}
     >
       <header className="experience-header">
         <p className="eyebrow">{labels.eyebrow}</p>
@@ -132,7 +144,7 @@ export function ExperiencePageView({
                 <ul>
                   {entry.skills.map((skill) => (
                     <li key={skill.id}>
-                      <a href={destinationRoute(locale, "skills")}>
+                      <a href={route(destinationRoute(locale, "skills"))}>
                         {skill.name}
                       </a>
                     </li>

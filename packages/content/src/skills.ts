@@ -11,6 +11,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
   type UnknownRecord,
 } from "./sanity";
 
@@ -433,7 +434,8 @@ export function normalizePublishedSkills(
 
 export async function loadPublishedSkills(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<SkillPageContent | null> {
-  const result = await loadSanityQuery(SKILLS_PAGE_QUERY, "Skills");
+  const result = await loadSanityQuery(SKILLS_PAGE_QUERY, "Skills", options);
   return normalizePublishedSkills(result, locale);
 }

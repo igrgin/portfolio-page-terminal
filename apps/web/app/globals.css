@@ -1934,6 +1934,84 @@ p {
   }
 }
 
+.draft-mode-banner {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--tui-warning);
+  background: var(--tui-surface-raised);
+  color: var(--tui-text);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.draft-mode-banner > div,
+.draft-mode-banner nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.draft-mode-banner a,
+.draft-mode-banner button {
+  min-height: 2.25rem;
+}
+
+.draft-mode-banner form {
+  margin: 0;
+}
+
+.draft-access {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+}
+
+.draft-access > section {
+  width: min(100%, 42rem);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
+  border: 1px solid var(--tui-border-strong);
+  background: var(--tui-surface);
+}
+
+.draft-access form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.draft-access input {
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--tui-border-strong);
+  background: var(--tui-canvas);
+  color: var(--tui-text);
+  font: inherit;
+}
+
+.draft-access button,
+.draft-mode-banner button {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--tui-border-strong);
+  background: var(--tui-accent-subtle);
+  color: var(--tui-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .draft-mode-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

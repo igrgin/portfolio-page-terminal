@@ -10,6 +10,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
 } from "./sanity";
 import type { Locale } from "./index";
 
@@ -235,7 +236,12 @@ export function normalizePublishedEducation(
 
 export async function loadPublishedEducation(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<EducationPageContent | null> {
-  const result = await loadSanityQuery(EDUCATION_PAGE_QUERY, "Education");
+  const result = await loadSanityQuery(
+    EDUCATION_PAGE_QUERY,
+    "Education",
+    options,
+  );
   return normalizePublishedEducation(result, locale);
 }

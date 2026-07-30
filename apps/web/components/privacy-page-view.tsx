@@ -1,7 +1,10 @@
 import type { Locale, PrivacyPageContent } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel } from "../lib/routing";
+import {
+  type ApplicationRouteMode,
+  destinationLabel,
+} from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -65,7 +68,12 @@ function formatEffectiveDate(value: string, locale: Locale) {
 export function PrivacyPageView({
   content,
   locale,
-}: Readonly<{ content: PrivacyPageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: PrivacyPageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
 
   return (
@@ -75,6 +83,7 @@ export function PrivacyPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "privacy")}
+      routeMode={routeMode}
     >
       <header className="section-introduction privacy-introduction">
         <p className="eyebrow">{labels.eyebrow}</p>

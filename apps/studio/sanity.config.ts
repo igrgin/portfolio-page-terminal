@@ -43,6 +43,10 @@ export default defineConfig({
             list.documentTypeListItem("education").title("Education"),
             list.documentTypeListItem("skill").title("Skills"),
             list.documentTypeListItem("project").title("Projects"),
+            list.divider(),
+            list
+              .documentTypeListItem("publicationBatch")
+              .title("Publication batches"),
           ]),
     }),
   ],

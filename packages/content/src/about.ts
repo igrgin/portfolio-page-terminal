@@ -11,6 +11,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
   type UnknownRecord,
 } from "./sanity";
 import {
@@ -316,7 +317,8 @@ export function normalizePublishedAbout(
 
 export async function loadPublishedAbout(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<AboutPageContent | null> {
-  const result = await loadSanityQuery(ABOUT_PAGE_QUERY, "About Me");
+  const result = await loadSanityQuery(ABOUT_PAGE_QUERY, "About Me", options);
   return normalizePublishedAbout(result, locale);
 }

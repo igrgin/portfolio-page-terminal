@@ -15,6 +15,7 @@
   "scripts": {
     "dev:web": "npm run dev --workspace @portfolio/web",
     "dev:studio": "npm run dev --workspace @portfolio/studio",
+    "draft:token": "tsx scripts/create-draft-token.ts",
     "build": "npm run build:web && npm run build:studio",
     "build:web": "npm run build --workspace @portfolio/web",
     "build:studio": "npm run build --workspace @portfolio/studio",

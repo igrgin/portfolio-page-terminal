@@ -12,6 +12,7 @@ import {
   record,
   safeUrl,
   type ContactChannel,
+  type SanityQueryOptions,
 } from "./sanity";
 
 const localizedPrivacyFields = [
@@ -165,7 +166,8 @@ export function normalizePublishedPrivacy(
 
 export async function loadPublishedPrivacy(
   locale: Locale,
+  options?: SanityQueryOptions,
 ): Promise<PrivacyPageContent | null> {
-  const result = await loadSanityQuery(PRIVACY_PAGE_QUERY, "Privacy");
+  const result = await loadSanityQuery(PRIVACY_PAGE_QUERY, "Privacy", options);
   return normalizePublishedPrivacy(result, locale);
 }

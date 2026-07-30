@@ -5,7 +5,10 @@ import type {
 } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel } from "../lib/routing";
+import {
+  type ApplicationRouteMode,
+  destinationLabel,
+} from "../lib/routing";
 import { ContactForm } from "./contact-form";
 import { OperationalShell } from "./operational-shell";
 
@@ -57,10 +60,12 @@ export function ContactPageView({
   content,
   formEnabled = false,
   locale,
+  routeMode = "public",
 }: Readonly<{
   content: ContactPageContent;
   formEnabled?: boolean;
   locale: Locale;
+  routeMode?: ApplicationRouteMode;
 }>) {
   const labels = copy[locale];
 
@@ -71,6 +76,7 @@ export function ContactPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "contact")}
+      routeMode={routeMode}
     >
       <header className="section-introduction">
         <p className="eyebrow">{labels.eyebrow}</p>

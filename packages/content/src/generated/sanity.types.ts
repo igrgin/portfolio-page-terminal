@@ -14,12 +14,131 @@
 
 export declare const internalGroqTypeReferenceTo: unique symbol;
 
+type ArrayOf<T> = Array<
+  T & {
+    _key: string;
+  }
+>;
+
 // Source: schema.json
+export type SiteSettingsReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "siteSettings";
+};
+
+export type AboutMeReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "aboutMe";
+};
+
+export type ContactReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "contact";
+};
+
+export type PrivacyNoticeReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "privacyNotice";
+};
+
+export type ProfileMediaReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "profileMedia";
+};
+
+export type ResumeSetReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "resumeSet";
+};
+
+export type ExperienceReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "experience";
+};
+
+export type EducationReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "education";
+};
+
 export type SkillReference = {
   _ref: string;
   _type: "reference";
   _weak?: boolean;
   [internalGroqTypeReferenceTo]?: "skill";
+};
+
+export type ProjectReference = {
+  _ref: string;
+  _type: "reference";
+  _weak?: boolean;
+  [internalGroqTypeReferenceTo]?: "project";
+};
+
+export type PublicationBatch = {
+  _id: string;
+  _type: "publicationBatch";
+  _createdAt: string;
+  _updatedAt: string;
+  _rev: string;
+  name: string;
+  documents: ArrayOf<
+    | SiteSettingsReference
+    | AboutMeReference
+    | ContactReference
+    | PrivacyNoticeReference
+    | ProfileMediaReference
+    | ResumeSetReference
+    | ExperienceReference
+    | EducationReference
+    | SkillReference
+    | ProjectReference
+  >;
+  factualParityConfirmed: boolean;
+  privacyReviewed: boolean;
+  assetChecks?: Array<
+    {
+      _key: string;
+    } & PublicationAssetCheck
+  >;
+  limits: PublicationReleaseLimits;
+  validation?: PublicationValidation;
+};
+
+export type PublicationValidation = {
+  _type: "publicationValidation";
+  ready?: boolean;
+  revision?: string;
+  validatedAt?: string;
+  documentIds?: Array<string>;
+  issues?: Array<
+    {
+      _key: string;
+    } & PublicationReadinessIssue
+  >;
+};
+
+export type PublicationReleaseLimits = {
+  _type: "publicationReleaseLimits";
+  compressedWorkerBytes: number;
+  staticFileCount: number;
+  dynamicCpuMilliseconds: number;
 };
 
 export type Education = {
@@ -220,20 +339,6 @@ export type Contact = {
   availability?: LocalizedText;
 };
 
-export type ProjectReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "project";
-};
-
-export type ProfileMediaReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "profileMedia";
-};
-
 export type AboutMe = {
   _id: string;
   _type: "aboutMe";
@@ -294,13 +399,6 @@ export type SanityImageHotspot = {
   y: number;
   height: number;
   width: number;
-};
-
-export type ResumeSetReference = {
-  _ref: string;
-  _type: "reference";
-  _weak?: boolean;
-  [internalGroqTypeReferenceTo]?: "resumeSet";
 };
 
 export type SiteSettings = {
@@ -366,6 +464,29 @@ export type ContactChannel = {
 export type RelevantSubject = {
   _type: "relevantSubject";
   title: LocalizedString;
+};
+
+export type PublicationAssetCheck = {
+  _type: "publicationAssetCheck";
+  assetId: string;
+  documentId: string;
+  kind: "image" | "resume";
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  metadataSafe: boolean;
+  privacySafe: boolean;
+  selectableText?: boolean;
+  stableFilename?: boolean;
+};
+
+export type PublicationReadinessIssue = {
+  _type: "publicationReadinessIssue";
+  category?: string;
+  code?: string;
+  documentId?: string;
+  message?: string;
+  path?: string;
 };
 
 export type ProjectDiagram = {
@@ -476,7 +597,19 @@ export type Geopoint = {
 };
 
 export type AllSanitySchemaTypes =
+  | SiteSettingsReference
+  | AboutMeReference
+  | ContactReference
+  | PrivacyNoticeReference
+  | ProfileMediaReference
+  | ResumeSetReference
+  | ExperienceReference
+  | EducationReference
   | SkillReference
+  | ProjectReference
+  | PublicationBatch
+  | PublicationValidation
+  | PublicationReleaseLimits
   | Education
   | LocalizedString
   | Project
@@ -490,18 +623,17 @@ export type AllSanitySchemaTypes =
   | LocalizedStringList
   | PrivacyNotice
   | Contact
-  | ProjectReference
-  | ProfileMediaReference
   | AboutMe
   | ProfileMedia
   | SanityImageCrop
   | SanityImageHotspot
-  | ResumeSetReference
   | SiteSettings
   | SanityFileAssetReference
   | ResumeSet
   | ContactChannel
   | RelevantSubject
+  | PublicationAssetCheck
+  | PublicationReadinessIssue
   | ProjectDiagram
   | SanityImagePaletteSwatch
   | SanityImagePalette

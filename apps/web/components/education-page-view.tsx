@@ -1,7 +1,10 @@
 import type { EducationPageContent, Locale } from "@portfolio/content";
 import React from "react";
 
-import { destinationLabel } from "../lib/routing";
+import {
+  type ApplicationRouteMode,
+  destinationLabel,
+} from "../lib/routing";
 import { OperationalShell } from "./operational-shell";
 
 const copy = {
@@ -30,7 +33,12 @@ const copy = {
 export function EducationPageView({
   content,
   locale,
-}: Readonly<{ content: EducationPageContent; locale: Locale }>) {
+  routeMode = "public",
+}: Readonly<{
+  content: EducationPageContent;
+  locale: Locale;
+  routeMode?: ApplicationRouteMode;
+}>) {
   const labels = copy[locale];
 
   return (
@@ -40,6 +48,7 @@ export function EducationPageView({
       displayName={content.displayName}
       locale={locale}
       locationLabel={destinationLabel(locale, "education")}
+      routeMode={routeMode}
     >
       <header className="section-introduction">
         <p className="eyebrow">{labels.introduction}</p>

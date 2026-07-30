@@ -10,6 +10,8 @@ import React from "react";
 
 import { projectMediaPublicPath } from "../lib/public-assets";
 import {
+  applicationRoute,
+  type ApplicationRouteMode,
   destinationLabel,
   destinationRoute,
   pairedDestinationRoute,
@@ -102,10 +104,12 @@ function ProjectDiagramFigure({
 function ProjectFigure({
   media,
   priority = false,
+  routeMode = "public",
   slug,
 }: Readonly<{
   media: ProjectMedia;
   priority?: boolean;
+  routeMode?: ApplicationRouteMode;
   slug: string;
 }>) {
   return (
@@ -116,7 +120,11 @@ function ProjectFigure({
         fetchPriority={priority ? "high" : undefined}
         height={media.height}
         loading={priority ? "eager" : "lazy"}
-        src={projectMediaPublicPath(slug, media.key, media.url)}
+        src={
+          routeMode === "draft"
+            ? media.url
+            : projectMediaPublicPath(slug, media.key, media.url)
+        }
         width={media.width}
       />
       {media.caption && <figcaption>{media.caption}</figcaption>}
@@ -165,7 +173,12 @@ function ProjectExternalLinks({
 function ProjectGallery({
   heading,
   project,
-}: Readonly<{ heading: string; project: ProjectPageEntry }>) {
+  routeMode = "public",
+}: Readonly<{
+  heading: string;
+  project: ProjectPageEntry;
+  routeMode?: ApplicationRouteMode;
+}>) {
   if (project.media.length === 0) {
     return null;
   }
@@ -179,7 +192,12 @@ function ProjectGallery({
       <h2 id="project-gallery-heading">{heading}</h2>
       <div>
         {project.media.map((media) => (
-          <ProjectFigure key={media.key} media={media} slug={project.slug} />
+          <ProjectFigure
+            key={media.key}
+            media={media}
+            routeMode={routeMode}
+            slug={project.slug}
+          />
         ))}
       </div>
     </section>
@@ -221,13 +239,16 @@ export function ProjectDetailPageView({
   content,
   locale,
   project,
+  routeMode = "public",
 }: Readonly<{
   content: ProjectsPageContent;
   locale: Locale;
   project: ProjectPageEntry;
+  routeMode?: ApplicationRouteMode;
 }>) {
   const labels = copy[locale];
   const projectsRoute = destinationRoute(locale, "projects");
+  const route = (path: string) => applicationRoute(path, routeMode);
   const caseStudy = project.caseStudy;
   const caseStudySections = caseStudy
     ? projectCaseStudyFieldKeys.map((field) => ({
@@ -248,10 +269,11 @@ export function ProjectDetailPageView({
       pairedRoute={`${pairedDestinationRoute(locale, "projects")}/${
         project.slug
       }`}
+      routeMode={routeMode}
     >
       <article className="project-detail">
         <header className="project-detail-header">
-          <a className="back-link" href={projectsRoute}>
+          <a className="back-link" href={route(projectsRoute)}>
             <span aria-hidden="true">← </span>
             {labels.back}
           </a>
@@ -273,7 +295,7 @@ export function ProjectDetailPageView({
               <ul>
                 {project.skills.map((skill) => (
                   <li key={skill.id}>
-                    <a href={destinationRoute(locale, "skills")}>
+                    <a href={route(destinationRoute(locale, "skills"))}>
                       {skill.name}
                     </a>
                   </li>
@@ -287,6 +309,7 @@ export function ProjectDetailPageView({
           <ProjectFigure
             media={project.heroMedia}
             priority
+            routeMode={routeMode}
             slug={project.slug}
           />
         )}
@@ -339,7 +362,11 @@ export function ProjectDetailPageView({
                 scrollLabel={labels.diagramScroll}
               />
               <ProjectExternalLinks locale={locale} project={project} />
-              <ProjectGallery heading={labels.gallery} project={project} />
+              <ProjectGallery
+                heading={labels.gallery}
+                project={project}
+                routeMode={routeMode}
+              />
             </div>
           </div>
         ) : (
@@ -349,7 +376,11 @@ export function ProjectDetailPageView({
               project={project}
             />
             <ProjectExternalLinks locale={locale} project={project} />
-            <ProjectGallery heading={labels.gallery} project={project} />
+            <ProjectGallery
+              heading={labels.gallery}
+              project={project}
+              routeMode={routeMode}
+            />
           </div>
         )}
       </article>

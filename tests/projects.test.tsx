@@ -719,7 +719,7 @@ test("static params and sitemap discovery include only publishable canonical Pro
   assert.equal(robots.sitemap, "https://portfolio.example/sitemap.xml");
   assert.deepEqual(robots.rules, {
     allow: "/",
-    disallow: ["/api/preview", "/studio"],
+    disallow: ["/api/draft", "/draft", "/studio"],
     userAgent: "*",
   });
 });

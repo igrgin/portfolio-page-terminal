@@ -8,7 +8,7 @@ export function buildRobots(
   return {
     rules: {
       allow: "/",
-      disallow: ["/api/preview", "/studio"],
+      disallow: ["/api/draft", "/draft", "/studio"],
       userAgent: "*",
     },
     sitemap: absoluteSiteUrl("/sitemap.xml", origin),
