@@ -251,12 +251,17 @@ test("the exact-pinned renderer produces deterministic bilingual light and dark 
       packageJson.devDependencies["@mermaid-js/mermaid-cli"],
       DIAGRAM_RENDERER_VERSION,
     );
-    const upgradeGolden = JSON.parse(
+    const upgradeGoldens = JSON.parse(
       await readFile(
         new URL("./fixtures/diagram-renderer-golden.json", import.meta.url),
         "utf8",
       ),
-    ) as Record<string, string>;
+    ) as Record<string, Record<string, string>>;
+    const upgradeGolden = upgradeGoldens[process.platform];
+    assert.ok(
+      upgradeGolden,
+      `Add a full-output Mermaid golden for ${process.platform}.`,
+    );
 
     const input = [
       {
