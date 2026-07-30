@@ -1,5 +1,9 @@
 ## Agent skills
 
+### GitHub tooling
+
+Do not use GitHub app or connector tools. Use the local `gh` CLI for all GitHub operations and the local `git` CLI for repository operations.
+
 ### Issue tracker
 
 Issues and PRDs are tracked in GitHub Issues. See `docs/agents/issue-tracker.md`.
