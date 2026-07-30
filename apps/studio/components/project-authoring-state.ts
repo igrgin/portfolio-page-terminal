@@ -1,11 +1,9 @@
-import type { Locale } from "@portfolio/content";
+import { validatePortfolioDiagram, type Locale } from "@portfolio/content";
 
 export const projectAuthoringThemes = ["light", "dark"] as const;
-export type ProjectAuthoringTheme =
-  (typeof projectAuthoringThemes)[number];
+export type ProjectAuthoringTheme = (typeof projectAuthoringThemes)[number];
 
-export const projectAuthoringThemeStorageKey =
-  "portfolio-studio-project-theme";
+export const projectAuthoringThemeStorageKey = "portfolio-studio-project-theme";
 
 type ThemeStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -44,4 +42,21 @@ export function buildProjectPreviewUrl(
       ? `/en/projects/${slugSegment}`
       : `/hr/projekti/${slugSegment}`;
   return new URL(path, origin).toString();
+}
+
+export function validateDiagramDrafts(value: unknown): string | null {
+  if (value == null) {
+    return null;
+  }
+  if (!Array.isArray(value)) {
+    return "The Project diagram draft list is invalid.";
+  }
+
+  for (const diagram of value) {
+    const result = validatePortfolioDiagram(diagram);
+    if (!result.ok) {
+      return result.error;
+    }
+  }
+  return null;
 }

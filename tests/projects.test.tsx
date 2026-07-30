@@ -179,6 +179,29 @@ const publishedProjectsQueryResult = {
           },
         },
       ],
+      diagrams: [
+        {
+          _key: "recovery-flow",
+          id: "recovery-flow",
+          kind: "data-flow",
+          source: {
+            en: "flowchart LR\n  Queue --> Worker\n  Worker --> Checkpoint",
+            hr: "flowchart LR\n  Red --> Radnik\n  Radnik --> KontrolnaTočka",
+          },
+          title: {
+            en: "Recovery flow",
+            hr: "Tijek oporavka",
+          },
+          caption: {
+            en: "Work advances through recoverable checkpoints.",
+            hr: "Rad napreduje kroz kontrolne točke za oporavak.",
+          },
+          description: {
+            en: "The queue gives work to a worker, which records a recovery checkpoint.",
+            hr: "Red predaje posao radniku, koji bilježi kontrolnu točku za oporavak.",
+          },
+        },
+      ],
       publishSafe: true,
     },
   ],
@@ -200,6 +223,7 @@ test("Project authoring exposes summary and paired full-case-study fields", () =
     };
   }>;
   const project = schema.find(({ name }) => name === "project");
+  const projectDiagram = schema.find(({ name }) => name === "projectDiagram");
   const projectMedia = schema.find(({ name }) => name === "projectMedia");
 
   assert.ok(project);
@@ -214,6 +238,7 @@ test("Project authoring exposes summary and paired full-case-study fields", () =
       "context",
       "contribution",
       "demoUrl",
+      "diagrams",
       "disclosureLevel",
       "documentationUrl",
       "endDate",
@@ -241,6 +266,14 @@ test("Project authoring exposes summary and paired full-case-study fields", () =
       .filter((name) => !name.startsWith("_"))
       .sort(),
     ["alternativeText", "caption", "image"],
+  );
+  assert.ok(projectDiagram);
+  assert.equal(projectDiagram.value?.type, "object");
+  assert.deepEqual(
+    Object.keys(projectDiagram.value?.attributes ?? {})
+      .filter((name) => !name.startsWith("_"))
+      .sort(),
+    ["caption", "description", "id", "kind", "source", "title"],
   );
   assert.doesNotMatch(
     JSON.stringify(project),
@@ -295,6 +328,20 @@ test("published Projects localize paired facts and follow featured editorial ord
     croatian.entries[0]?.heroMedia?.alt,
     "Nadzorna ploča oporavka obrade evenata",
   );
+  assert.deepEqual(croatian.entries[0]?.diagrams, [
+    {
+      assets: {
+        dark: "/generated/diagrams/distributed-event-platform/recovery-flow/hr-dark.svg",
+        light:
+          "/generated/diagrams/distributed-event-platform/recovery-flow/hr-light.svg",
+      },
+      caption: "Rad napreduje kroz kontrolne točke za oporavak.",
+      description:
+        "Red predaje posao radniku, koji bilježi kontrolnu točku za oporavak.",
+      id: "recovery-flow",
+      title: "Tijek oporavka",
+    },
+  ]);
   assert.equal(
     croatian.entries[0]?.media[0]?.alt,
     "Topologija evenata grupirana po omeđenom kontekstu",
@@ -361,6 +408,13 @@ test("draft, sensitive, unpaired, colliding, and invalid Projects do not publish
   });
   expectOnlyTooling((project) => {
     Object.assign(project, { disclosureLevel: "teaser" });
+  });
+  expectOnlyTooling((project) => {
+    project.diagrams![0]!.source.hr =
+      'flowchart LR\n  click A href "https://example.com"';
+  });
+  expectOnlyTooling((project) => {
+    project.diagrams![0]!.description.hr = "";
   });
 
   const collision = structuredClone(publishedProjectsQueryResult);
@@ -454,6 +508,29 @@ test("a full Project detail renders localized sections, contextual navigation, a
     html,
     /alt="Topologija evenata grupirana po omeđenom kontekstu"/,
   );
+  assert.match(
+    html,
+    /<h3 id="diagram-recovery-flow-title">Tijek oporavka<\/h3>/,
+  );
+  assert.match(html, /aria-label="Tijek oporavka — pomični prikaz dijagrama"/);
+  assert.match(
+    html,
+    /src="\/generated\/diagrams\/distributed-event-platform\/recovery-flow\/hr-light\.svg"/,
+  );
+  assert.match(
+    html,
+    /src="\/generated\/diagrams\/distributed-event-platform\/recovery-flow\/hr-dark\.svg"/,
+  );
+  assert.match(html, /Rad napreduje kroz kontrolne točke za oporavak/);
+  assert.match(
+    html,
+    /Red predaje posao radniku, koji bilježi kontrolnu točku za oporavak/,
+  );
+  const diagramMarkup = html.match(
+    /<section aria-labelledby="project-diagrams-heading"[\s\S]*?<\/section>/,
+  )?.[0];
+  assert.ok(diagramMarkup);
+  assert.doesNotMatch(diagramMarkup, /dangerouslySetInnerHTML|<svg/);
   assert.match(html, /href="https:\/\/github\.com\/igrgin\/event-platform"/);
 });
 
@@ -493,6 +570,8 @@ test("full Project responsive CSS keeps media fluid and collapses the contextual
     css,
     /\.project-media img\s*\{[^}]*width:\s*100%;[^}]*height:\s*auto;/s,
   );
+  assert.match(css, /\.project-diagram-viewport\s*\{[^}]*overflow-x:\s*auto;/s);
+  assert.match(css, /\.project-diagram-asset\s*\{[^}]*min-width:\s*48rem;/s);
   assert.match(
     css,
     /\.project-case-study-content\s*\{[^}]*min-width:\s*0;[^}]*max-width:\s*72ch;/s,

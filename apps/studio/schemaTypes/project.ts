@@ -1,12 +1,14 @@
 import {
   isOngoingProjectStatus,
   isProjectDisclosureLevel,
+  diagramKinds,
   projectCaseStudyFieldKeys,
   projectDisclosureLevels,
   projectStatusLabels,
   projectStatuses,
   type ProjectCaseStudyField,
   type ProjectDisclosureLevel,
+  validatePortfolioDiagram,
 } from "@portfolio/content";
 import {
   defineArrayMember,
@@ -25,6 +27,14 @@ const projectStatusOptions = projectStatuses.map((value) => ({
 
 const projectDisclosureOptions = projectDisclosureLevels.map((value) => ({
   title: value === "full" ? "Full case study" : "Summary only",
+  value,
+}));
+
+const diagramKindOptions = diagramKinds.map((value) => ({
+  title:
+    value === "data-flow"
+      ? "Data flow"
+      : `${value.charAt(0).toUpperCase()}${value.slice(1)}`,
   value,
 }));
 
@@ -106,6 +116,64 @@ export const projectMedia = defineType({
   name: "projectMedia",
   title: "Project media",
   type: "object",
+});
+
+export const projectDiagram = defineType({
+  fields: [
+    defineField({
+      description: "Lowercase kebab-case identifier used in generated paths.",
+      name: "id",
+      title: "Diagram ID",
+      type: "string",
+      validation: (rule) =>
+        rule.required().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+          name: "a lowercase kebab-case identifier",
+        }),
+    }),
+    defineField({
+      name: "kind",
+      options: { layout: "radio", list: diagramKindOptions },
+      title: "Diagram kind",
+      type: "string",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      description:
+        "Plain Mermaid only. Use sequenceDiagram for sequences and a directional flowchart for every other kind.",
+      name: "source",
+      title: "Paired Mermaid source",
+      type: "localizedText",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "title",
+      title: "Accessible title",
+      type: "localizedString",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: "caption",
+      title: "Caption",
+      type: "localizedText",
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      description:
+        "A prose equivalent of the relationships or sequence shown visually.",
+      name: "description",
+      title: "Long description",
+      type: "localizedText",
+      validation: (rule) => rule.required(),
+    }),
+  ],
+  name: "projectDiagram",
+  title: "Mermaid diagram",
+  type: "object",
+  validation: (rule) =>
+    rule.custom((value) => {
+      const result = validatePortfolioDiagram(value);
+      return result.ok ? true : result.error;
+    }),
 });
 
 export const project = defineType({
@@ -241,6 +309,38 @@ export const project = defineType({
       name: "heroMedia",
       title: "Optional hero media",
       type: "projectMedia",
+    }),
+    defineField({
+      group: "localized",
+      hidden: ({ parent }) =>
+        (parent as ProjectSchemaParent | undefined)?.disclosureLevel !== "full",
+      name: "diagrams",
+      of: [defineArrayMember({ type: "projectDiagram" })],
+      title: "Optional ordered Mermaid diagrams",
+      type: "array",
+      validation: (rule) =>
+        rule.custom((value, context) => {
+          const parent = context.parent as ProjectSchemaParent | undefined;
+          if (parent?.disclosureLevel !== "full") {
+            return !Array.isArray(value) || value.length === 0
+              ? true
+              : "Remove diagrams from a summary-only Project.";
+          }
+          if (!Array.isArray(value)) {
+            return true;
+          }
+          const ids = value.map((entry) =>
+            typeof entry === "object" &&
+            entry !== null &&
+            "id" in entry &&
+            typeof entry.id === "string"
+              ? entry.id
+              : "",
+          );
+          return new Set(ids).size === ids.length
+            ? true
+            : "Diagram IDs must be unique within a Project.";
+        }),
     }),
     defineField({
       group: "shared",

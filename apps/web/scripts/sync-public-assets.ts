@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 import {
   hasSanityConfiguration,
   loadPublishedAbout,
+  loadPublishedProjectDiagrams,
   loadPublishedProjects,
 } from "@portfolio/content";
 
+import { renderDiagramAssets } from "../../../scripts/diagram-pipeline";
 import {
   croppedPortraitSource,
   portraitPublicPath,
@@ -62,9 +64,10 @@ async function main() {
   }
 
   siteOrigin({ required: true });
-  const [about, projects] = await Promise.all([
+  const [about, projects, diagrams] = await Promise.all([
     loadPublishedAbout("en"),
     loadPublishedProjects("en"),
+    loadPublishedProjectDiagrams(),
   ]);
   if (!about) {
     throw new Error(
@@ -72,7 +75,14 @@ async function main() {
     );
   }
   const publishedProjects = projects?.entries ?? [];
+  const publishedProjectSlugs = new Set(
+    publishedProjects.map(({ slug }) => slug),
+  );
+  const publishedDiagrams = diagrams.filter(({ projectSlug }) =>
+    publishedProjectSlugs.has(projectSlug),
+  );
 
+  await renderDiagramAssets(publishedDiagrams, publicDirectory);
   await resetGeneratedDirectories();
   await Promise.all([
     download(
@@ -88,15 +98,13 @@ async function main() {
     download(about.resumes.en.url, resumePublicPaths.en, "application/pdf"),
     download(about.resumes.hr.url, resumePublicPaths.hr, "application/pdf"),
     ...publishedProjects.flatMap((project) =>
-      [
-        ...(project.heroMedia ? [project.heroMedia] : []),
-        ...project.media,
-      ].map((media) =>
-        download(
-          media.url,
-          projectMediaPublicPath(project.slug, media.key, media.url),
-          "image/",
-        ),
+      [...(project.heroMedia ? [project.heroMedia] : []), ...project.media].map(
+        (media) =>
+          download(
+            media.url,
+            projectMediaPublicPath(project.slug, media.key, media.url),
+            "image/",
+          ),
       ),
     ),
   ]);

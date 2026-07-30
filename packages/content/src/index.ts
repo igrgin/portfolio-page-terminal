@@ -33,6 +33,19 @@ export {
 } from "./education";
 
 export {
+  DIAGRAM_RENDER_TIMEOUT_MS,
+  DIAGRAM_SOURCE_MAX_BYTES,
+  diagramAssetPublicPath,
+  diagramKinds,
+  diagramThemes,
+  validatePortfolioDiagram,
+  type DiagramKind,
+  type DiagramTheme,
+  type DiagramValidationResult,
+  type PortfolioDiagram,
+} from "./diagrams";
+
+export {
   loadPublishedExperience,
   normalizePublishedExperience,
   type ExperiencePageContent,
@@ -49,13 +62,17 @@ export {
 export {
   isOngoingProjectStatus,
   isProjectDisclosureLevel,
+  loadPublishedProjectDiagrams,
   loadPublishedProjects,
+  normalizePublishedProjectDiagrams,
   normalizePublishedProjects,
   projectCaseStudyFieldKeys,
   projectDisclosureLevels,
   projectStatusLabels,
   projectStatuses,
   PROJECTS_PAGE_QUERY,
+  PROJECT_DIAGRAMS_QUERY,
+  type ProjectDiagram,
   type ProjectCaseStudy,
   type ProjectCaseStudyField,
   type ProjectDisclosureLevel,
@@ -63,6 +80,7 @@ export {
   type ProjectPageEntry,
   type ProjectStatus,
   type ProjectsPageContent,
+  type PublishedProjectDiagramInput,
 } from "./projects";
 
 export {

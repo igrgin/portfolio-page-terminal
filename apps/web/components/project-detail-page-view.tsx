@@ -1,5 +1,6 @@
 import type {
   Locale,
+  ProjectDiagram,
   ProjectMedia,
   ProjectPageEntry,
   ProjectsPageContent,
@@ -24,6 +25,8 @@ const copy = {
     contents: "Case study contents",
     context: "Context and problem",
     contribution: "Role and contribution",
+    diagrams: "Project diagrams",
+    diagramScroll: "scrollable diagram",
     gallery: "Project media",
     lessons: "Lessons and reflections",
     outcome: "Outcome and impact",
@@ -38,6 +41,8 @@ const copy = {
     contents: "Sadržaj studije slučaja",
     context: "Kontekst i problem",
     contribution: "Uloga i doprinos",
+    diagrams: "Dijagrami projekta",
+    diagramScroll: "pomični prikaz dijagrama",
     gallery: "Mediji projekta",
     lessons: "Lekcije i osvrt",
     outcome: "Ishod i učinak",
@@ -46,6 +51,53 @@ const copy = {
     status: "Status i datumi",
   },
 } as const;
+
+function ProjectDiagramFigure({
+  diagram,
+  scrollLabel,
+}: Readonly<{
+  diagram: ProjectDiagram;
+  scrollLabel: string;
+}>) {
+  const titleId = `diagram-${diagram.id}-title`;
+  const descriptionId = `diagram-${diagram.id}-description`;
+  return (
+    <figure
+      aria-describedby={descriptionId}
+      aria-labelledby={titleId}
+      className="project-diagram"
+    >
+      <h3 id={titleId}>{diagram.title}</h3>
+      <div
+        aria-label={`${diagram.title} — ${scrollLabel}`}
+        className="project-diagram-viewport"
+        role="region"
+        tabIndex={0}
+      >
+        <img
+          alt=""
+          aria-hidden="true"
+          className="project-diagram-asset project-diagram-asset--light"
+          decoding="async"
+          loading="lazy"
+          src={diagram.assets.light}
+        />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="project-diagram-asset project-diagram-asset--dark"
+          decoding="async"
+          loading="lazy"
+          src={diagram.assets.dark}
+        />
+      </div>
+      <figcaption>{diagram.caption}</figcaption>
+      <p className="project-diagram-description" id={descriptionId}>
+        {diagram.description}
+      </p>
+    </figure>
+  );
+}
 
 function ProjectFigure({
   media,
@@ -130,6 +182,37 @@ function ProjectGallery({
           <ProjectFigure key={media.key} media={media} slug={project.slug} />
         ))}
       </div>
+    </section>
+  );
+}
+
+function ProjectDiagrams({
+  heading,
+  project,
+  scrollLabel,
+}: Readonly<{
+  heading: string;
+  project: ProjectPageEntry;
+  scrollLabel: string;
+}>) {
+  if (project.diagrams.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-labelledby="project-diagrams-heading"
+      className="project-diagrams"
+      id="project-diagrams"
+    >
+      <h2 id="project-diagrams-heading">{heading}</h2>
+      {project.diagrams.map((diagram) => (
+        <ProjectDiagramFigure
+          diagram={diagram}
+          key={diagram.id}
+          scrollLabel={scrollLabel}
+        />
+      ))}
     </section>
   );
 }
@@ -222,6 +305,11 @@ export function ProjectDetailPageView({
                       <a href={`#${section.id}`}>{section.label}</a>
                     </li>
                   ))}
+                  {project.diagrams.length > 0 && (
+                    <li>
+                      <a href="#project-diagrams">{labels.diagrams}</a>
+                    </li>
+                  )}
                   {project.media.length > 0 && (
                     <li>
                       <a href="#project-media">{labels.gallery}</a>
@@ -245,6 +333,11 @@ export function ProjectDetailPageView({
                   <p>{section.copy}</p>
                 </section>
               ))}
+              <ProjectDiagrams
+                heading={labels.diagrams}
+                project={project}
+                scrollLabel={labels.diagramScroll}
+              />
               <ProjectExternalLinks locale={locale} project={project} />
               <ProjectGallery heading={labels.gallery} project={project} />
             </div>

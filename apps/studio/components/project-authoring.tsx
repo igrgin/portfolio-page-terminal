@@ -17,6 +17,7 @@ import {
   type ProjectAuthoringTheme,
   readProjectAuthoringTheme,
   saveProjectAuthoringTheme,
+  validateDiagramDrafts,
 } from "./project-authoring-state";
 import { projectAuthoringCss } from "./project-authoring-styles";
 
@@ -70,11 +71,13 @@ export function PairedLocalizedInput(props: ObjectInputProps) {
 
 export function ProjectAuthoringCanvas({
   children,
+  diagramDraftError,
   previewOrigin,
   previewSlug,
   projectTitle,
 }: Readonly<{
   children: ReactNode;
+  diagramDraftError?: string | null;
   previewOrigin: string;
   previewSlug?: string;
   projectTitle?: string;
@@ -82,11 +85,7 @@ export function ProjectAuthoringCanvas({
   const [locale, setLocale] = useState<Locale>("en");
   const [theme, setTheme] = useState<ProjectAuthoringTheme>("light");
   const context = useMemo(() => ({ locale, setLocale }), [locale]);
-  const previewUrl = buildProjectPreviewUrl(
-    previewOrigin,
-    previewSlug,
-    locale,
-  );
+  const previewUrl = buildProjectPreviewUrl(previewOrigin, previewSlug, locale);
 
   useEffect(() => {
     try {
@@ -182,6 +181,12 @@ export function ProjectAuthoringCanvas({
                 )}
               </div>
             </header>
+            {diagramDraftError && (
+              <p className="project-authoring__diagram-error" role="alert">
+                Invalid Mermaid draft: {diagramDraftError} The last valid
+                published diagram remains in the preview.
+              </p>
+            )}
             {previewUrl ? (
               <iframe
                 src={previewUrl}
@@ -202,13 +207,16 @@ export function ProjectAuthoringCanvas({
 }
 
 export function ProjectAuthoringInput(props: ObjectInputProps) {
+  const diagramsValue = useFormValue(["diagrams"]);
   const slugValue = useFormValue(["slug", "current"]);
   const titleValue = useFormValue(["title", "en"]);
   const previewSlug = nonEmptyString(slugValue);
   const projectTitle = nonEmptyString(titleValue);
+  const diagramDraftError = validateDiagramDrafts(diagramsValue);
 
   return (
     <ProjectAuthoringCanvas
+      diagramDraftError={diagramDraftError}
       previewOrigin={studioPreviewOrigin}
       previewSlug={previewSlug}
       projectTitle={projectTitle}

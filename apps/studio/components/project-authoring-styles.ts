@@ -79,6 +79,15 @@ export const projectAuthoringCss = String.raw`
     white-space: nowrap;
   }
 
+  .project-authoring__diagram-error {
+    padding: 0.75rem 1rem;
+    margin: 0;
+    border-bottom: 1px solid var(--authoring-border);
+    background: color-mix(in srgb, #b42318 12%, var(--authoring-surface));
+    color: var(--authoring-text);
+    font-size: 0.8rem;
+  }
+
   .project-authoring__controls {
     display: flex;
     flex: none;

@@ -10,6 +10,7 @@ coverage/
 .DS_Store
 /apps/web/public/media/
 /apps/web/public/resume/
+/apps/web/public/generated/
 
 # Agent skills are installed globally rather than per repository.
 /.agents/
