@@ -1,8 +1,12 @@
 import {
   isOngoingProjectStatus,
+  isProjectDisclosureLevel,
+  projectCaseStudyFieldKeys,
   projectDisclosureLevels,
   projectStatusLabels,
   projectStatuses,
+  type ProjectCaseStudyField,
+  type ProjectDisclosureLevel,
 } from "@portfolio/content";
 import {
   defineArrayMember,
@@ -23,21 +27,31 @@ const projectDisclosureOptions = projectDisclosureLevels.map((value) => ({
   value,
 }));
 
-function caseStudyField(
-  name: "approach" | "constraints" | "context" | "lessons" | "outcome",
-  title: string,
-) {
+const projectCaseStudyTitles: Readonly<Record<ProjectCaseStudyField, string>> =
+  {
+    approach: "Approach",
+    constraints: "Constraints",
+    context: "Context and problem",
+    lessons: "Lessons and reflections",
+    outcome: "Outcome and impact",
+  };
+
+type ProjectSchemaParent = Readonly<{
+  disclosureLevel?: ProjectDisclosureLevel;
+  startDate?: string;
+  status?: string;
+}>;
+
+function caseStudyField(name: ProjectCaseStudyField, title: string) {
   return defineField({
     hidden: ({ parent }) =>
-      (parent as { disclosureLevel?: string } | undefined)?.disclosureLevel !==
-      "full",
+      (parent as ProjectSchemaParent | undefined)?.disclosureLevel !== "full",
     name,
     title,
     type: "localizedText",
     validation: (rule) =>
       rule.custom((value, context) => {
-        const parent = context.parent as
-          { disclosureLevel?: string } | undefined;
+        const parent = context.parent as ProjectSchemaParent | undefined;
         return parent?.disclosureLevel !== "full" || value != null
           ? true
           : `Paired ${title.toLowerCase()} copy is required for a full case study.`;
@@ -49,8 +63,7 @@ function validateProjectEndDate(
   endDate: string | undefined,
   context: ValidationContext,
 ) {
-  const parent = context.parent as
-    { startDate?: string; status?: string } | undefined;
+  const parent = context.parent as ProjectSchemaParent | undefined;
   const ongoing = isOngoingProjectStatus(parent?.status);
 
   if (ongoing) {
@@ -127,19 +140,17 @@ export const project = defineType({
       title: "Disclosure level",
       type: "string",
       validation: (rule) =>
-        rule.required().custom((value) =>
-          projectDisclosureLevels.includes(
-            value as (typeof projectDisclosureLevels)[number],
-          )
-            ? true
-            : "Choose summary only or full case study.",
-        ),
+        rule
+          .required()
+          .custom((value) =>
+            isProjectDisclosureLevel(value)
+              ? true
+              : "Choose summary only or full case study.",
+          ),
     }),
-    caseStudyField("context", "Context and problem"),
-    caseStudyField("constraints", "Constraints"),
-    caseStudyField("approach", "Approach"),
-    caseStudyField("outcome", "Outcome and impact"),
-    caseStudyField("lessons", "Lessons and reflections"),
+    ...projectCaseStudyFieldKeys.map((name) =>
+      caseStudyField(name, projectCaseStudyTitles[name]),
+    ),
     defineField({
       name: "startDate",
       title: "Start month",

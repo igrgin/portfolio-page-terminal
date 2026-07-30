@@ -54,7 +54,6 @@ const publishedProjectsQueryResult = {
         en: "Designed and implemented the build feedback workflow.",
         hr: "Dizajnirao i implementirao tijek povratnih informacija iz builda.",
       },
-      disclosureLevel: "summary",
       startDate: "2026-02",
       status: "inProgress",
       featured: false,
@@ -361,7 +360,7 @@ test("draft, sensitive, unpaired, colliding, and invalid Projects do not publish
     project.approach.hr = "";
   });
   expectOnlyTooling((project) => {
-    Reflect.deleteProperty(project, "disclosureLevel");
+    Object.assign(project, { disclosureLevel: "teaser" });
   });
 
   const collision = structuredClone(publishedProjectsQueryResult);
@@ -369,9 +368,10 @@ test("draft, sensitive, unpaired, colliding, and invalid Projects do not publish
   assert.equal(normalizePublishedProjects(collision, "en"), null);
 });
 
-test("summary-only Projects ignore stale case-study copy instead of exposing unsupported sections", () => {
+test("legacy summary Projects remain public without exposing stale case-study copy", () => {
   const summaryWithStaleCopy = structuredClone(publishedProjectsQueryResult);
   Object.assign(summaryWithStaleCopy.projects[0]!, {
+    disclosureLevel: "summary",
     context: {
       en: "This stale draft must stay private.",
       hr: "Ovaj zastarjeli nacrt mora ostati privatan.",
@@ -379,6 +379,16 @@ test("summary-only Projects ignore stale case-study copy instead of exposing uns
   });
 
   const content = normalizePublishedProjects(summaryWithStaleCopy, "en");
+
+  assert.equal(content?.entries[1]?.disclosureLevel, "summary");
+  assert.equal(content?.entries[1]?.caseStudy, undefined);
+});
+
+test("summary Projects published before disclosure levels were introduced remain summary-only", () => {
+  const content = normalizePublishedProjects(
+    publishedProjectsQueryResult,
+    "en",
+  );
 
   assert.equal(content?.entries[1]?.disclosureLevel, "summary");
   assert.equal(content?.entries[1]?.caseStudy, undefined);
@@ -465,7 +475,7 @@ test("a summary-only Project detail has no case-study table of contents or place
   assert.doesNotMatch(html, /Context and problem/);
 });
 
-test("full Project composition keeps a contextual rail on wide screens and one readable column when narrow", () => {
+test("full Project responsive CSS keeps media fluid and collapses the contextual rail to one column", () => {
   const css = readFileSync(
     new URL("../apps/web/app/globals.css", import.meta.url),
     "utf8",
@@ -478,6 +488,18 @@ test("full Project composition keeps a contextual rail on wide screens and one r
   assert.match(
     css,
     /@media \(max-width: 840px\)\s*\{[\s\S]*?\.project-case-study-layout\s*\{[^}]*grid-template-columns:\s*1fr;/,
+  );
+  assert.match(
+    css,
+    /\.project-media img\s*\{[^}]*width:\s*100%;[^}]*height:\s*auto;/s,
+  );
+  assert.match(
+    css,
+    /\.project-case-study-content\s*\{[^}]*min-width:\s*0;[^}]*max-width:\s*72ch;/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 840px\)\s*\{[\s\S]*?\.project-case-study-context\s*\{[^}]*position:\s*static;/,
   );
 });
 

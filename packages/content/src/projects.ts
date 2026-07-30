@@ -27,6 +27,25 @@ export const projectDisclosureLevels = ["summary", "full"] as const;
 
 export type ProjectDisclosureLevel = (typeof projectDisclosureLevels)[number];
 
+export function isProjectDisclosureLevel(
+  value: unknown,
+): value is ProjectDisclosureLevel {
+  return (
+    typeof value === "string" &&
+    projectDisclosureLevels.some((level) => level === value)
+  );
+}
+
+export const projectCaseStudyFieldKeys = [
+  "context",
+  "constraints",
+  "approach",
+  "outcome",
+  "lessons",
+] as const;
+
+export type ProjectCaseStudyField = (typeof projectCaseStudyFieldKeys)[number];
+
 export function isOngoingProjectStatus(
   value: unknown,
 ): value is "inProgress" | "maintained" {
@@ -51,13 +70,7 @@ export type ProjectMedia = Readonly<{
   width: number;
 }>;
 
-export type ProjectCaseStudy = Readonly<{
-  approach: string;
-  constraints: string;
-  context: string;
-  lessons: string;
-  outcome: string;
-}>;
+export type ProjectCaseStudy = Readonly<Record<ProjectCaseStudyField, string>>;
 
 export type ProjectPageEntry = Readonly<{
   caseStudy?: ProjectCaseStudy;
@@ -205,6 +218,26 @@ function normalizeProjectMedia(
     : null;
 }
 
+function normalizeProjectCaseStudy(
+  project: Readonly<Record<string, unknown>>,
+  locale: Locale,
+): ProjectCaseStudy | null {
+  const localizedSections = projectCaseStudyFieldKeys.map((field) => {
+    const localized = localizedStrings(project[field]);
+    return localized ? ([field, localized[locale]] as const) : null;
+  });
+  const completeSections = localizedSections.filter(
+    (
+      section,
+    ): section is readonly [ProjectCaseStudyField, string] =>
+      section !== null,
+  );
+
+  return completeSections.length !== projectCaseStudyFieldKeys.length
+    ? null
+    : (Object.fromEntries(completeSections) as ProjectCaseStudy);
+}
+
 function normalizeProjectEntry(
   value: unknown,
   locale: Locale,
@@ -225,36 +258,14 @@ function normalizeProjectEntry(
   const summary = localizedStrings(project?.summary);
   const contribution = localizedStrings(project?.contribution);
   const disclosureLevel =
-    typeof project?.disclosureLevel === "string" &&
-    projectDisclosureLevels.includes(
-      project.disclosureLevel as ProjectDisclosureLevel,
-    )
-      ? (project.disclosureLevel as ProjectDisclosureLevel)
-      : null;
-  const caseStudyPairs =
-    disclosureLevel === "full"
-      ? {
-          approach: localizedStrings(project?.approach),
-          constraints: localizedStrings(project?.constraints),
-          context: localizedStrings(project?.context),
-          lessons: localizedStrings(project?.lessons),
-          outcome: localizedStrings(project?.outcome),
-        }
-      : null;
+    project?.disclosureLevel == null
+      ? "summary"
+      : isProjectDisclosureLevel(project.disclosureLevel)
+        ? project.disclosureLevel
+        : null;
   const caseStudy =
-    caseStudyPairs &&
-    caseStudyPairs.approach &&
-    caseStudyPairs.constraints &&
-    caseStudyPairs.context &&
-    caseStudyPairs.lessons &&
-    caseStudyPairs.outcome
-      ? {
-          approach: caseStudyPairs.approach[locale],
-          constraints: caseStudyPairs.constraints[locale],
-          context: caseStudyPairs.context[locale],
-          lessons: caseStudyPairs.lessons[locale],
-          outcome: caseStudyPairs.outcome[locale],
-        }
+    disclosureLevel === "full" && project
+      ? normalizeProjectCaseStudy(project, locale)
       : null;
   const startDate = projectMonth(project?.startDate);
   const status =

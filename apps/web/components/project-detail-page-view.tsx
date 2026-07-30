@@ -4,6 +4,7 @@ import type {
   ProjectPageEntry,
   ProjectsPageContent,
 } from "@portfolio/content";
+import { projectCaseStudyFieldKeys } from "@portfolio/content";
 import React from "react";
 
 import { projectMediaPublicPath } from "../lib/public-assets";
@@ -144,34 +145,13 @@ export function ProjectDetailPageView({
 }>) {
   const labels = copy[locale];
   const projectsRoute = destinationRoute(locale, "projects");
-  const caseStudySections = project.caseStudy
-    ? [
-        {
-          copy: project.caseStudy.context,
-          id: "project-context",
-          label: labels.context,
-        },
-        {
-          copy: project.caseStudy.constraints,
-          id: "project-constraints",
-          label: labels.constraints,
-        },
-        {
-          copy: project.caseStudy.approach,
-          id: "project-approach",
-          label: labels.approach,
-        },
-        {
-          copy: project.caseStudy.outcome,
-          id: "project-outcome",
-          label: labels.outcome,
-        },
-        {
-          copy: project.caseStudy.lessons,
-          id: "project-lessons",
-          label: labels.lessons,
-        },
-      ]
+  const caseStudy = project.caseStudy;
+  const caseStudySections = caseStudy
+    ? projectCaseStudyFieldKeys.map((field) => ({
+        copy: caseStudy[field],
+        id: `project-${field}`,
+        label: labels[field],
+      }))
     : [];
 
   return (
