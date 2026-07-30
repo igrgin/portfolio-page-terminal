@@ -54,6 +54,7 @@ const publishedProjectsQueryResult = {
         en: "Designed and implemented the build feedback workflow.",
         hr: "Dizajnirao i implementirao tijek povratnih informacija iz builda.",
       },
+      disclosureLevel: "summary",
       startDate: "2026-02",
       status: "inProgress",
       featured: false,
@@ -97,6 +98,27 @@ const publishedProjectsQueryResult = {
       contribution: {
         en: "Designed the domain model and recovery workflow.",
         hr: "Dizajnirao domenski model i tijek oporavka.",
+      },
+      disclosureLevel: "full",
+      context: {
+        en: "Teams needed event processing that stayed understandable during partial failures.",
+        hr: "Timovima je trebala obrada evenata koja ostaje razumljiva tijekom djelomičnih kvarova.",
+      },
+      constraints: {
+        en: "Recovery had to preserve ordering without exposing confidential production topology.",
+        hr: "Oporavak je morao očuvati redoslijed bez otkrivanja povjerljive produkcijske topologije.",
+      },
+      approach: {
+        en: "I separated bounded contexts, made retry state explicit, and designed observable recovery checkpoints.",
+        hr: "Razdvojio sam omeđene kontekste, učinio stanje ponovnih pokušaja jasnim i osmislio nadgledljive kontrolne točke oporavka.",
+      },
+      outcome: {
+        en: "Operators could identify stalled work and resume processing from a known checkpoint.",
+        hr: "Operateri su mogli prepoznati zaustavljeni rad i nastaviti obradu od poznate kontrolne točke.",
+      },
+      lessons: {
+        en: "Recovery behavior is easier to trust when it is modeled as product behavior rather than hidden infrastructure.",
+        hr: "Ponašanju oporavka lakše je vjerovati kada je modelirano kao ponašanje proizvoda, a ne skrivena infrastruktura.",
       },
       startDate: "2024-01",
       endDate: "2025-06",
@@ -163,7 +185,7 @@ const publishedProjectsQueryResult = {
   ],
 };
 
-test("Project authoring exposes the paired summary-only publishing contract", () => {
+test("Project authoring exposes summary and paired full-case-study fields", () => {
   const schema = JSON.parse(
     readFileSync(
       new URL("../apps/studio/schema.json", import.meta.url),
@@ -188,15 +210,21 @@ test("Project authoring exposes the paired summary-only publishing contract", ()
       .filter((name) => !name.startsWith("_"))
       .sort(),
     [
+      "approach",
+      "constraints",
+      "context",
       "contribution",
       "demoUrl",
+      "disclosureLevel",
       "documentationUrl",
       "endDate",
       "featured",
       "heroMedia",
+      "lessons",
       "media",
       "metadataOverride",
       "order",
+      "outcome",
       "publishSafe",
       "repositoryUrl",
       "skills",
@@ -237,10 +265,22 @@ test("published Projects localize paired facts and follow featured editorial ord
     english.entries.map(({ slug }) => slug),
     ["distributed-event-platform", "delivery-feedback-tooling"],
   );
-  assert.equal(
-    croatian.entries[0]?.title,
-    "Platforma za distribuirane evente",
-  );
+  assert.equal(croatian.entries[0]?.title, "Platforma za distribuirane evente");
+  assert.equal(croatian.entries[0]?.disclosureLevel, "full");
+  assert.deepEqual(croatian.entries[0]?.caseStudy, {
+    approach:
+      "Razdvojio sam omeđene kontekste, učinio stanje ponovnih pokušaja jasnim i osmislio nadgledljive kontrolne točke oporavka.",
+    constraints:
+      "Oporavak je morao očuvati redoslijed bez otkrivanja povjerljive produkcijske topologije.",
+    context:
+      "Timovima je trebala obrada evenata koja ostaje razumljiva tijekom djelomičnih kvarova.",
+    lessons:
+      "Ponašanju oporavka lakše je vjerovati kada je modelirano kao ponašanje proizvoda, a ne skrivena infrastruktura.",
+    outcome:
+      "Operateri su mogli prepoznati zaustavljeni rad i nastaviti obradu od poznate kontrolne točke.",
+  });
+  assert.equal(croatian.entries[1]?.disclosureLevel, "summary");
+  assert.equal(croatian.entries[1]?.caseStudy, undefined);
   assert.deepEqual(croatian.entries[0]?.status, {
     key: "completed",
     label: "Dovršen",
@@ -317,10 +357,31 @@ test("draft, sensitive, unpaired, colliding, and invalid Projects do not publish
   expectOnlyTooling((project) => {
     project.skills[0]!._id = "drafts.skill.backend";
   });
+  expectOnlyTooling((project) => {
+    project.approach.hr = "";
+  });
+  expectOnlyTooling((project) => {
+    Reflect.deleteProperty(project, "disclosureLevel");
+  });
 
   const collision = structuredClone(publishedProjectsQueryResult);
   collision.projects[1]!.slug = collision.projects[0]!.slug;
   assert.equal(normalizePublishedProjects(collision, "en"), null);
+});
+
+test("summary-only Projects ignore stale case-study copy instead of exposing unsupported sections", () => {
+  const summaryWithStaleCopy = structuredClone(publishedProjectsQueryResult);
+  Object.assign(summaryWithStaleCopy.projects[0]!, {
+    context: {
+      en: "This stale draft must stay private.",
+      hr: "Ovaj zastarjeli nacrt mora ostati privatan.",
+    },
+  });
+
+  const content = normalizePublishedProjects(summaryWithStaleCopy, "en");
+
+  assert.equal(content?.entries[1]?.disclosureLevel, "summary");
+  assert.equal(content?.entries[1]?.caseStudy, undefined);
 });
 
 test("the Project index renders featured order, status, Skills, and canonical detail links", () => {
@@ -346,7 +407,7 @@ test("the Project index renders featured order, status, Skills, and canonical de
   assert.match(html, /href="\/hr\/vjestine"/);
 });
 
-test("a summary Project detail preserves locale pairing and accessible media", () => {
+test("a full Project detail renders localized sections, contextual navigation, and accessible media", () => {
   const content = normalizePublishedProjects(
     publishedProjectsQueryResult,
     "hr",
@@ -355,25 +416,26 @@ test("a summary Project detail preserves locale pairing and accessible media", (
   const project = content.entries[0]!;
 
   const html = renderToStaticMarkup(
-    <ProjectDetailPageView
-      content={content}
-      locale="hr"
-      project={project}
-    />,
+    <ProjectDetailPageView content={content} locale="hr" project={project} />,
   );
 
   assert.match(html, /href="\/en\/projects\/distributed-event-platform"/);
   assert.match(html, /aria-current="page" href="\/hr\/projekti"/);
   assert.match(html, /<h1>Platforma za distribuirane evente<\/h1>/);
   assert.match(html, /Dizajnirao domenski model i tijek oporavka/);
+  assert.match(html, /aria-label="Sadržaj studije slučaja"/);
+  assert.match(html, /href="#project-context"/);
+  assert.match(html, /<h2 id="project-context">Kontekst i problem<\/h2>/);
+  assert.match(html, /<h2 id="project-constraints">Ograničenja<\/h2>/);
+  assert.match(html, /<h2 id="project-approach">Pristup<\/h2>/);
+  assert.match(html, /<h2 id="project-outcome">Ishod i učinak<\/h2>/);
+  assert.match(html, /<h2 id="project-lessons">Lekcije i osvrt<\/h2>/);
+  assert.doesNotMatch(html, /<details/);
   assert.match(
     html,
     /src="\/media\/projects\/distributed-event-platform\/hero\.jpg"/,
   );
-  assert.match(
-    html,
-    /alt="Nadzorna ploča oporavka obrade evenata"/,
-  );
+  assert.match(html, /alt="Nadzorna ploča oporavka obrade evenata"/);
   assert.match(
     html,
     /src="\/media\/projects\/distributed-event-platform\/topology\.png"/,
@@ -382,9 +444,40 @@ test("a summary Project detail preserves locale pairing and accessible media", (
     html,
     /alt="Topologija evenata grupirana po omeđenom kontekstu"/,
   );
+  assert.match(html, /href="https:\/\/github\.com\/igrgin\/event-platform"/);
+});
+
+test("a summary-only Project detail has no case-study table of contents or placeholders", () => {
+  const content = normalizePublishedProjects(
+    publishedProjectsQueryResult,
+    "en",
+  );
+  assert.ok(content);
+  const project = content.entries[1]!;
+
+  const html = renderToStaticMarkup(
+    <ProjectDetailPageView content={content} locale="en" project={project} />,
+  );
+
+  assert.equal(project.disclosureLevel, "summary");
+  assert.doesNotMatch(html, /Case study contents/);
+  assert.doesNotMatch(html, /id="project-context"/);
+  assert.doesNotMatch(html, /Context and problem/);
+});
+
+test("full Project composition keeps a contextual rail on wide screens and one readable column when narrow", () => {
+  const css = readFileSync(
+    new URL("../apps/web/app/globals.css", import.meta.url),
+    "utf8",
+  );
+
   assert.match(
-    html,
-    /href="https:\/\/github\.com\/igrgin\/event-platform"/,
+    css,
+    /\.project-case-study-layout\s*\{[^}]*grid-template-columns:\s*minmax\([^;]+;\s*/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 840px\)\s*\{[\s\S]*?\.project-case-study-layout\s*\{[^}]*grid-template-columns:\s*1fr;/,
   );
 });
 
@@ -403,12 +496,7 @@ test("Project index and detail metadata expose canonical localized route pairs",
     "https://portfolio.example/hr/projekti",
   );
 
-  const detailMetadata = buildProjectMetadata(
-    content,
-    project,
-    "hr",
-    origin,
-  );
+  const detailMetadata = buildProjectMetadata(content, project, "hr", origin);
   assert.equal(
     detailMetadata.alternates?.canonical,
     "https://portfolio.example/hr/projekti/distributed-event-platform",
@@ -523,16 +611,11 @@ test("static params and sitemap discovery include only publishable canonical Pro
       "https://portfolio.example/hr/projekti/delivery-feedback-tooling",
     ),
   );
-  assert.ok(
-    !urls.some((url) => url.includes("distributed-event-platform")),
-  );
+  assert.ok(!urls.some((url) => url.includes("distributed-event-platform")));
   assert.ok(!urls.includes("https://portfolio.example/en/about"));
 
   const robots = buildRobots(new URL("https://portfolio.example"));
-  assert.equal(
-    robots.sitemap,
-    "https://portfolio.example/sitemap.xml",
-  );
+  assert.equal(robots.sitemap, "https://portfolio.example/sitemap.xml");
   assert.deepEqual(robots.rules, {
     allow: "/",
     disallow: ["/api/preview", "/studio"],
@@ -592,10 +675,7 @@ test("localized App Router detail modules statically render the same canonical P
     assert.equal(EnglishProjectRoute.dynamicParams, false);
     assert.equal(CroatianProjectRoute.dynamicParams, false);
     assert.match(englishHtml, /<h1>Distributed event platform<\/h1>/);
-    assert.match(
-      croatianHtml,
-      /<h1>Platforma za distribuirane evente<\/h1>/,
-    );
+    assert.match(croatianHtml, /<h1>Platforma za distribuirane evente<\/h1>/);
     assert.match(
       englishHtml,
       /href="\/hr\/projekti\/distributed-event-platform"/,

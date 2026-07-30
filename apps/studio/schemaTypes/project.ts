@@ -1,5 +1,6 @@
 import {
   isOngoingProjectStatus,
+  projectDisclosureLevels,
   projectStatusLabels,
   projectStatuses,
 } from "@portfolio/content";
@@ -17,13 +18,39 @@ const projectStatusOptions = projectStatuses.map((value) => ({
   value,
 }));
 
+const projectDisclosureOptions = projectDisclosureLevels.map((value) => ({
+  title: value === "full" ? "Full case study" : "Summary only",
+  value,
+}));
+
+function caseStudyField(
+  name: "approach" | "constraints" | "context" | "lessons" | "outcome",
+  title: string,
+) {
+  return defineField({
+    hidden: ({ parent }) =>
+      (parent as { disclosureLevel?: string } | undefined)?.disclosureLevel !==
+      "full",
+    name,
+    title,
+    type: "localizedText",
+    validation: (rule) =>
+      rule.custom((value, context) => {
+        const parent = context.parent as
+          { disclosureLevel?: string } | undefined;
+        return parent?.disclosureLevel !== "full" || value != null
+          ? true
+          : `Paired ${title.toLowerCase()} copy is required for a full case study.`;
+      }),
+  });
+}
+
 function validateProjectEndDate(
   endDate: string | undefined,
   context: ValidationContext,
 ) {
   const parent = context.parent as
-    | { startDate?: string; status?: string }
-    | undefined;
+    { startDate?: string; status?: string } | undefined;
   const ongoing = isOngoingProjectStatus(parent?.status);
 
   if (ongoing) {
@@ -93,6 +120,26 @@ export const project = defineType({
       type: "localizedText",
       validation: (rule) => rule.required(),
     }),
+    defineField({
+      initialValue: "summary",
+      name: "disclosureLevel",
+      options: { layout: "radio", list: projectDisclosureOptions },
+      title: "Disclosure level",
+      type: "string",
+      validation: (rule) =>
+        rule.required().custom((value) =>
+          projectDisclosureLevels.includes(
+            value as (typeof projectDisclosureLevels)[number],
+          )
+            ? true
+            : "Choose summary only or full case study.",
+        ),
+    }),
+    caseStudyField("context", "Context and problem"),
+    caseStudyField("constraints", "Constraints"),
+    caseStudyField("approach", "Approach"),
+    caseStudyField("outcome", "Outcome and impact"),
+    caseStudyField("lessons", "Lessons and reflections"),
     defineField({
       name: "startDate",
       title: "Start month",
@@ -181,11 +228,13 @@ export const project = defineType({
       title: "Publish-safe confirmation",
       type: "boolean",
       validation: (rule) =>
-        rule.required().custom((value) =>
-          value === true
-            ? true
-            : "Confirm that this Project is safe to publish.",
-        ),
+        rule
+          .required()
+          .custom((value) =>
+            value === true
+              ? true
+              : "Confirm that this Project is safe to publish.",
+          ),
     }),
   ],
   name: "project",
@@ -201,9 +250,11 @@ export const project = defineType({
     },
   ],
   preview: {
-    prepare({ featured, status, title }) {
+    prepare({ disclosureLevel, featured, status, title }) {
       return {
         subtitle: `${featured ? "Featured · " : ""}${
+          disclosureLevel === "full" ? "Full case study" : "Summary"
+        } · ${
           projectStatusOptions.find(({ value }) => value === status)?.title ??
           "Unknown status"
         }`,
@@ -211,6 +262,7 @@ export const project = defineType({
       };
     },
     select: {
+      disclosureLevel: "disclosureLevel",
       featured: "featured",
       status: "status",
       title: "title.en",

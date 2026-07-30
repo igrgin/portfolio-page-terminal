@@ -12,10 +12,7 @@ import {
   safeUrl,
   type ContactChannel,
 } from "./sanity";
-import {
-  normalizeSkillEntry,
-  SKILL_PUBLIC_PROJECTION,
-} from "./skills";
+import { normalizeSkillEntry, SKILL_PUBLIC_PROJECTION } from "./skills";
 
 export const projectStatuses = [
   "inProgress",
@@ -25,6 +22,10 @@ export const projectStatuses = [
 ] as const;
 
 export type ProjectStatus = (typeof projectStatuses)[number];
+
+export const projectDisclosureLevels = ["summary", "full"] as const;
+
+export type ProjectDisclosureLevel = (typeof projectDisclosureLevels)[number];
 
 export function isOngoingProjectStatus(
   value: unknown,
@@ -50,8 +51,18 @@ export type ProjectMedia = Readonly<{
   width: number;
 }>;
 
+export type ProjectCaseStudy = Readonly<{
+  approach: string;
+  constraints: string;
+  context: string;
+  lessons: string;
+  outcome: string;
+}>;
+
 export type ProjectPageEntry = Readonly<{
+  caseStudy?: ProjectCaseStudy;
   contribution: string;
+  disclosureLevel: ProjectDisclosureLevel;
   endDate?: string;
   featured: boolean;
   heroMedia?: ProjectMedia;
@@ -126,6 +137,12 @@ export const PROJECTS_PAGE_QUERY = defineQuery(`{
     "slug": slug.current,
     summary,
     contribution,
+    disclosureLevel,
+    context,
+    constraints,
+    approach,
+    outcome,
+    lessons,
     startDate,
     endDate,
     status,
@@ -207,6 +224,38 @@ function normalizeProjectEntry(
       : null;
   const summary = localizedStrings(project?.summary);
   const contribution = localizedStrings(project?.contribution);
+  const disclosureLevel =
+    typeof project?.disclosureLevel === "string" &&
+    projectDisclosureLevels.includes(
+      project.disclosureLevel as ProjectDisclosureLevel,
+    )
+      ? (project.disclosureLevel as ProjectDisclosureLevel)
+      : null;
+  const caseStudyPairs =
+    disclosureLevel === "full"
+      ? {
+          approach: localizedStrings(project?.approach),
+          constraints: localizedStrings(project?.constraints),
+          context: localizedStrings(project?.context),
+          lessons: localizedStrings(project?.lessons),
+          outcome: localizedStrings(project?.outcome),
+        }
+      : null;
+  const caseStudy =
+    caseStudyPairs &&
+    caseStudyPairs.approach &&
+    caseStudyPairs.constraints &&
+    caseStudyPairs.context &&
+    caseStudyPairs.lessons &&
+    caseStudyPairs.outcome
+      ? {
+          approach: caseStudyPairs.approach[locale],
+          constraints: caseStudyPairs.constraints[locale],
+          context: caseStudyPairs.context[locale],
+          lessons: caseStudyPairs.lessons[locale],
+          outcome: caseStudyPairs.outcome[locale],
+        }
+      : null;
   const startDate = projectMonth(project?.startDate);
   const status =
     typeof project?.status === "string" &&
@@ -237,21 +286,15 @@ function normalizeProjectEntry(
       ? null
       : safeUrl(project.repositoryUrl, ["https:"]);
   const demo =
-    project?.demoUrl == null
-      ? null
-      : safeUrl(project.demoUrl, ["https:"]);
+    project?.demoUrl == null ? null : safeUrl(project.demoUrl, ["https:"]);
   const documentation =
     project?.documentationUrl == null
       ? null
       : safeUrl(project.documentationUrl, ["https:"]);
   const metadataOverride =
-    project?.metadataOverride == null
-      ? null
-      : record(project.metadataOverride);
+    project?.metadataOverride == null ? null : record(project.metadataOverride);
   const metadataTitle =
-    metadataOverride == null
-      ? title
-      : localizedStrings(metadataOverride.title);
+    metadataOverride == null ? title : localizedStrings(metadataOverride.title);
   const metadataDescription =
     metadataOverride == null
       ? summary
@@ -264,14 +307,12 @@ function normalizeProjectEntry(
     project?.media == null
       ? []
       : Array.isArray(project.media)
-        ? project.media.map((entry) =>
-            normalizeProjectMedia(entry, locale),
-          )
+        ? project.media.map((entry) => normalizeProjectMedia(entry, locale))
         : null;
   const mediaKeys =
-    media?.filter((entry): entry is ProjectMedia => entry !== null).map(
-      ({ key }) => key.toLowerCase(),
-    ) ?? [];
+    media
+      ?.filter((entry): entry is ProjectMedia => entry !== null)
+      .map(({ key }) => key.toLowerCase()) ?? [];
 
   if (
     project?._type !== "project" ||
@@ -282,6 +323,8 @@ function normalizeProjectEntry(
     !slug ||
     !summary ||
     !contribution ||
+    !disclosureLevel ||
+    (disclosureLevel === "full" && !caseStudy) ||
     !startDate ||
     !status ||
     (ongoing ? hasEndDate : endDate === null) ||
@@ -307,7 +350,9 @@ function normalizeProjectEntry(
   const metadataImage = heroMedia ?? defaultSharingImage;
 
   return {
+    ...(caseStudy ? { caseStudy } : {}),
     contribution: contribution[locale],
+    disclosureLevel,
     ...(endDate ? { endDate } : {}),
     featured,
     ...(heroMedia ? { heroMedia } : {}),

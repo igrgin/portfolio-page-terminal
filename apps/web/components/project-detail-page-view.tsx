@@ -17,17 +17,29 @@ import { ProjectDates, ProjectLinks } from "./projects-page-view";
 
 const copy = {
   en: {
+    approach: "Approach",
     back: "All Projects",
+    constraints: "Constraints",
+    contents: "Case study contents",
+    context: "Context and problem",
     contribution: "Role and contribution",
     gallery: "Project media",
+    lessons: "Lessons and reflections",
+    outcome: "Outcome and impact",
     overview: "Project summary",
     skills: "Supporting Skills",
     status: "Status and dates",
   },
   hr: {
+    approach: "Pristup",
     back: "Svi projekti",
+    constraints: "Ograničenja",
+    contents: "Sadržaj studije slučaja",
+    context: "Kontekst i problem",
     contribution: "Uloga i doprinos",
     gallery: "Mediji projekta",
+    lessons: "Lekcije i osvrt",
+    outcome: "Ishod i učinak",
     overview: "Sažetak projekta",
     skills: "Potporne vještine",
     status: "Status i datumi",
@@ -36,18 +48,88 @@ const copy = {
 
 function ProjectFigure({
   media,
+  priority = false,
   slug,
-}: Readonly<{ media: ProjectMedia; slug: string }>) {
+}: Readonly<{
+  media: ProjectMedia;
+  priority?: boolean;
+  slug: string;
+}>) {
   return (
     <figure className="project-media">
       <img
         alt={media.alt}
+        decoding="async"
+        fetchPriority={priority ? "high" : undefined}
         height={media.height}
+        loading={priority ? "eager" : "lazy"}
         src={projectMediaPublicPath(slug, media.key, media.url)}
         width={media.width}
       />
       {media.caption && <figcaption>{media.caption}</figcaption>}
     </figure>
+  );
+}
+
+function ProjectContribution({
+  heading,
+  id,
+  project,
+}: Readonly<{
+  heading: string;
+  id?: string;
+  project: ProjectPageEntry;
+}>) {
+  return (
+    <section className="project-detail-contribution">
+      <p className="eyebrow">{heading}</p>
+      <h2 id={id}>{heading}</h2>
+      <p>{project.contribution}</p>
+    </section>
+  );
+}
+
+function ProjectExternalLinks({
+  locale,
+  project,
+}: Readonly<{ locale: Locale; project: ProjectPageEntry }>) {
+  if (Object.values(project.links).every((link) => link === undefined)) {
+    return null;
+  }
+
+  return (
+    <nav
+      aria-label={
+        locale === "en" ? "External Project links" : "Vanjske poveznice"
+      }
+      className="project-detail-links"
+    >
+      <ProjectLinks links={project.links} locale={locale} />
+    </nav>
+  );
+}
+
+function ProjectGallery({
+  heading,
+  project,
+}: Readonly<{ heading: string; project: ProjectPageEntry }>) {
+  if (project.media.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      aria-labelledby="project-gallery-heading"
+      className="project-gallery"
+      id="project-media"
+    >
+      <h2 id="project-gallery-heading">{heading}</h2>
+      <div>
+        {project.media.map((media) => (
+          <ProjectFigure key={media.key} media={media} slug={project.slug} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -62,6 +144,35 @@ export function ProjectDetailPageView({
 }>) {
   const labels = copy[locale];
   const projectsRoute = destinationRoute(locale, "projects");
+  const caseStudySections = project.caseStudy
+    ? [
+        {
+          copy: project.caseStudy.context,
+          id: "project-context",
+          label: labels.context,
+        },
+        {
+          copy: project.caseStudy.constraints,
+          id: "project-constraints",
+          label: labels.constraints,
+        },
+        {
+          copy: project.caseStudy.approach,
+          id: "project-approach",
+          label: labels.approach,
+        },
+        {
+          copy: project.caseStudy.outcome,
+          id: "project-outcome",
+          label: labels.outcome,
+        },
+        {
+          copy: project.caseStudy.lessons,
+          id: "project-lessons",
+          label: labels.lessons,
+        },
+      ]
+    : [];
 
   return (
     <OperationalShell
@@ -110,40 +221,63 @@ export function ProjectDetailPageView({
         </header>
 
         {project.heroMedia && (
-          <ProjectFigure media={project.heroMedia} slug={project.slug} />
+          <ProjectFigure
+            media={project.heroMedia}
+            priority
+            slug={project.slug}
+          />
         )}
 
-        <section className="project-detail-contribution">
-          <p className="eyebrow">{labels.contribution}</p>
-          <h2>{labels.contribution}</h2>
-          <p>{project.contribution}</p>
-        </section>
-
-        <nav
-          aria-label={
-            locale === "en" ? "External Project links" : "Vanjske poveznice"
-          }
-          className="project-detail-links"
-        >
-          <ProjectLinks links={project.links} locale={locale} />
-        </nav>
-
-        {project.media.length > 0 && (
-          <section
-            aria-labelledby="project-gallery-heading"
-            className="project-gallery"
-          >
-            <h2 id="project-gallery-heading">{labels.gallery}</h2>
-            <div>
-              {project.media.map((media) => (
-                <ProjectFigure
-                  key={media.key}
-                  media={media}
-                  slug={project.slug}
-                />
+        {project.caseStudy ? (
+          <div className="project-case-study-layout">
+            <aside className="project-case-study-context">
+              <nav aria-label={labels.contents}>
+                <p>{labels.contents}</p>
+                <ol>
+                  <li>
+                    <a href="#project-contribution">{labels.contribution}</a>
+                  </li>
+                  {caseStudySections.map((section) => (
+                    <li key={section.id}>
+                      <a href={`#${section.id}`}>{section.label}</a>
+                    </li>
+                  ))}
+                  {project.media.length > 0 && (
+                    <li>
+                      <a href="#project-media">{labels.gallery}</a>
+                    </li>
+                  )}
+                </ol>
+              </nav>
+            </aside>
+            <div className="project-case-study-content">
+              <ProjectContribution
+                heading={labels.contribution}
+                id="project-contribution"
+                project={project}
+              />
+              {caseStudySections.map((section) => (
+                <section
+                  className="project-case-study-section"
+                  key={section.id}
+                >
+                  <h2 id={section.id}>{section.label}</h2>
+                  <p>{section.copy}</p>
+                </section>
               ))}
+              <ProjectExternalLinks locale={locale} project={project} />
+              <ProjectGallery heading={labels.gallery} project={project} />
             </div>
-          </section>
+          </div>
+        ) : (
+          <div className="project-summary-body">
+            <ProjectContribution
+              heading={labels.contribution}
+              project={project}
+            />
+            <ProjectExternalLinks locale={locale} project={project} />
+            <ProjectGallery heading={labels.gallery} project={project} />
+          </div>
         )}
       </article>
     </OperationalShell>
