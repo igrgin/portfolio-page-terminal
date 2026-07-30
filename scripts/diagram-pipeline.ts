@@ -220,30 +220,7 @@ export function validateGeneratedSvg(
 }
 
 export function generatedSvgUpgradeFingerprint(svg: string): string {
-  const document = new DOMParser({
-    onError: (level, message) => {
-      if (level !== "warning") {
-        throw new Error(String(message));
-      }
-    },
-  }).parseFromString(svg, "image/svg+xml");
-  const semanticOutput = Array.from(document.getElementsByTagName("*")).map(
-    (element) => {
-      const name = (element.localName ?? element.nodeName).toLowerCase();
-      const className = element.getAttribute("class") ?? "";
-      const accessibilityRole = element.getAttribute("role") ?? "";
-      const roleDescription =
-        element.getAttribute("aria-roledescription") ?? "";
-      const text = ["desc", "style", "text", "title", "tspan"].includes(name)
-        ? singleLine(element.textContent ?? "")
-        : "";
-      return [name, className, accessibilityRole, roleDescription, text];
-    },
-  );
-
-  return createHash("sha256")
-    .update(JSON.stringify(semanticOutput))
-    .digest("hex");
+  return createHash("sha256").update(svg).digest("hex");
 }
 
 export function withRenderTimeout<T>(

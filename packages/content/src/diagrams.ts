@@ -49,6 +49,11 @@ export function diagramAssetPublicPath(
 const flowchartOpening = /^flowchart (?:TB|TD|BT|RL|LR)$/;
 const forbiddenMermaidSource = [
   {
+    message:
+      "Mermaid statement separators are not allowed; use one approved statement per line.",
+    pattern: /;/,
+  },
+  {
     message: "Mermaid frontmatter and directives are not allowed.",
     pattern: /(?:^|\n)\s*(?:---|%%\{)/i,
   },
@@ -113,8 +118,9 @@ function validateConstrainedBody(
     kind === "sequence"
       ? isConstrainedSequenceLine
       : isConstrainedFlowchartLine;
+  const substantiveLines = lines.filter((line) => !line.startsWith("%%"));
 
-  return lines.every(validLine)
+  return substantiveLines.length > 0 && lines.every(validLine)
     ? null
     : "Source contains syntax outside the approved constrained subset.";
 }

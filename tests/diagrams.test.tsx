@@ -99,8 +99,12 @@ test("only complete bilingual constrained flowcharts and sequences are approved"
     "flowchart LR\n  A[<b>Unsafe</b>] --> B",
     'flowchart LR\n  click A href "https://example.com"',
     "flowchart LR\n  A --> B\n  classDef danger fill:red",
+    "flowchart LR\n  A --> B; click A callback",
+    "flowchart LR\n  A --> B; classDef danger fill:red",
+    "flowchart LR\n  A --> B; style A fill:red",
     "---\ntitle: Unsafe\n---\nflowchart LR\n  A --> B",
     "flowchart LR\n  participant Browser",
+    "flowchart LR\n  %% no diagram content",
   ];
 
   for (const source of rejectedSources) {
@@ -280,13 +284,15 @@ test("the exact-pinned renderer produces deterministic bilingual light and dark 
       ],
     );
     assert.match(firstContents[2]!.svg, /Spremište/);
-    for (const { publicPath, svg } of firstContents) {
-      assert.equal(
-        generatedSvgUpgradeFingerprint(svg),
-        upgradeGolden[publicPath],
-        publicPath,
-      );
-    }
+    assert.deepEqual(
+      Object.fromEntries(
+        firstContents.map(({ publicPath, svg }) => [
+          publicPath,
+          generatedSvgUpgradeFingerprint(svg),
+        ]),
+      ),
+      upgradeGolden,
+    );
     assert.equal(
       diagramAssetPublicPath(
         "distributed-event-platform",
