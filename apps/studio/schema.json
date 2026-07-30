@@ -444,6 +444,76 @@
           "name": "publicationValidation"
         },
         "optional": true
+      },
+      "workflow": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "inline",
+          "name": "publicationWorkflow"
+        },
+        "optional": true
+      }
+    }
+  },
+  {
+    "name": "publicationWorkflow",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationWorkflow"
+          }
+        },
+        "candidateRevision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "validationRevision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "acknowledgements": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationPreviewAcknowledgements"
+          },
+          "optional": true
+        },
+        "rollback": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationRollbackEvidence"
+          },
+          "optional": true
+        },
+        "publication": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationRecord"
+          },
+          "optional": true
+        },
+        "deployment": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationDeployment"
+          },
+          "optional": true
+        }
       }
     }
   },
@@ -2461,6 +2531,193 @@
             "name": "localizedString"
           },
           "optional": false
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationDeployment",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationDeployment"
+          }
+        },
+        "revision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "status": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "buildPending"
+              },
+              {
+                "type": "string",
+                "value": "buildFailed"
+              },
+              {
+                "type": "string",
+                "value": "live"
+              }
+            ]
+          },
+          "optional": true
+        },
+        "updatedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationRecord",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationRecord"
+          }
+        },
+        "buildRequestId": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "publishedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "revision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationRollbackEvidence",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationRollbackEvidence"
+          }
+        },
+        "bundleId": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "capturedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "revision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationPreviewAcknowledgements",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationPreviewAcknowledgements"
+          }
+        },
+        "en": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationRevisionEvidence"
+          },
+          "optional": true
+        },
+        "hr": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationRevisionEvidence"
+          },
+          "optional": true
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationRevisionEvidence",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationRevisionEvidence"
+          }
+        },
+        "revision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "acknowledgedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
         }
       }
     }

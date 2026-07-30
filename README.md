@@ -32,8 +32,7 @@ completed. Set `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to connect
 authorized Sanity project. Set `SANITY_STUDIO_PREVIEW_ORIGIN` to the public Web
 application origin used by the persistent Project preview; it defaults to
 `http://localhost:3000` for local development. The preview renders the real published
-Project route. Authenticated draft data is intentionally reserved for the later Draft
-Mode workflow.
+Project route. Complete batch review uses the authenticated Draft Mode workflow below.
 
 Static Web builds read published content through Sanity's CDN. Set
 `SANITY_PROJECT_ID`, `SANITY_DATASET`, and the public HTTPS origin in
@@ -73,6 +72,16 @@ Open `/draft`, submit the token, and review the real application separately unde
 all internal application links remain inside the isolated batch preview, Sanity
 credentials never enter the browser, and the visible banner provides an explicit
 exit. The HTTP-only session expires with the signed token.
+
+Set `SANITY_STUDIO_ROLLBACK_DATASET` to a separate private Sanity dataset before
+using the release controls. After both localized previews are acknowledged,
+Studio captures the current published document versions and asset references
+there, then publishes every saved draft in one revision-locked transaction. A
+single published batch marker is the only event eligible for the protected
+production build hook; direct content and batch Publish actions remain disabled.
+The Studio shows **Published in Sanity** separately from **Live on the
+portfolio**. Configure and operate the private dataset and idempotent webhook
+using [the Publication batch runbook](docs/operations/publication.md).
 
 ### Project diagrams
 

@@ -16,3 +16,6 @@ function resolvePreviewOrigin(value: string | undefined): string {
 export const studioPreviewOrigin = resolvePreviewOrigin(
   process.env.SANITY_STUDIO_PREVIEW_ORIGIN,
 );
+
+export const studioRollbackDataset =
+  process.env.SANITY_STUDIO_ROLLBACK_DATASET?.trim() ?? "";

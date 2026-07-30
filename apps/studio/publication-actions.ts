@@ -20,9 +20,12 @@ export function protectBatchPublicationActions(
   actions: readonly DocumentActionComponent[],
   schemaType: string,
 ): DocumentActionComponent[] {
-  if (!publicationManagedDocumentTypeSet.has(
-    schemaType as (typeof publicationManagedDocumentTypes)[number],
-  )) {
+  if (
+    schemaType !== "publicationBatch" &&
+    !publicationManagedDocumentTypeSet.has(
+      schemaType as (typeof publicationManagedDocumentTypes)[number],
+    )
+  ) {
     return [...actions];
   }
   return actions.map((action) =>

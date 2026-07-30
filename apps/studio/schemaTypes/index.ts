@@ -12,9 +12,15 @@ import { project, projectDiagram, projectMedia } from "./project";
 import {
   publicationAssetCheck,
   publicationBatch,
+  publicationDeployment,
+  publicationPreviewAcknowledgements,
   publicationReadinessIssue,
+  publicationRecord,
   publicationReleaseLimits,
+  publicationRevisionEvidence,
+  publicationRollbackEvidence,
   publicationValidation,
+  publicationWorkflow,
 } from "./publication-batch";
 import { skill } from "./references";
 import { contactChannel, profileMedia, resumeSet, siteSettings } from "./site";
@@ -30,6 +36,12 @@ export const schemaTypes = [
   publicationAssetCheck,
   publicationReleaseLimits,
   publicationValidation,
+  publicationRevisionEvidence,
+  publicationPreviewAcknowledgements,
+  publicationRollbackEvidence,
+  publicationRecord,
+  publicationDeployment,
+  publicationWorkflow,
   relevantSubject,
   contactChannel,
   siteSettings,

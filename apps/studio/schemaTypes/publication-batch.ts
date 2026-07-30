@@ -10,11 +10,11 @@ import {
 } from "sanity";
 
 import {
-  PublicationBatchInput,
   runPublicationReadiness,
   type PublicationBatchFormValue,
   type ReadinessClient,
 } from "../components/publication-readiness";
+import { PublicationBatchInput } from "../components/publication-workflow-controls";
 
 type StoredBatch = Readonly<{
   documents?: ReadonlyArray<Readonly<{ _ref?: string }>>;
@@ -179,6 +179,94 @@ export const publicationValidation = defineType({
   type: "object",
 });
 
+export const publicationRevisionEvidence = defineType({
+  fields: [
+    defineField({ name: "revision", type: "string" }),
+    defineField({ name: "acknowledgedAt", type: "datetime" }),
+  ],
+  name: "publicationRevisionEvidence",
+  title: "Preview acknowledgement",
+  type: "object",
+});
+
+export const publicationPreviewAcknowledgements = defineType({
+  fields: [
+    defineField({
+      name: "en",
+      title: "English preview",
+      type: "publicationRevisionEvidence",
+    }),
+    defineField({
+      name: "hr",
+      title: "Croatian preview",
+      type: "publicationRevisionEvidence",
+    }),
+  ],
+  name: "publicationPreviewAcknowledgements",
+  title: "Localized preview acknowledgements",
+  type: "object",
+});
+
+export const publicationRollbackEvidence = defineType({
+  fields: [
+    defineField({ name: "bundleId", type: "string" }),
+    defineField({ name: "capturedAt", type: "datetime" }),
+    defineField({ name: "revision", type: "string" }),
+  ],
+  name: "publicationRollbackEvidence",
+  title: "Private rollback bundle evidence",
+  type: "object",
+});
+
+export const publicationRecord = defineType({
+  fields: [
+    defineField({ name: "buildRequestId", type: "string" }),
+    defineField({ name: "publishedAt", type: "datetime" }),
+    defineField({ name: "revision", type: "string" }),
+  ],
+  name: "publicationRecord",
+  title: "Sanity publication record",
+  type: "object",
+});
+
+export const publicationDeployment = defineType({
+  fields: [
+    defineField({ name: "revision", type: "string" }),
+    defineField({
+      name: "status",
+      options: {
+        list: [
+          { title: "Build pending", value: "buildPending" },
+          { title: "Build failed", value: "buildFailed" },
+          { title: "Live", value: "live" },
+        ],
+      },
+      type: "string",
+    }),
+    defineField({ name: "updatedAt", type: "datetime" }),
+  ],
+  name: "publicationDeployment",
+  title: "Portfolio deployment",
+  type: "object",
+});
+
+export const publicationWorkflow = defineType({
+  fields: [
+    defineField({ name: "candidateRevision", type: "string" }),
+    defineField({ name: "validationRevision", type: "string" }),
+    defineField({
+      name: "acknowledgements",
+      type: "publicationPreviewAcknowledgements",
+    }),
+    defineField({ name: "rollback", type: "publicationRollbackEvidence" }),
+    defineField({ name: "publication", type: "publicationRecord" }),
+    defineField({ name: "deployment", type: "publicationDeployment" }),
+  ],
+  name: "publicationWorkflow",
+  title: "Atomic publication workflow",
+  type: "object",
+});
+
 export const publicationBatch = defineType({
   components: { input: PublicationBatchInput },
   fields: [
@@ -233,6 +321,12 @@ export const publicationBatch = defineType({
       name: "validation",
       readOnly: true,
       type: "publicationValidation",
+    }),
+    defineField({
+      hidden: true,
+      name: "workflow",
+      readOnly: true,
+      type: "publicationWorkflow",
     }),
   ],
   name: "publicationBatch",

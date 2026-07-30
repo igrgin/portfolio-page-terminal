@@ -119,6 +119,17 @@ export type PublicationBatch = {
   >;
   limits: PublicationReleaseLimits;
   validation?: PublicationValidation;
+  workflow?: PublicationWorkflow;
+};
+
+export type PublicationWorkflow = {
+  _type: "publicationWorkflow";
+  candidateRevision?: string;
+  validationRevision?: string;
+  acknowledgements?: PublicationPreviewAcknowledgements;
+  rollback?: PublicationRollbackEvidence;
+  publication?: PublicationRecord;
+  deployment?: PublicationDeployment;
 };
 
 export type PublicationValidation = {
@@ -466,6 +477,39 @@ export type RelevantSubject = {
   title: LocalizedString;
 };
 
+export type PublicationDeployment = {
+  _type: "publicationDeployment";
+  revision?: string;
+  status?: "buildPending" | "buildFailed" | "live";
+  updatedAt?: string;
+};
+
+export type PublicationRecord = {
+  _type: "publicationRecord";
+  buildRequestId?: string;
+  publishedAt?: string;
+  revision?: string;
+};
+
+export type PublicationRollbackEvidence = {
+  _type: "publicationRollbackEvidence";
+  bundleId?: string;
+  capturedAt?: string;
+  revision?: string;
+};
+
+export type PublicationPreviewAcknowledgements = {
+  _type: "publicationPreviewAcknowledgements";
+  en?: PublicationRevisionEvidence;
+  hr?: PublicationRevisionEvidence;
+};
+
+export type PublicationRevisionEvidence = {
+  _type: "publicationRevisionEvidence";
+  revision?: string;
+  acknowledgedAt?: string;
+};
+
 export type PublicationAssetCheck = {
   _type: "publicationAssetCheck";
   assetId: string;
@@ -608,6 +652,7 @@ export type AllSanitySchemaTypes =
   | SkillReference
   | ProjectReference
   | PublicationBatch
+  | PublicationWorkflow
   | PublicationValidation
   | PublicationReleaseLimits
   | Education
@@ -632,6 +677,11 @@ export type AllSanitySchemaTypes =
   | ResumeSet
   | ContactChannel
   | RelevantSubject
+  | PublicationDeployment
+  | PublicationRecord
+  | PublicationRollbackEvidence
+  | PublicationPreviewAcknowledgements
+  | PublicationRevisionEvidence
   | PublicationAssetCheck
   | PublicationReadinessIssue
   | ProjectDiagram
