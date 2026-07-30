@@ -1425,6 +1425,85 @@ p {
   font-size: 0.84rem;
 }
 
+.project-diagrams {
+  padding-block: clamp(1.5rem, 3vw, 2.25rem);
+  border-bottom: 1px solid var(--tui-border-strong);
+}
+
+.project-diagrams > h2 {
+  margin-bottom: 1rem;
+}
+
+.project-diagram {
+  margin: 0;
+}
+
+.project-diagram + .project-diagram {
+  margin-top: 1.5rem;
+}
+
+.project-diagram h3 {
+  margin-bottom: 0.65rem;
+  font-size: 1rem;
+}
+
+.project-diagram-viewport {
+  overflow-x: auto;
+  border: 1px solid var(--tui-border-strong);
+  background: var(--tui-surface);
+  overscroll-behavior-inline: contain;
+}
+
+.project-diagram-viewport:focus-visible {
+  outline: 2px solid var(--tui-focus);
+  outline-offset: 2px;
+}
+
+.project-diagram-asset {
+  display: block;
+  width: 100%;
+  min-width: 48rem;
+  height: auto;
+}
+
+.project-diagram-asset--dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .project-diagram-asset--light {
+  display: none;
+}
+
+:root[data-theme="dark"] .project-diagram-asset--dark {
+  display: block;
+}
+
+.project-diagram figcaption {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--tui-border);
+  border-top: 0;
+  color: var(--tui-text-muted);
+  font-size: 0.84rem;
+}
+
+.project-diagram-description {
+  padding: 0.8rem;
+  margin: 0;
+  border-inline: 1px solid var(--tui-border);
+  border-bottom: 1px solid var(--tui-border);
+  font-size: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .project-diagram-asset--light {
+    display: none;
+  }
+
+  :root:not([data-theme]) .project-diagram-asset--dark {
+    display: block;
+  }
+}
+
 .project-detail-contribution {
   max-width: 72ch;
   padding-block: clamp(1.5rem, 3vw, 2.25rem);

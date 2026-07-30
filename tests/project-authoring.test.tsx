@@ -15,6 +15,7 @@ import {
   projectAuthoringThemeStorageKey,
   readProjectAuthoringTheme,
   saveProjectAuthoringTheme,
+  validateDiagramDrafts,
 } from "../apps/studio/components/project-authoring-state";
 import { projectAuthoringCss } from "../apps/studio/components/project-authoring-styles";
 import {
@@ -62,11 +63,7 @@ test("Project preview URLs preserve the canonical Project across locales", () =>
     "https://portfolio.example.com/hr/projekti/distributed-event-platform",
   );
   assert.equal(
-    buildProjectPreviewUrl(
-      "https://portfolio.example.com",
-      undefined,
-      "en",
-    ),
+    buildProjectPreviewUrl("https://portfolio.example.com", undefined, "en"),
     null,
   );
   assert.equal(
@@ -76,6 +73,48 @@ test("Project preview URLs preserve the canonical Project across locales", () =>
       "en",
     ),
     "https://portfolio.example.com/en/projects/project%2Fwith%20spaces",
+  );
+});
+
+test("invalid Mermaid drafts report the error while preserving the last valid public preview", () => {
+  const error = validateDiagramDrafts([
+    {
+      id: "unsafe-flow",
+      kind: "data-flow",
+      source: {
+        en: 'flowchart LR\n  click A href "https://example.com"',
+        hr: "flowchart LR\n  A --> B",
+      },
+      title: { en: "Unsafe flow", hr: "Nesiguran tijek" },
+      caption: { en: "Caption", hr: "Opis" },
+      description: {
+        en: "A complete prose description.",
+        hr: "Potpuni prozni opis.",
+      },
+    },
+  ]);
+  assert.match(error ?? "", /EN: Interactive Mermaid actions/);
+
+  const view = render(
+    <ProjectAuthoringCanvas
+      diagramDraftError={error}
+      previewOrigin="https://portfolio.example.com"
+      previewSlug="distributed-event-platform"
+      projectTitle="Distributed event platform"
+    >
+      <p>Project form</p>
+    </ProjectAuthoringCanvas>,
+  );
+
+  assert.match(
+    view.getByRole("alert").textContent ?? "",
+    /last valid published diagram remains in the preview/i,
+  );
+  assert.equal(
+    view
+      .getByTitle("Public Project preview: Distributed event platform")
+      .getAttribute("src"),
+    "https://portfolio.example.com/en/projects/distributed-event-platform",
   );
 });
 
@@ -173,10 +212,7 @@ test("keyboard traversal covers theme, paired copy, shared facts, and preview co
     view.getByRole("button", { name: "Use dark authoring theme" }),
   );
   await user.keyboard("{Enter}");
-  assert.equal(
-    localStorage.getItem(projectAuthoringThemeStorageKey),
-    "dark",
-  );
+  assert.equal(localStorage.getItem(projectAuthoringThemeStorageKey), "dark");
 
   await user.tab();
   assert.equal(
@@ -255,10 +291,7 @@ test("authoring theme controls persist without changing visitor preferences", ()
       .getAttribute("data-authoring-theme"),
     "dark",
   );
-  assert.equal(
-    localStorage.getItem(projectAuthoringThemeStorageKey),
-    "dark",
-  );
+  assert.equal(localStorage.getItem(projectAuthoringThemeStorageKey), "dark");
   assert.equal(localStorage.getItem("portfolio-theme"), null);
 
   view.unmount();
@@ -351,6 +384,7 @@ test("the Project schema separates paired copy from shared facts", () => {
   assert.equal(fields.get("title"), "localized");
   assert.equal(fields.get("outcome"), "localized");
   assert.equal(fields.get("metadataOverride"), "localized");
+  assert.equal(fields.get("diagrams"), "localized");
   assert.equal(fields.get("slug"), "shared");
   assert.equal(fields.get("status"), "shared");
   assert.equal(fields.get("skills"), "shared");
@@ -367,8 +401,5 @@ test("the Project schema separates paired copy from shared facts", () => {
     localizedText.components?.input?.name,
     PairedLocalizedInput.name,
   );
-  assert.equal(
-    project.components?.input?.name,
-    ProjectAuthoringInput.name,
-  );
+  assert.equal(project.components?.input?.name, ProjectAuthoringInput.name);
 });

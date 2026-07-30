@@ -43,6 +43,16 @@ invalid, preserving the last successful public site. When Sanity variables are a
 local builds deliberately leave localized content routes unpublished rather than
 inventing fallback content.
 
+### Project diagrams
+
+Full Project case studies may contain paired English/Croatian Mermaid diagrams.
+Only `sequenceDiagram` and the approved directional `flowchart` subset are
+accepted. The Web prebuild uses the exact-pinned Mermaid CLI to generate light
+and dark SVG assets for both locales, validates the SVG as XML, and replaces the
+last valid generated directory only after every variant succeeds. The build
+requires the Chromium binary installed with the root development dependencies;
+no renderer or diagram source is shipped as visitor-side JavaScript.
+
 Run the complete local quality gate:
 
 ```sh

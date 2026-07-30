@@ -2,6 +2,12 @@ import { defineQuery } from "groq";
 
 import type { Locale, LocalizedValue } from "./index";
 import {
+  diagramAssetPublicPath,
+  isDiagramPathSegment,
+  validatePortfolioDiagram,
+  type PortfolioDiagram,
+} from "./diagrams";
+import {
   loadSanityQuery,
   localizedStrings,
   nonEmptyString,
@@ -72,9 +78,18 @@ export type ProjectMedia = Readonly<{
 
 export type ProjectCaseStudy = Readonly<Record<ProjectCaseStudyField, string>>;
 
+export type ProjectDiagram = Readonly<{
+  assets: Readonly<{ dark: string; light: string }>;
+  caption: string;
+  description: string;
+  id: string;
+  title: string;
+}>;
+
 export type ProjectPageEntry = Readonly<{
   caseStudy?: ProjectCaseStudy;
   contribution: string;
+  diagrams: readonly ProjectDiagram[];
   disclosureLevel: ProjectDisclosureLevel;
   endDate?: string;
   featured: boolean;
@@ -128,6 +143,16 @@ const PROJECT_MEDIA_PROJECTION = `{
   caption
 }` as const;
 
+const PROJECT_DIAGRAM_PROJECTION = `{
+  _key,
+  id,
+  kind,
+  source,
+  title,
+  caption,
+  description
+}` as const;
+
 export const PROJECTS_PAGE_QUERY = defineQuery(`{
   "siteSettings": *[
     _id == "siteSettings" && !(_id in path("drafts.**"))
@@ -167,6 +192,7 @@ export const PROJECTS_PAGE_QUERY = defineQuery(`{
     documentationUrl,
     metadataOverride,
     "heroMedia": heroMedia${PROJECT_MEDIA_PROJECTION},
+    diagrams[]${PROJECT_DIAGRAM_PROJECTION},
     "media": media[]${PROJECT_MEDIA_PROJECTION},
     publishSafe,
     sensitive
@@ -227,15 +253,61 @@ function normalizeProjectCaseStudy(
     return localized ? ([field, localized[locale]] as const) : null;
   });
   const completeSections = localizedSections.filter(
-    (
-      section,
-    ): section is readonly [ProjectCaseStudyField, string] =>
+    (section): section is readonly [ProjectCaseStudyField, string] =>
       section !== null,
   );
 
   return completeSections.length !== projectCaseStudyFieldKeys.length
     ? null
     : (Object.fromEntries(completeSections) as ProjectCaseStudy);
+}
+
+function normalizeProjectDiagrams(
+  value: unknown,
+  projectSlug: string,
+  locale: Locale,
+): readonly ProjectDiagram[] | null {
+  if (value == null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const ids = new Set<string>();
+  const diagrams = value.map((entry) => {
+    const result = validatePortfolioDiagram(entry);
+    if (!result.ok || ids.has(result.value.id)) {
+      return null;
+    }
+    ids.add(result.value.id);
+    return {
+      assets: {
+        dark: diagramAssetPublicPath(
+          projectSlug,
+          result.value.id,
+          locale,
+          "dark",
+        ),
+        light: diagramAssetPublicPath(
+          projectSlug,
+          result.value.id,
+          locale,
+          "light",
+        ),
+      },
+      caption: result.value.caption[locale],
+      description: result.value.description[locale],
+      id: result.value.id,
+      title: result.value.title[locale],
+    };
+  });
+
+  return diagrams.every(
+    (diagram): diagram is ProjectDiagram => diagram !== null,
+  )
+    ? diagrams
+    : null;
 }
 
 function normalizeProjectEntry(
@@ -324,6 +396,10 @@ function normalizeProjectEntry(
     media
       ?.filter((entry): entry is ProjectMedia => entry !== null)
       .map(({ key }) => key.toLowerCase()) ?? [];
+  const diagrams =
+    disclosureLevel === "full" && slug
+      ? normalizeProjectDiagrams(project?.diagrams, slug, locale)
+      : [];
 
   if (
     project?._type !== "project" ||
@@ -353,7 +429,8 @@ function normalizeProjectEntry(
     (project?.heroMedia != null && !heroMedia) ||
     !media ||
     media.some((entry) => entry === null) ||
-    new Set(mediaKeys).size !== mediaKeys.length
+    new Set(mediaKeys).size !== mediaKeys.length ||
+    !diagrams
   ) {
     return null;
   }
@@ -363,6 +440,7 @@ function normalizeProjectEntry(
   return {
     ...(caseStudy ? { caseStudy } : {}),
     contribution: contribution[locale],
+    diagrams,
     disclosureLevel,
     ...(endDate ? { endDate } : {}),
     featured,
@@ -469,4 +547,77 @@ export async function loadPublishedProjects(
 ): Promise<ProjectsPageContent | null> {
   const result = await loadSanityQuery(PROJECTS_PAGE_QUERY, "Projects");
   return normalizePublishedProjects(result, locale);
+}
+
+export const PROJECT_DIAGRAMS_QUERY = defineQuery(`*[
+  _type == "project" &&
+  !(_id in path("drafts.**")) &&
+  publishSafe == true &&
+  sensitive != true &&
+  disclosureLevel == "full" &&
+  count(diagrams) > 0
+]{
+  _id,
+  _type,
+  "slug": slug.current,
+  publishSafe,
+  sensitive,
+  diagrams[]${PROJECT_DIAGRAM_PROJECTION}
+}`);
+
+export type PublishedProjectDiagramInput = Readonly<{
+  diagram: PortfolioDiagram;
+  projectSlug: string;
+}>;
+
+export function normalizePublishedProjectDiagrams(
+  value: unknown,
+): readonly PublishedProjectDiagramInput[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const identities = new Set<string>();
+  const inputs: PublishedProjectDiagramInput[] = [];
+  for (const entry of value) {
+    const project = publishedDocument(entry);
+    const slug = nonEmptyString(project?.slug);
+    if (
+      project?._type !== "project" ||
+      project?.publishSafe !== true ||
+      project?.sensitive === true ||
+      !slug ||
+      !isDiagramPathSegment(slug) ||
+      !Array.isArray(project.diagrams)
+    ) {
+      return null;
+    }
+
+    for (const diagram of project.diagrams) {
+      const result = validatePortfolioDiagram(diagram);
+      const identity = result.ok ? `${slug}/${result.value.id}` : "";
+      if (!result.ok || identities.has(identity)) {
+        return null;
+      }
+      identities.add(identity);
+      inputs.push({ diagram: result.value, projectSlug: slug });
+    }
+  }
+  return inputs;
+}
+
+export async function loadPublishedProjectDiagrams(): Promise<
+  readonly PublishedProjectDiagramInput[]
+> {
+  const result = await loadSanityQuery(
+    PROJECT_DIAGRAMS_QUERY,
+    "Project diagrams",
+  );
+  const diagrams = normalizePublishedProjectDiagrams(result);
+  if (!diagrams) {
+    throw new Error(
+      "Published Project diagrams are missing or invalid; preserving the last valid generated assets.",
+    );
+  }
+  return diagrams;
 }

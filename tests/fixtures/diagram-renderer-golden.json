@@ -1,0 +1,22 @@
+{
+  "darwin": {
+    "/generated/diagrams/distributed-event-platform/delivery-flow/en-light.svg": "c061911cd0b9216bdb0bcd06670cd20bc28703e8894ad5298f01b3e089c203e6",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/en-dark.svg": "b76d0dcbc49056704c3c5ef71dc295813b4ac463c6551e083f9c30bb0cc4eb42",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/hr-light.svg": "eedabf24fc8358cf67a6f520ef4490a2a373daa7e7f24947498f5838a2a6e8a0",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/hr-dark.svg": "d91181203f72705cff61b379c9ac4fed8240f3a0167841670f343a02186e2703",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/en-light.svg": "e9293bfd4085eb19ac9701e9bf6b0ce48eb18168c485ff6dc6a2a3090ca798cf",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/en-dark.svg": "f664c6830972cfe7f5f9907f93bd9c5685c01bc56caa7b5415682dfeef99c345",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/hr-light.svg": "b4e80aa597c5c075174a15397b021f5d2fde198efb4353cd5e38a5da57311e64",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/hr-dark.svg": "71fde76ca8efae77d59db82e24d8bde84e1a2d1c7fe71e7d826d58fc01e2c33f"
+  },
+  "linux": {
+    "/generated/diagrams/distributed-event-platform/delivery-flow/en-light.svg": "95f522c8846dfb0c1731555bf2a1e9447eb438c55d2c87189a12f2beab7de0f2",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/en-dark.svg": "f410ba59f74b9cffa7d2c0861b7c9c531c63fce889182951f3a7a644dc338146",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/hr-light.svg": "d151533745ab868f44f302e3b204deba322856be0550d19f991f4fa085a67be8",
+    "/generated/diagrams/distributed-event-platform/delivery-flow/hr-dark.svg": "a1276fe0fecac9f8bc2aa0c418d56142783504010d9efb2b99f39484939699b9",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/en-light.svg": "e9293bfd4085eb19ac9701e9bf6b0ce48eb18168c485ff6dc6a2a3090ca798cf",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/en-dark.svg": "f664c6830972cfe7f5f9907f93bd9c5685c01bc56caa7b5415682dfeef99c345",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/hr-light.svg": "b4e80aa597c5c075174a15397b021f5d2fde198efb4353cd5e38a5da57311e64",
+    "/generated/diagrams/distributed-event-platform/delivery-sequence/hr-dark.svg": "71fde76ca8efae77d59db82e24d8bde84e1a2d1c7fe71e7d826d58fc01e2c33f"
+  }
+}

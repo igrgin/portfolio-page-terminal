@@ -436,6 +436,28 @@
         },
         "optional": true
       },
+      "diagrams": {
+        "type": "objectAttribute",
+        "value": {
+          "type": "array",
+          "of": {
+            "type": "object",
+            "attributes": {
+              "_key": {
+                "type": "objectAttribute",
+                "value": {
+                  "type": "string"
+                }
+              }
+            },
+            "rest": {
+              "type": "inline",
+              "name": "projectDiagram"
+            }
+          }
+        },
+        "optional": true
+      },
       "media": {
         "type": "objectAttribute",
         "value": {
@@ -2003,6 +2025,86 @@
           "value": {
             "type": "inline",
             "name": "localizedString"
+          },
+          "optional": false
+        }
+      }
+    }
+  },
+  {
+    "name": "projectDiagram",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "projectDiagram"
+          }
+        },
+        "id": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": false
+        },
+        "kind": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "architecture"
+              },
+              {
+                "type": "string",
+                "value": "deployment"
+              },
+              {
+                "type": "string",
+                "value": "data-flow"
+              },
+              {
+                "type": "string",
+                "value": "sequence"
+              }
+            ]
+          },
+          "optional": false
+        },
+        "source": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "localizedText"
+          },
+          "optional": false
+        },
+        "title": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "localizedString"
+          },
+          "optional": false
+        },
+        "caption": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "localizedText"
+          },
+          "optional": false
+        },
+        "description": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "localizedText"
           },
           "optional": false
         }
