@@ -36,7 +36,6 @@ export type PublicationRollbackClient = Readonly<{
 
 export type AtomicPublicationPatch = {
   ifRevisionId: (revision: string) => AtomicPublicationPatch;
-  set: (values: Record<string, unknown>) => AtomicPublicationPatch;
 };
 
 export type AtomicPublicationTransaction = {
@@ -366,15 +365,12 @@ function revisionLockedDraft(
       "Every published draft must have an exact Sanity revision.",
     );
   }
-  transaction.patch(draftId, (patch) =>
-    patch.ifRevisionId(draftRevision).set({ _publicationLock: draftRevision }),
-  );
+  transaction.patch(draftId, (patch) => patch.ifRevisionId(draftRevision));
 }
 
 function revisionLockedPublishedDocument(
   transaction: AtomicPublicationTransaction,
   document: UnknownRecord,
-  publicationRevision: string,
 ) {
   const documentId =
     typeof document._id === "string" ? publishedDocumentId(document._id) : "";
@@ -391,9 +387,7 @@ function revisionLockedPublishedDocument(
     );
   }
   transaction.patch(documentId, (patch) =>
-    patch
-      .ifRevisionId(documentRevision)
-      .set({ _publicationLock: publicationRevision }),
+    patch.ifRevisionId(documentRevision),
   );
 }
 
@@ -488,11 +482,7 @@ export async function publishAtomicPublicationBatch(
           `The private rollback pre-image does not match ${documentId}.`,
         );
       }
-      revisionLockedPublishedDocument(
-        transaction,
-        previousPublishedDocument,
-        input.revision,
-      );
+      revisionLockedPublishedDocument(transaction, previousPublishedDocument);
       transaction.createOrReplace(snapshot);
     } else {
       throw new Error(`The private rollback bundle is missing ${documentId}.`);
@@ -506,7 +496,7 @@ export async function publishAtomicPublicationBatch(
       typeof dependency._id === "string" ? dependency._id : "",
     );
     if (!selectedDocumentIds.has(documentId)) {
-      revisionLockedPublishedDocument(transaction, dependency, input.revision);
+      revisionLockedPublishedDocument(transaction, dependency);
     }
   }
 

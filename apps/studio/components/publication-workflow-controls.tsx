@@ -33,6 +33,7 @@ import {
 import {
   loadPublicationCandidate,
   publicationRevisionWatchIds,
+  publicationWorkflowRequiresRevalidation,
   PublicationReadinessSummary,
   runPublicationReadiness,
   type PublicationBatchFormValue,
@@ -194,9 +195,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
       publishedCurrentRevision ||
       !storedReport ||
       !storedWorkflow ||
-      (!storedWorkflow.acknowledgements.en &&
-        !storedWorkflow.acknowledgements.hr &&
-        !storedWorkflow.rollback)
+      !publicationWorkflowRequiresRevalidation(storedWorkflow, storedReport)
     ) {
       return;
     }

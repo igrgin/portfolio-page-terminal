@@ -22,7 +22,10 @@ import {
   type AtomicPublicationTransaction,
   type PublicationRollbackBundle,
 } from "../apps/studio/publication-release";
-import { publicationRevisionWatchIds } from "../apps/studio/components/publication-readiness";
+import {
+  publicationRevisionWatchIds,
+  publicationWorkflowRequiresRevalidation,
+} from "../apps/studio/components/publication-readiness";
 import { PublicationWorkflowSummary } from "../apps/studio/components/publication-workflow-controls";
 
 const revision = "a".repeat(64);
@@ -293,6 +296,13 @@ test("publication mutation watches cover the complete validated reference closur
     "project.platform",
     "siteSettings",
   ]);
+  assert.equal(
+    publicationWorkflowRequiresRevalidation(
+      validatedPublicationWorkflow(report.revision),
+      report,
+    ),
+    true,
+  );
 });
 
 test("the complete revision publishes in one transaction with exactly one protected-build marker", async () => {
@@ -347,10 +357,6 @@ test("the complete revision publishes in one transaction with exactly one protec
       buildPatch({
         ifRevisionId(expectedRevision) {
           patch.ifRevisionID = expectedRevision;
-          return this;
-        },
-        set(values) {
-          patch.set = values;
           return this;
         },
       });
@@ -518,12 +524,10 @@ test("the complete revision publishes in one transaction with exactly one protec
       {
         id: "project.platform",
         ifRevisionID: "project-r7",
-        set: { _publicationLock: atomicRevision },
       },
       {
         id: "siteSettings",
         ifRevisionID: "settings-r2",
-        set: { _publicationLock: atomicRevision },
       },
     ],
   );

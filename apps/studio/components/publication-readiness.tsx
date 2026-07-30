@@ -4,6 +4,7 @@ import type {
   PublicationReadinessCategory,
   PublicationReadinessReport,
   PublicationReleaseLimits,
+  PublicationWorkflowState,
 } from "@portfolio/content";
 import {
   loadStrongReferenceClosure,
@@ -121,6 +122,13 @@ export function publicationRevisionWatchIds(
       ]),
     ),
   ].sort();
+}
+
+export function publicationWorkflowRequiresRevalidation(
+  workflow: PublicationWorkflowState | null,
+  report: PublicationReadinessReport | null,
+): boolean {
+  return Boolean(report && workflow?.validationRevision);
 }
 
 export async function runPublicationReadiness(
