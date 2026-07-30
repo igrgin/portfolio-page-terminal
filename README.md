@@ -25,7 +25,11 @@ npm run dev:studio
 
 The Studio uses a non-production placeholder project ID until provider provisioning is
 completed. Set `SANITY_STUDIO_PROJECT_ID` and `SANITY_STUDIO_DATASET` to connect an
-authorized Sanity project.
+authorized Sanity project. Set `SANITY_STUDIO_PREVIEW_ORIGIN` to the public Web
+application origin used by the persistent Project preview; it defaults to
+`http://localhost:3000` for local development. The preview renders the real published
+Project route. Authenticated draft data is intentionally reserved for the later Draft
+Mode workflow.
 
 Static Web builds read published content through Sanity's CDN. Set
 `SANITY_PROJECT_ID`, `SANITY_DATASET`, and the public HTTPS origin in

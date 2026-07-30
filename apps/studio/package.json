@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sanity/ui": "3.5.0",
     "@portfolio/content": "*",
     "react": "19.2.8",
     "react-dom": "19.2.8",
