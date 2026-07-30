@@ -279,6 +279,75 @@ test("lowercase URLs, résumé dates, and education years are exhaustively valid
   }
 });
 
+test("Experience and Education date states cannot pass batch readiness", () => {
+  const candidate = validCandidate();
+  const report = validatePublicationBatch({
+    ...candidate,
+    changedDocumentIds: [
+      "experience.current",
+      "experience.completed",
+      "education.current",
+      "education.completed",
+      "education.missing",
+    ],
+    documents: [
+      {
+        _id: "drafts.experience.current",
+        _rev: "experience-r1",
+        _type: "experience",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        current: true,
+        endDate: "2026-07",
+        startDate: "2026-01",
+      },
+      {
+        _id: "drafts.experience.completed",
+        _rev: "experience-r2",
+        _type: "experience",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        current: false,
+        startDate: "2026-01",
+      },
+      {
+        _id: "drafts.education.current",
+        _rev: "education-r1",
+        _type: "education",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        endYear: 2026,
+        inProgress: true,
+        startYear: 2024,
+      },
+      {
+        _id: "drafts.education.completed",
+        _rev: "education-r2",
+        _type: "education",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        endYear: 2023,
+        inProgress: false,
+        startYear: 2024,
+      },
+      {
+        _id: "drafts.education.missing",
+        _rev: "education-r3",
+        _type: "education",
+        _updatedAt: "2026-07-30T12:00:00.000Z",
+        inProgress: false,
+        startYear: 2024,
+      },
+    ],
+  });
+
+  for (const code of [
+    "CURRENT_EXPERIENCE_END_DATE_PRESENT",
+    "COMPLETED_EXPERIENCE_END_DATE_MISSING",
+    "IN_PROGRESS_EDUCATION_END_YEAR_PRESENT",
+    "COMPLETED_EDUCATION_END_YEAR_MISSING",
+    "EDUCATION_YEAR_RANGE_INVALID",
+  ]) {
+    assert.ok(report.issues.some((issue) => issue.code === code), code);
+  }
+});
+
 test("unrelated drafts do not contaminate a dependency-closed batch", async () => {
   const candidate = validCandidate();
   const client = {

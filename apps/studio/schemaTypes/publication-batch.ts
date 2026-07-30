@@ -1,4 +1,7 @@
-import { publicationLimitMaximums } from "@portfolio/content";
+import {
+  publicationLimitMaximums,
+  publicationManagedDocumentTypes,
+} from "@portfolio/content";
 import {
   defineArrayMember,
   defineField,
@@ -12,19 +15,6 @@ import {
   type PublicationBatchFormValue,
   type ReadinessClient,
 } from "../components/publication-readiness";
-
-const contentDocumentTypes = [
-  "siteSettings",
-  "aboutMe",
-  "contact",
-  "privacyNotice",
-  "profileMedia",
-  "resumeSet",
-  "experience",
-  "education",
-  "skill",
-  "project",
-] as const;
 
 type StoredBatch = Readonly<{
   documents?: ReadonlyArray<Readonly<{ _ref?: string }>>;
@@ -204,7 +194,7 @@ export const publicationBatch = defineType({
       name: "documents",
       of: [
         defineArrayMember({
-          to: contentDocumentTypes.map((type) => ({ type })),
+          to: publicationManagedDocumentTypes.map((type) => ({ type })),
           type: "reference",
         }),
       ],

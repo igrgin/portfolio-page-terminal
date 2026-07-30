@@ -1,17 +1,9 @@
 import type { DocumentActionComponent } from "sanity";
+import { publicationManagedDocumentTypes } from "@portfolio/content";
 
-const publicationManagedDocumentTypes = new Set([
-  "siteSettings",
-  "aboutMe",
-  "contact",
-  "privacyNotice",
-  "profileMedia",
-  "resumeSet",
-  "experience",
-  "education",
-  "skill",
-  "project",
-]);
+const publicationManagedDocumentTypeSet = new Set(
+  publicationManagedDocumentTypes,
+);
 
 export const BatchManagedPublishAction: DocumentActionComponent = () => {
   return {
@@ -28,7 +20,9 @@ export function protectBatchPublicationActions(
   actions: readonly DocumentActionComponent[],
   schemaType: string,
 ): DocumentActionComponent[] {
-  if (!publicationManagedDocumentTypes.has(schemaType)) {
+  if (!publicationManagedDocumentTypeSet.has(
+    schemaType as (typeof publicationManagedDocumentTypes)[number],
+  )) {
     return [...actions];
   }
   return actions.map((action) =>

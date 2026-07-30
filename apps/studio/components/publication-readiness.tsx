@@ -6,7 +6,7 @@ import type {
   PublicationReleaseLimits,
 } from "@portfolio/content";
 import {
-  collectStrongReferenceIds,
+  loadStrongReferenceClosure,
   validatePublicationBatch,
 } from "@portfolio/content";
 import React from "react";
@@ -129,25 +129,16 @@ export async function runPublicationReadiness(
     `*[_id in $documentIds]`,
     { documentIds },
   );
-  const visitedIds = new Set(documentIds);
-  const referenceDocuments: Record<string, unknown>[] = [];
-  let pendingIds = [...collectStrongReferenceIds(documents)].filter(
-    (id) => !visitedIds.has(id),
-  );
-  while (pendingIds.length > 0) {
-    pendingIds.forEach((id) => visitedIds.add(id));
-    const referenced = await previewClient.fetch<Record<string, unknown>[]>(
+  const {
+    documentIds: closureDocumentIds,
+    referenceDocuments,
+  } = await loadStrongReferenceClosure(documents, (referencedIds) =>
+    previewClient.fetch<Record<string, unknown>[]>(
       `*[_id in $documentIds]`,
-      { documentIds: pendingIds },
-    );
-    referenceDocuments.push(...referenced);
-    pendingIds = [...collectStrongReferenceIds(referenced)].filter(
-      (id) => !visitedIds.has(id),
-    );
-  }
-  const draftIds = [...visitedIds]
-    .map((id) => `drafts.${id}`)
-    .sort();
+      { documentIds: referencedIds },
+    ),
+  );
+  const draftIds = closureDocumentIds.map((id) => `drafts.${id}`);
   const changedDocuments = await rawClient.fetch<
     ReadonlyArray<Readonly<{ _id: string }>>
   >(`*[_id in $draftIds]{_id}`, { draftIds });

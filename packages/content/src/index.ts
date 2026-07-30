@@ -116,8 +116,10 @@ export {
 export {
   collectStrongReferenceIds,
   isPublicationValidationCurrent,
+  loadStrongReferenceClosure,
   publicationBatchRevision,
   publicationLimitMaximums,
+  publicationManagedDocumentTypes,
   publishedDocumentId,
   validatePublicationBatch,
   type PublicationAssetCheck,

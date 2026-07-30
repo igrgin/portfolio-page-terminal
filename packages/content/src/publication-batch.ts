@@ -16,6 +16,19 @@ export const publicationLimitMaximums = {
   staticFileCount: 20_000,
 } as const;
 
+export const publicationManagedDocumentTypes = [
+  "siteSettings",
+  "aboutMe",
+  "contact",
+  "privacyNotice",
+  "profileMedia",
+  "resumeSet",
+  "experience",
+  "education",
+  "skill",
+  "project",
+] as const;
+
 export type PublicationReadinessCategory =
   | "accessibility"
   | "asset"
@@ -159,6 +172,35 @@ export function collectStrongReferenceIds(
     collectStrongReferenceIds(entry, references),
   );
   return references;
+}
+
+export async function loadStrongReferenceClosure(
+  documents: readonly UnknownRecord[],
+  loadDocuments: (
+    documentIds: readonly string[],
+  ) => Promise<readonly UnknownRecord[]>,
+) {
+  const selectedIds = documents
+    .map((document) => nonEmptyString(document._id))
+    .filter((id): id is string => id !== null)
+    .map(publishedDocumentId);
+  const visitedIds = new Set(selectedIds);
+  const referenceDocuments: UnknownRecord[] = [];
+  let pendingIds = [...collectStrongReferenceIds(documents)].filter(
+    (id) => !visitedIds.has(id),
+  );
+  while (pendingIds.length > 0) {
+    pendingIds.forEach((id) => visitedIds.add(id));
+    const referenced = [...(await loadDocuments(pendingIds))];
+    referenceDocuments.push(...referenced);
+    pendingIds = [...collectStrongReferenceIds(referenced)].filter(
+      (id) => !visitedIds.has(id),
+    );
+  }
+  return {
+    documentIds: [...visitedIds].sort(),
+    referenceDocuments,
+  } as const;
 }
 
 function validPublicationDate(value: string): boolean {
@@ -596,6 +638,63 @@ export function validatePublicationBatch(
         "Completed or archived content requires an end date.",
         documentId,
       );
+    }
+    if (document._type === "experience") {
+      if (document.current === true && endDate) {
+        issue(
+          "date",
+          "CURRENT_EXPERIENCE_END_DATE_PRESENT",
+          "endDate",
+          "A current Experience must not have an end date.",
+          documentId,
+        );
+      }
+      if (document.current === false && !endDate) {
+        issue(
+          "date",
+          "COMPLETED_EXPERIENCE_END_DATE_MISSING",
+          "endDate",
+          "A completed Experience requires an end date.",
+          documentId,
+        );
+      }
+    }
+    if (document._type === "education") {
+      const startYear =
+        typeof document.startYear === "number" ? document.startYear : null;
+      const endYear =
+        typeof document.endYear === "number" ? document.endYear : null;
+      if (document.inProgress === true && endYear !== null) {
+        issue(
+          "date",
+          "IN_PROGRESS_EDUCATION_END_YEAR_PRESENT",
+          "endYear",
+          "In-progress Education must not have an end year.",
+          documentId,
+        );
+      }
+      if (document.inProgress === false && endYear === null) {
+        issue(
+          "date",
+          "COMPLETED_EDUCATION_END_YEAR_MISSING",
+          "endYear",
+          "Completed Education requires an end year.",
+          documentId,
+        );
+      }
+      if (
+        startYear !== null &&
+        endYear !== null &&
+        endYear < startYear
+      ) {
+        issue(
+          "date",
+          "EDUCATION_YEAR_RANGE_INVALID",
+          "endYear",
+          "The Education end year must not precede its start year.",
+          documentId,
+        );
+      }
     }
     if (
       Array.isArray(document.contactChannels) &&

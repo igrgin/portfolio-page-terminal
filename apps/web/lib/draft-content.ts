@@ -1,6 +1,7 @@
 import {
-  collectStrongReferenceIds,
   hasSanityConfiguration,
+  loadStrongReferenceClosure,
+  publicationManagedDocumentTypes,
   publishedDocumentId,
   validatePublicationBatch,
   type PublicationBatchCandidate,
@@ -22,18 +23,7 @@ const DRAFT_BATCH_QUERY = `{
     "documents": documents[]->
   },
   "contentDocuments": *[
-    _type in [
-      "siteSettings",
-      "aboutMe",
-      "contact",
-      "privacyNotice",
-      "profileMedia",
-      "resumeSet",
-      "experience",
-      "education",
-      "skill",
-      "project"
-    ]
+    _type in ${JSON.stringify(publicationManagedDocumentTypes)}
   ]
 }`;
 const DRAFT_IDS_QUERY = `*[_id in $draftIds]{_id}`;
@@ -80,16 +70,9 @@ function sanityQueryUrl(
   return `https://${projectId}.api.sanity.io/v2025-02-19/data/query/${dataset}?${search}`;
 }
 
-function referenceClosure(
-  documents: readonly UnknownRecord[],
+function availableDocumentsById(
   availableDocuments: readonly UnknownRecord[],
 ) {
-  const selectedIds = new Set(
-    documents
-      .map(({ _id }) => nonEmptyString(_id))
-      .filter((id): id is string => id !== null)
-      .map(publishedDocumentId),
-  );
   const availableById = new Map(
     availableDocuments
       .map((document) => {
@@ -102,26 +85,7 @@ function referenceClosure(
         ): entry is readonly [string, UnknownRecord] => entry !== null,
       ),
   );
-  const references: UnknownRecord[] = [];
-  const visitedIds = new Set(selectedIds);
-  let pendingIds = [...collectStrongReferenceIds(documents)].filter(
-    (id) => !visitedIds.has(id),
-  );
-  while (pendingIds.length > 0) {
-    const referenced: UnknownRecord[] = [];
-    for (const id of pendingIds) {
-      visitedIds.add(id);
-      const document = availableById.get(id);
-      if (document) {
-        references.push(document);
-        referenced.push(document);
-      }
-    }
-    pendingIds = [...collectStrongReferenceIds(referenced)].filter(
-      (id) => !visitedIds.has(id),
-    );
-  }
-  return { references, visitedIds };
+  return availableById;
 }
 
 export async function loadDraftBatchScope(
@@ -192,11 +156,16 @@ export async function loadDraftBatchScope(
   ) {
     return null;
   }
-  const { references, visitedIds } = referenceClosure(
-    documents,
-    availableDocuments,
+  const availableById = availableDocumentsById(availableDocuments);
+  const {
+    documentIds: closureDocumentIds,
+    referenceDocuments,
+  } = await loadStrongReferenceClosure(documents, async (documentIds) =>
+    documentIds
+      .map((documentId) => availableById.get(documentId))
+      .filter((document): document is UnknownRecord => document !== undefined),
   );
-  const draftIds = [...visitedIds].map((id) => `drafts.${id}`).sort();
+  const draftIds = closureDocumentIds.map((id) => `drafts.${id}`);
   const draftResponse = await fetcher(
     sanityQueryUrl(
       projectId,
@@ -245,7 +214,7 @@ export async function loadDraftBatchScope(
     },
     name,
     privacyReviewed: batch.privacyReviewed === true,
-    referenceDocuments: references,
+    referenceDocuments,
   };
   const report = validatePublicationBatch(candidate);
   if (!report.ready || report.revision !== revision) {
