@@ -28,16 +28,19 @@ export type DiagramValidationResult =
   | Readonly<{ ok: true; value: PortfolioDiagram }>
   | Readonly<{ error: string; ok: false }>;
 
+export const DIAGRAM_PATH_SEGMENT_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isDiagramPathSegment(value: unknown): value is string {
+  return typeof value === "string" && DIAGRAM_PATH_SEGMENT_PATTERN.test(value);
+}
+
 export function diagramAssetPublicPath(
   projectSlug: string,
   diagramId: string,
   locale: Locale,
   theme: DiagramTheme,
 ): string {
-  if (
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug) ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(diagramId)
-  ) {
+  if (!isDiagramPathSegment(projectSlug) || !isDiagramPathSegment(diagramId)) {
     throw new Error("Diagram paths require lowercase kebab-case identifiers.");
   }
   return `/generated/diagrams/${projectSlug}/${diagramId}/${locale}-${theme}.svg`;
@@ -56,7 +59,7 @@ const forbiddenMermaidSource = [
   {
     message: "Interactive Mermaid actions and links are not allowed.",
     pattern:
-      /(?:\bclick\b|\bhref\b|\blink\b|\bcall\b|(?:https?|ftp|data|javascript|mailto):|\/\/)/i,
+      /(?:(?:^|\n)\s*(?:click|href|link|links)\b|(?:https?|ftp|data|javascript|mailto):|\/\/)/i,
   },
   {
     message: "HTML labels are not allowed.",
@@ -65,13 +68,56 @@ const forbiddenMermaidSource = [
   {
     message:
       "Remote assets, includes, imports, and icon syntax are not allowed.",
-    pattern: /(?:\binclude\b|\bimport\b|\bicon\b|\bimage\b|@\{)/i,
+    pattern: /(?:(?:^|\n)\s*(?:include|import)\b|@\{)/i,
   },
   {
     message: "Diagram styling is owned by the renderer.",
     pattern: /(?:^|\n)\s*(?:classDef|class|style|linkStyle)\b/i,
   },
 ] as const;
+
+function isConstrainedFlowchartLine(line: string): boolean {
+  return (
+    /^(?:%%|subgraph\b|end$|direction (?:TB|TD|BT|RL|LR)$)/i.test(line) ||
+    /(?:-->|---|-\.-?>|==>|<-->|--[ox]|~~~)/.test(line) ||
+    /^[a-z_][a-z0-9_-]*\s*(?:\[[\s\S]*\]|\([\s\S]*\)|\{[\s\S]*\})$/i.test(line)
+  );
+}
+
+function isConstrainedSequenceLine(line: string): boolean {
+  return (
+    /^%%/.test(line) ||
+    /^(?:(?:create\s+)?(?:participant|actor)\s+\S|destroy\s+\S|(?:activate|deactivate)\s+\S|autonumber\b)/i.test(
+      line,
+    ) ||
+    /^(?:alt|else|opt|loop|par|and|critical|option|break|rect|box)\b/i.test(
+      line,
+    ) ||
+    /^end$/i.test(line) ||
+    /^note\s+(?:left of|right of|over)\s+\S/i.test(line) ||
+    /^\S+\s*(?:--?>{1,2}|--?[x)])\s*\S+\s*:/.test(line)
+  );
+}
+
+function validateConstrainedBody(
+  source: string,
+  kind: DiagramKind,
+): string | null {
+  const lines = source
+    .trim()
+    .split(/\r?\n/)
+    .slice(1)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const validLine =
+    kind === "sequence"
+      ? isConstrainedSequenceLine
+      : isConstrainedFlowchartLine;
+
+  return lines.every(validLine)
+    ? null
+    : "Source contains syntax outside the approved constrained subset.";
+}
 
 function invalid(error: string): DiagramValidationResult {
   return { error, ok: false };
@@ -98,7 +144,7 @@ function validateSource(source: string, kind: DiagramKind): string | null {
 
   return (
     forbiddenMermaidSource.find(({ pattern }) => pattern.test(source))
-      ?.message ?? null
+      ?.message ?? validateConstrainedBody(source, kind)
   );
 }
 
@@ -117,7 +163,7 @@ export function validatePortfolioDiagram(
   const caption = localizedStrings(diagram?.caption);
   const description = localizedStrings(diagram?.description);
 
-  if (!id || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)) {
+  if (!id || !isDiagramPathSegment(id)) {
     return invalid("Use a lowercase kebab-case diagram ID.");
   }
   if (!kind) {

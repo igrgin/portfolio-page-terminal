@@ -1,7 +1,8 @@
 import {
+  DIAGRAM_PATH_SEGMENT_PATTERN,
+  diagramKinds,
   isOngoingProjectStatus,
   isProjectDisclosureLevel,
-  diagramKinds,
   projectCaseStudyFieldKeys,
   projectDisclosureLevels,
   projectStatusLabels,
@@ -126,7 +127,7 @@ export const projectDiagram = defineType({
       title: "Diagram ID",
       type: "string",
       validation: (rule) =>
-        rule.required().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
+        rule.required().regex(DIAGRAM_PATH_SEGMENT_PATTERN, {
           name: "a lowercase kebab-case identifier",
         }),
     }),

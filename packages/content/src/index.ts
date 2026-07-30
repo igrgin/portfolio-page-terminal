@@ -33,11 +33,13 @@ export {
 } from "./education";
 
 export {
+  DIAGRAM_PATH_SEGMENT_PATTERN,
   DIAGRAM_RENDER_TIMEOUT_MS,
   DIAGRAM_SOURCE_MAX_BYTES,
   diagramAssetPublicPath,
   diagramKinds,
   diagramThemes,
+  isDiagramPathSegment,
   validatePortfolioDiagram,
   type DiagramKind,
   type DiagramTheme,

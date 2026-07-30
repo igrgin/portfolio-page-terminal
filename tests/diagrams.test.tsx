@@ -16,6 +16,7 @@ import {
 import {
   DIAGRAM_RENDERER_VERSION,
   diagramAssetPublicPath,
+  generatedSvgUpgradeFingerprint,
   injectDiagramAccessibility,
   renderDiagramAssets,
   validateGeneratedSvg,
@@ -73,6 +74,24 @@ test("only complete bilingual constrained flowcharts and sequences are approved"
     }).ok,
     true,
   );
+  for (const label of [
+    "Image processor",
+    "Import pipeline",
+    "Link health",
+    "Call service",
+  ]) {
+    assert.equal(
+      validatePortfolioDiagram({
+        ...validDiagram,
+        source: {
+          en: `flowchart LR\n  A[${label}] --> B[Safe output]`,
+          hr: `flowchart LR\n  A[${label}] --> B[Siguran izlaz]`,
+        },
+      }).ok,
+      true,
+      label,
+    );
+  }
 
   const rejectedSources = [
     "classDiagram\n  Animal <|-- Duck",
@@ -81,6 +100,7 @@ test("only complete bilingual constrained flowcharts and sequences are approved"
     'flowchart LR\n  click A href "https://example.com"',
     "flowchart LR\n  A --> B\n  classDef danger fill:red",
     "---\ntitle: Unsafe\n---\nflowchart LR\n  A --> B",
+    "flowchart LR\n  participant Browser",
   ];
 
   for (const source of rejectedSources) {
@@ -175,6 +195,7 @@ test("generated SVG is parsed and rejects every prohibited output construct", ()
     `<svg><title>x</title><desc>y</desc><a href="#target"><text>link</text></a></svg>`,
     `<svg><title>x</title><desc>y</desc><link href="styles.css"/></svg>`,
     `<svg><title>x</title><desc>y</desc><image href="https://example.com/x.png"/></svg>`,
+    `<svg><title>x</title><desc>y</desc><use href="sprite.svg#icon"/></svg>`,
     `<svg><title>x</title><desc>y</desc><style>@import url("https://example.com/x.css");</style></svg>`,
     `<svg><title>x</title><desc>y</desc><path style="fill:url(data:image/svg+xml,x)"/></svg>`,
     `<!DOCTYPE svg SYSTEM "https://example.com/evil.dtd"><svg><title>x</title><desc>y</desc></svg>`,
@@ -209,6 +230,12 @@ test("the exact-pinned renderer produces deterministic bilingual light and dark 
       packageJson.devDependencies["@mermaid-js/mermaid-cli"],
       DIAGRAM_RENDERER_VERSION,
     );
+    const upgradeGolden = JSON.parse(
+      await readFile(
+        new URL("./fixtures/diagram-renderer-golden.json", import.meta.url),
+        "utf8",
+      ),
+    ) as Record<string, string>;
 
     const input = [
       {
@@ -253,6 +280,13 @@ test("the exact-pinned renderer produces deterministic bilingual light and dark 
       ],
     );
     assert.match(firstContents[2]!.svg, /Spremište/);
+    for (const { publicPath, svg } of firstContents) {
+      assert.equal(
+        generatedSvgUpgradeFingerprint(svg),
+        upgradeGolden[publicPath],
+        publicPath,
+      );
+    }
     assert.equal(
       diagramAssetPublicPath(
         "distributed-event-platform",
@@ -294,6 +328,36 @@ test("the exact-pinned renderer produces deterministic bilingual light and dark 
       ),
     );
     assert.deepEqual(preservedContents, secondContents);
+
+    await assert.rejects(
+      renderDiagramAssets(
+        [
+          {
+            diagram: {
+              ...validDiagram,
+              source: {
+                en: 'flowchart LR\n  click A href "https://example.com"',
+                hr: validDiagram.source.hr,
+              },
+            },
+            projectSlug: "distributed-event-platform",
+          },
+        ],
+        publicDirectory,
+      ),
+      /Invalid distributed-event-platform\/delivery-flow/,
+    );
+    const preservedAfterInvalidDraft = await Promise.all(
+      second.flatMap(({ assets }) =>
+        assets.map(({ publicPath }) =>
+          readFile(
+            join(publicDirectory, publicPath.replace(/^\//, "")),
+            "utf8",
+          ),
+        ),
+      ),
+    );
+    assert.deepEqual(preservedAfterInvalidDraft, secondContents);
   } finally {
     await rm(publicDirectory, { force: true, recursive: true });
   }

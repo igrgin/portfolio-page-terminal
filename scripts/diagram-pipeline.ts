@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -167,12 +168,21 @@ export function validateGeneratedSvg(
 
     for (const attribute of Array.from(element.attributes)) {
       const attributeName = attribute.name.toLowerCase();
+      const attributeLocalName = attribute.localName?.toLowerCase() ?? "";
       if (
         attributeName.startsWith("on") ||
-        attribute.localName?.toLowerCase().startsWith("on")
+        attributeLocalName.startsWith("on")
       ) {
         throw new Error(
           `Generated SVG contains prohibited ${attribute.name} handler output.`,
+        );
+      }
+      if (
+        ["href", "src"].includes(attributeLocalName) &&
+        !attribute.value.trim().startsWith("#")
+      ) {
+        throw new Error(
+          `Generated SVG contains a prohibited resource in ${attribute.name}.`,
         );
       }
       if (
@@ -207,6 +217,33 @@ export function validateGeneratedSvg(
       "Generated SVG is missing the renderer-owned title or description.",
     );
   }
+}
+
+export function generatedSvgUpgradeFingerprint(svg: string): string {
+  const document = new DOMParser({
+    onError: (level, message) => {
+      if (level !== "warning") {
+        throw new Error(String(message));
+      }
+    },
+  }).parseFromString(svg, "image/svg+xml");
+  const semanticOutput = Array.from(document.getElementsByTagName("*")).map(
+    (element) => {
+      const name = (element.localName ?? element.nodeName).toLowerCase();
+      const className = element.getAttribute("class") ?? "";
+      const accessibilityRole = element.getAttribute("role") ?? "";
+      const roleDescription =
+        element.getAttribute("aria-roledescription") ?? "";
+      const text = ["desc", "style", "text", "title", "tspan"].includes(name)
+        ? singleLine(element.textContent ?? "")
+        : "";
+      return [name, className, accessibilityRole, roleDescription, text];
+    },
+  );
+
+  return createHash("sha256")
+    .update(JSON.stringify(semanticOutput))
+    .digest("hex");
 }
 
 export function withRenderTimeout<T>(

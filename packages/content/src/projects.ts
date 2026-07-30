@@ -3,6 +3,7 @@ import { defineQuery } from "groq";
 import type { Locale, LocalizedValue } from "./index";
 import {
   diagramAssetPublicPath,
+  isDiagramPathSegment,
   validatePortfolioDiagram,
   type PortfolioDiagram,
 } from "./diagrams";
@@ -142,6 +143,16 @@ const PROJECT_MEDIA_PROJECTION = `{
   caption
 }` as const;
 
+const PROJECT_DIAGRAM_PROJECTION = `{
+  _key,
+  id,
+  kind,
+  source,
+  title,
+  caption,
+  description
+}` as const;
+
 export const PROJECTS_PAGE_QUERY = defineQuery(`{
   "siteSettings": *[
     _id == "siteSettings" && !(_id in path("drafts.**"))
@@ -181,15 +192,7 @@ export const PROJECTS_PAGE_QUERY = defineQuery(`{
     documentationUrl,
     metadataOverride,
     "heroMedia": heroMedia${PROJECT_MEDIA_PROJECTION},
-    diagrams[]{
-      _key,
-      id,
-      kind,
-      source,
-      title,
-      caption,
-      description
-    },
+    diagrams[]${PROJECT_DIAGRAM_PROJECTION},
     "media": media[]${PROJECT_MEDIA_PROJECTION},
     publishSafe,
     sensitive
@@ -559,15 +562,7 @@ export const PROJECT_DIAGRAMS_QUERY = defineQuery(`*[
   "slug": slug.current,
   publishSafe,
   sensitive,
-  diagrams[]{
-    _key,
-    id,
-    kind,
-    source,
-    title,
-    caption,
-    description
-  }
+  diagrams[]${PROJECT_DIAGRAM_PROJECTION}
 }`);
 
 export type PublishedProjectDiagramInput = Readonly<{
@@ -592,7 +587,7 @@ export function normalizePublishedProjectDiagrams(
       project?.publishSafe !== true ||
       project?.sensitive === true ||
       !slug ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ||
+      !isDiagramPathSegment(slug) ||
       !Array.isArray(project.diagrams)
     ) {
       return null;
