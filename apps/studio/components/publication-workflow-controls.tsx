@@ -23,6 +23,7 @@ import {
 import { studioPreviewOrigin, studioRollbackDataset } from "../environment";
 import {
   capturePublicationRollbackBundle,
+  loadPublicationRollbackBundle,
   publicationWorkflowFromValue,
   publishAtomicPublicationBatch,
   serializePublicationWorkflow,
@@ -31,10 +32,20 @@ import {
 } from "../publication-release";
 import {
   loadPublicationCandidate,
+  publicationRevisionWatchIds,
   PublicationReadinessSummary,
   runPublicationReadiness,
   type PublicationBatchFormValue,
 } from "./publication-readiness";
+
+function clearReleaseEvidencePatches() {
+  return [
+    unset(["validation"]),
+    unset(["workflow", "validationRevision"]),
+    unset(["workflow", "acknowledgements"]),
+    unset(["workflow", "rollback"]),
+  ];
+}
 
 export function PublicationWorkflowSummary({
   revision,
@@ -102,6 +113,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
   const storedReport =
     value?.validation &&
     typeof value.validation.revision === "string" &&
+    Array.isArray(value.validation.closureDocumentIds) &&
     Array.isArray(value.validation.documentIds) &&
     Array.isArray(value.validation.issues) &&
     typeof value.validation.ready === "boolean"
@@ -130,29 +142,27 @@ export function PublicationBatchInput(props: ObjectInputProps) {
     .filter((documentId): documentId is string => Boolean(documentId))
     .sort();
   const selectedDocumentKey = selectedDocumentIds.join("\u0000");
+  const watchedDocumentIds = storedReport
+    ? publicationRevisionWatchIds(storedReport)
+    : [];
+  const watchedDocumentKey = watchedDocumentIds.join("\u0000");
 
   React.useEffect(() => {
     if (
       releaseAction !== null ||
       publishedCurrentRevision ||
       !storedWorkflow ||
-      (!storedWorkflow.acknowledgements.en &&
-        !storedWorkflow.acknowledgements.hr &&
-        !storedWorkflow.rollback)
+      !storedWorkflow.validationRevision
     ) {
       return;
     }
-    const watchedIds = selectedDocumentIds.flatMap((documentId) => [
-      documentId,
-      `drafts.${documentId}`,
-    ]);
-    if (watchedIds.length === 0) {
+    if (watchedDocumentIds.length === 0) {
       return;
     }
     const subscription = client
       .listen(
         `*[_id in $documentIds]`,
-        { documentIds: watchedIds },
+        { documentIds: watchedDocumentIds },
         {
           events: ["mutation"],
           includeResult: false,
@@ -164,14 +174,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
         setNotice(
           "A selected document changed. Validation, preview acknowledgements, and rollback evidence were cleared.",
         );
-        props.onChange(
-          PatchEvent.from([
-            unset(["validation"]),
-            unset(["workflow", "validationRevision"]),
-            unset(["workflow", "acknowledgements"]),
-            unset(["workflow", "rollback"]),
-          ]),
-        );
+        props.onChange(PatchEvent.from(clearReleaseEvidencePatches()));
       });
 
     return () => subscription.unsubscribe();
@@ -180,7 +183,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
     props.onChange,
     releaseAction,
     publishedCurrentRevision,
-    selectedDocumentKey,
+    watchedDocumentKey,
     acknowledgementKey,
     rollbackKey,
   ]);
@@ -209,14 +212,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
           setNotice(
             "The saved candidate revision changed. Validation, preview acknowledgements, and rollback evidence were cleared.",
           );
-          props.onChange(
-            PatchEvent.from([
-              unset(["validation"]),
-              unset(["workflow", "validationRevision"]),
-              unset(["workflow", "acknowledgements"]),
-              unset(["workflow", "rollback"]),
-            ]),
-          );
+          props.onChange(PatchEvent.from(clearReleaseEvidencePatches()));
         }
       })
       .catch(() => {
@@ -282,6 +278,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
           set(
             {
               documentIds: nextReport.documentIds,
+              closureDocumentIds: nextReport.closureDocumentIds,
               issues: nextReport.issues.map((issue, index) => ({
                 _key: `${issue.code}-${index}`,
                 _type: "publicationReadinessIssue",
@@ -425,6 +422,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
       );
       if (
         !savedWorkflow ||
+        !savedWorkflow.rollback ||
         !loaded.report.ready ||
         loaded.report.revision !== current.report.revision ||
         !publicationWorkflowReadiness(savedWorkflow, current.report.revision)
@@ -434,6 +432,14 @@ export function PublicationBatchInput(props: ObjectInputProps) {
           "The release evidence has not finished saving. Wait for Studio and try again.",
         );
       }
+      const rollbackBundle = await loadPublicationRollbackBundle(
+        client.withConfig({
+          dataset: studioRollbackDataset,
+          perspective: "raw",
+          useCdn: false,
+        }),
+        savedWorkflow.rollback.bundleId,
+      );
       await publishAtomicPublicationBatch(
         client as unknown as AtomicPublicationClient,
         {
@@ -441,6 +447,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
           candidate: loaded.candidate,
           publishedAt: new Date().toISOString(),
           revision: current.report.revision,
+          rollbackBundle,
           workflow: savedWorkflow,
         },
       );
@@ -462,12 +469,7 @@ export function PublicationBatchInput(props: ObjectInputProps) {
     onChange: (event: Parameters<ObjectInputProps["onChange"]>[0]) => {
       setReport(null);
       props.onChange(
-        PatchEvent.from(event).append(
-          unset(["validation"]),
-          unset(["workflow", "validationRevision"]),
-          unset(["workflow", "acknowledgements"]),
-          unset(["workflow", "rollback"]),
-        ),
+        PatchEvent.from(event).append(...clearReleaseEvidencePatches()),
       );
     },
   };

@@ -41,6 +41,7 @@ export type AtomicPublicationPatch = {
 
 export type AtomicPublicationTransaction = {
   commit: (options?: Record<string, unknown>) => Promise<unknown>;
+  create: (document: UnknownRecord) => AtomicPublicationTransaction;
   createOrReplace: (document: UnknownRecord) => AtomicPublicationTransaction;
   delete: (documentId: string) => AtomicPublicationTransaction;
   patch: (
@@ -320,6 +321,20 @@ export async function capturePublicationRollbackBundle(
   };
 }
 
+export async function loadPublicationRollbackBundle(
+  client: PublicationContentClient,
+  bundleId: string,
+): Promise<PublicationRollbackBundle> {
+  const bundle = await client.fetch<PublicationRollbackBundle | null>(
+    `*[_id == $bundleId && _type == "publicationRollbackBundle"][0]`,
+    { bundleId },
+  );
+  if (!bundle || bundle._id !== bundleId) {
+    throw new Error("The private rollback bundle could not be loaded.");
+  }
+  return bundle;
+}
+
 function publishedSnapshot(draft: UnknownRecord): UnknownRecord {
   const { _createdAt, _rev, _system, _updatedAt, ...content } = draft;
   void _createdAt;
@@ -356,6 +371,32 @@ function revisionLockedDraft(
   );
 }
 
+function revisionLockedPublishedDocument(
+  transaction: AtomicPublicationTransaction,
+  document: UnknownRecord,
+  publicationRevision: string,
+) {
+  const documentId =
+    typeof document._id === "string" ? publishedDocumentId(document._id) : "";
+  const documentRevision =
+    typeof document._rev === "string" ? document._rev : "";
+  if (
+    !documentId ||
+    documentId !== document._id ||
+    !documentRevision ||
+    typeof document._type !== "string"
+  ) {
+    throw new Error(
+      "Every reviewed published dependency must have an exact Sanity revision.",
+    );
+  }
+  transaction.patch(documentId, (patch) =>
+    patch
+      .ifRevisionId(documentRevision)
+      .set({ _publicationLock: publicationRevision }),
+  );
+}
+
 function publicationTransactionId(batchId: string, revision: string): string {
   return `publication-${publishedDocumentId(batchId).replace(
     /[^A-Za-z0-9_-]/gu,
@@ -370,6 +411,7 @@ export async function publishAtomicPublicationBatch(
     candidate: PublicationBatchCandidate;
     publishedAt: string;
     revision: string;
+    rollbackBundle: PublicationRollbackBundle;
     workflow: PublicationWorkflowState;
   }>,
 ) {
@@ -383,9 +425,40 @@ export async function publishAtomicPublicationBatch(
       "Atomic publication requires the exact validated batch revision.",
     );
   }
+  const rollback = input.workflow.rollback;
   const publishedBatchId = publishedDocumentId(
     typeof input.batchDocument._id === "string" ? input.batchDocument._id : "",
   );
+  if (
+    !rollback ||
+    input.rollbackBundle._id !== rollback.bundleId ||
+    input.rollbackBundle.batchId !== publishedBatchId ||
+    input.rollbackBundle.candidateRevision !== input.revision ||
+    input.rollbackBundle.capturedAt !== rollback.capturedAt
+  ) {
+    throw new Error(
+      "Atomic publication requires the exact private rollback bundle.",
+    );
+  }
+  const rollbackDocuments = new Map(
+    input.rollbackBundle.documents.map((entry) => [
+      publishedDocumentId(entry.documentId),
+      entry.document,
+    ]),
+  );
+  const candidateDocumentIds = input.candidate.documents.map((document) =>
+    publishedDocumentId(typeof document._id === "string" ? document._id : ""),
+  );
+  if (
+    rollbackDocuments.size !== candidateDocumentIds.length ||
+    candidateDocumentIds.some(
+      (documentId) => !rollbackDocuments.has(documentId),
+    )
+  ) {
+    throw new Error(
+      "The private rollback bundle must cover every changed document exactly once.",
+    );
+  }
   const publication = {
     buildRequestId: `${publishedBatchId}:${input.revision}`,
     publishedAt: input.publishedAt,
@@ -398,12 +471,47 @@ export async function publishAtomicPublicationBatch(
 
   for (const draft of input.candidate.documents) {
     revisionLockedDraft(transaction, draft);
-    transaction.createOrReplace(publishedSnapshot(draft));
+    const documentId = publishedDocumentId(draft._id as string);
+    const previousPublishedDocument = rollbackDocuments.get(documentId);
+    const snapshot = publishedSnapshot(draft);
+    if (previousPublishedDocument === null) {
+      transaction.create(snapshot);
+    } else if (previousPublishedDocument) {
+      if (
+        publishedDocumentId(
+          typeof previousPublishedDocument._id === "string"
+            ? previousPublishedDocument._id
+            : "",
+        ) !== documentId
+      ) {
+        throw new Error(
+          `The private rollback pre-image does not match ${documentId}.`,
+        );
+      }
+      revisionLockedPublishedDocument(
+        transaction,
+        previousPublishedDocument,
+        input.revision,
+      );
+      transaction.createOrReplace(snapshot);
+    } else {
+      throw new Error(`The private rollback bundle is missing ${documentId}.`);
+    }
     transaction.delete(draft._id as string);
   }
 
+  const selectedDocumentIds = new Set(candidateDocumentIds);
+  for (const dependency of input.candidate.referenceDocuments ?? []) {
+    const documentId = publishedDocumentId(
+      typeof dependency._id === "string" ? dependency._id : "",
+    );
+    if (!selectedDocumentIds.has(documentId)) {
+      revisionLockedPublishedDocument(transaction, dependency, input.revision);
+    }
+  }
+
   revisionLockedDraft(transaction, input.batchDocument);
-  transaction.createOrReplace({
+  transaction.create({
     ...publishedSnapshot(input.batchDocument),
     workflow: serializePublicationWorkflow(workflow),
   });

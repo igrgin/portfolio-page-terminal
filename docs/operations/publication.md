@@ -57,6 +57,12 @@ content document mutations and later deployment-state updates. The receiver's
 idempotency gate converts Sanity's at-least-once delivery into one queued build
 for that request.
 
+Immediately before commit, the Studio reloads the private rollback bundle. The
+transaction revision-guards every captured published pre-image and every
+published document in the validated strong-reference closure. A newly published
+document uses a create-only mutation, so an unexpected published version also
+aborts the whole transaction.
+
 The transaction uses synchronous visibility so the published documents are
 queryable before the Studio reports success. The protected build must still
 validate the requested batch revision before promotion. A successful build is

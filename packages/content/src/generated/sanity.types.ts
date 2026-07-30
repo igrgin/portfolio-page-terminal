@@ -138,6 +138,7 @@ export type PublicationValidation = {
   revision?: string;
   validatedAt?: string;
   documentIds?: Array<string>;
+  closureDocumentIds?: Array<string>;
   issues?: Array<
     {
       _key: string;

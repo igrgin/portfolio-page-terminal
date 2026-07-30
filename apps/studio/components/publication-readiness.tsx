@@ -110,6 +110,19 @@ export type ReadinessClient = Readonly<{
   withConfig: (configuration: Record<string, unknown>) => ReadinessClient;
 }>;
 
+export function publicationRevisionWatchIds(
+  report: PublicationReadinessReport,
+): readonly string[] {
+  return [
+    ...new Set(
+      report.closureDocumentIds.flatMap((documentId) => [
+        publishedDocumentId(documentId),
+        `drafts.${publishedDocumentId(documentId)}`,
+      ]),
+    ),
+  ].sort();
+}
+
 export async function runPublicationReadiness(
   client: ReadinessClient,
   value: PublicationBatchFormValue,

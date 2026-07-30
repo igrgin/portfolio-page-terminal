@@ -561,6 +561,16 @@
           },
           "optional": true
         },
+        "closureDocumentIds": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "array",
+            "of": {
+              "type": "string"
+            }
+          },
+          "optional": true
+        },
         "issues": {
           "type": "objectAttribute",
           "value": {

@@ -169,6 +169,11 @@ export const publicationValidation = defineType({
       type: "array",
     }),
     defineField({
+      name: "closureDocumentIds",
+      of: [defineArrayMember({ type: "string" })],
+      type: "array",
+    }),
+    defineField({
       name: "issues",
       of: [defineArrayMember({ type: "publicationReadinessIssue" })],
       type: "array",

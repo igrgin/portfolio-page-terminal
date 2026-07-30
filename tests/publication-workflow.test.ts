@@ -22,6 +22,7 @@ import {
   type AtomicPublicationTransaction,
   type PublicationRollbackBundle,
 } from "../apps/studio/publication-release";
+import { publicationRevisionWatchIds } from "../apps/studio/components/publication-readiness";
 import { PublicationWorkflowSummary } from "../apps/studio/components/publication-workflow-controls";
 
 const revision = "a".repeat(64);
@@ -251,18 +252,90 @@ test("rollback capture stores current published versions and asset references on
   );
 });
 
+test("publication mutation watches cover the complete validated reference closure", () => {
+  const report = validatePublicationBatch({
+    assetChecks: [],
+    changedDocumentIds: ["project.platform"],
+    documents: [
+      {
+        _id: "drafts.project.platform",
+        _rev: "project-r8",
+        _type: "project",
+        publishSafe: true,
+        references: [{ _ref: "siteSettings" }],
+        title: { en: "Platform", hr: "Platforma" },
+      },
+    ],
+    factualParityConfirmed: true,
+    limits: {
+      compressedWorkerBytes: 2_000_000,
+      dynamicCpuMilliseconds: 8,
+      staticFileCount: 1_000,
+    },
+    name: "July portfolio refresh",
+    privacyReviewed: true,
+    referenceDocuments: [
+      {
+        _id: "siteSettings",
+        _rev: "settings-r2",
+        _type: "siteSettings",
+      },
+    ],
+  });
+
+  assert.deepEqual(report.closureDocumentIds, [
+    "project.platform",
+    "siteSettings",
+  ]);
+  assert.deepEqual(publicationRevisionWatchIds(report), [
+    "drafts.project.platform",
+    "drafts.siteSettings",
+    "project.platform",
+    "siteSettings",
+  ]);
+});
+
 test("the complete revision publishes in one transaction with exactly one protected-build marker", async () => {
   const operations: unknown[] = [];
   let commitCount = 0;
   let commitOptions: Record<string, unknown> | undefined;
+  const currentRevisions = new Map<string, string>([
+    ["drafts.project.platform", "project-r8"],
+    ["drafts.publicationBatch.july", "batch-r4"],
+    ["drafts.skill.kafka", "skill-r3"],
+    ["project.platform", "project-r7"],
+    ["siteSettings", "settings-r2"],
+  ]);
   const transaction: AtomicPublicationTransaction = {
     commit: async (options) => {
-      commitCount += 1;
       commitOptions = options;
+      for (const operation of operations) {
+        const patch = (
+          operation as
+            { patch?: { id?: unknown; ifRevisionID?: unknown } } | undefined
+        )?.patch;
+        if (
+          patch &&
+          currentRevisions.get(String(patch.id)) !== patch.ifRevisionID
+        ) {
+          throw new Error(`revision conflict for ${String(patch.id)}`);
+        }
+        const created = (
+          operation as { create?: { _id?: unknown } } | undefined
+        )?.create;
+        if (created && currentRevisions.has(String(created._id))) {
+          throw new Error(`${String(created._id)} already exists`);
+        }
+      }
+      commitCount += 1;
       return { transactionId: "sanity-transaction-31" };
     },
     createOrReplace(document) {
       operations.push({ createOrReplace: document });
+      return this;
+    },
+    create(document) {
+      operations.push({ create: document });
       return this;
     },
     delete(documentId) {
@@ -322,6 +395,13 @@ test("the complete revision publishes in one transaction with exactly one protec
     },
     name: "July portfolio refresh",
     privacyReviewed: true,
+    referenceDocuments: [
+      {
+        _id: "siteSettings",
+        _rev: "settings-r2",
+        _type: "siteSettings",
+      },
+    ],
   };
   const atomicRevision = validatePublicationBatch(atomicCandidate).revision;
   const englishReviewed = acknowledgePublicationPreview(
@@ -344,18 +424,39 @@ test("the complete revision publishes in one transaction with exactly one protec
     },
   );
 
-  const result = await publishAtomicPublicationBatch(client, {
-    batchDocument: {
-      _id: "drafts.publicationBatch.july",
-      _rev: "batch-r4",
-      _type: "publicationBatch",
-      name: "July portfolio refresh",
-    },
-    candidate: atomicCandidate,
-    publishedAt: "2026-07-30T12:15:00.000Z",
-    revision: atomicRevision,
-    workflow: ready,
-  });
+  const publicationInput: Parameters<typeof publishAtomicPublicationBatch>[1] =
+    {
+      batchDocument: {
+        _id: "drafts.publicationBatch.july",
+        _rev: "batch-r4",
+        _type: "publicationBatch",
+        name: "July portfolio refresh",
+      },
+      candidate: atomicCandidate,
+      publishedAt: "2026-07-30T12:15:00.000Z",
+      revision: atomicRevision,
+      rollbackBundle: {
+        _id: "publicationRollbackBundle.publicationBatch.july",
+        _type: "publicationRollbackBundle",
+        assetReferences: [],
+        batchId: "publicationBatch.july",
+        candidateRevision: atomicRevision,
+        capturedAt: "2026-07-30T12:10:00.000Z",
+        documents: [
+          {
+            documentId: "project.platform",
+            document: {
+              _id: "project.platform",
+              _rev: "project-r7",
+              _type: "project",
+            },
+          },
+          { documentId: "skill.kafka", document: null },
+        ],
+      },
+      workflow: ready,
+    };
+  const result = await publishAtomicPublicationBatch(client, publicationInput);
 
   assert.equal(commitCount, 1);
   assert.deepEqual(commitOptions, {
@@ -374,10 +475,19 @@ test("the complete revision publishes in one transaction with exactly one protec
   );
   assert.deepEqual(
     replacements.map(({ _id }) => _id),
-    ["project.platform", "skill.kafka", "publicationBatch.july"],
+    ["project.platform"],
+  );
+  const creations = operations.flatMap((operation) =>
+    "create" in (operation as Record<string, unknown>)
+      ? [(operation as { create: Record<string, unknown> }).create]
+      : [],
+  );
+  assert.deepEqual(
+    creations.map(({ _id }) => _id),
+    ["skill.kafka", "publicationBatch.july"],
   );
   assert.equal(
-    replacements.filter(
+    [...replacements, ...creations].filter(
       (document) =>
         typeof (
           document.workflow as
@@ -396,14 +506,60 @@ test("the complete revision publishes in one transaction with exactly one protec
   assert.match(publicationBuildWebhook.filter, /before\(\) == null/);
   assert.match(publicationBuildWebhook.projection, /buildRequestId/);
   assert.equal(publicationBuildWebhook.includeDrafts, false);
+  assert.deepEqual(
+    operations
+      .flatMap((operation) =>
+        "patch" in (operation as Record<string, unknown>)
+          ? [(operation as { patch: Record<string, unknown> }).patch]
+          : [],
+      )
+      .filter(({ id }) => !String(id).startsWith("drafts.")),
+    [
+      {
+        id: "project.platform",
+        ifRevisionID: "project-r7",
+        set: { _publicationLock: atomicRevision },
+      },
+      {
+        id: "siteSettings",
+        ifRevisionID: "settings-r2",
+        set: { _publicationLock: atomicRevision },
+      },
+    ],
+  );
+
+  currentRevisions.set("siteSettings", "settings-r3");
+  await assert.rejects(
+    publishAtomicPublicationBatch(client, {
+      ...publicationInput,
+      publishedAt: "2026-07-30T12:16:00.000Z",
+    }),
+    /revision conflict for siteSettings/,
+  );
+
+  currentRevisions.set("siteSettings", "settings-r2");
+  currentRevisions.set("project.platform", "project-r8");
+  await assert.rejects(
+    publishAtomicPublicationBatch(client, {
+      ...publicationInput,
+      publishedAt: "2026-07-30T12:16:00.000Z",
+    }),
+    /revision conflict for project.platform/,
+  );
+
+  currentRevisions.set("project.platform", "project-r7");
+  currentRevisions.set("skill.kafka", "skill-published-r1");
+  await assert.rejects(
+    publishAtomicPublicationBatch(client, {
+      ...publicationInput,
+      publishedAt: "2026-07-30T12:16:00.000Z",
+    }),
+    /skill.kafka already exists/,
+  );
 
   await assert.rejects(
     publishAtomicPublicationBatch(client, {
-      batchDocument: {
-        _id: "drafts.publicationBatch.july",
-        _rev: "batch-r4",
-        _type: "publicationBatch",
-      },
+      ...publicationInput,
       candidate: {
         ...atomicCandidate,
         changedDocumentIds: ["project.platform", "skill.kafka"],
@@ -422,8 +578,6 @@ test("the complete revision publishes in one transaction with exactly one protec
         name: "Edited after review",
       },
       publishedAt: "2026-07-30T12:16:00.000Z",
-      revision: atomicRevision,
-      workflow: ready,
     }),
     /exact validated batch revision/,
   );
