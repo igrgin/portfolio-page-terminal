@@ -255,6 +255,56 @@ export const publicationDeployment = defineType({
   type: "object",
 });
 
+export const publicationRecovery = defineType({
+  fields: [
+    defineField({
+      name: "kind",
+      options: {
+        list: [
+          { title: "Failed candidate", value: "failedCandidate" },
+          { title: "Post-release rollback", value: "postRelease" },
+        ],
+      },
+      type: "string",
+    }),
+    defineField({
+      name: "status",
+      options: {
+        list: [
+          {
+            title: "Deployment reactivation required",
+            value: "deploymentReactivationRequired",
+          },
+          {
+            title: "Content restore required",
+            value: "contentRestoreRequired",
+          },
+          {
+            title: "Confirming build pending",
+            value: "confirmingBuildPending",
+          },
+          {
+            title: "Confirming build failed",
+            value: "confirmingBuildFailed",
+          },
+          { title: "Complete", value: "complete" },
+        ],
+      },
+      type: "string",
+    }),
+    defineField({ name: "previousDeploymentId", type: "string" }),
+    defineField({ name: "previousRevision", type: "string" }),
+    defineField({ name: "startedAt", type: "datetime" }),
+    defineField({ name: "reactivatedAt", type: "datetime" }),
+    defineField({ name: "restoredAt", type: "datetime" }),
+    defineField({ name: "buildRequestId", type: "string" }),
+    defineField({ name: "completedAt", type: "datetime" }),
+  ],
+  name: "publicationRecovery",
+  title: "Publication recovery",
+  type: "object",
+});
+
 export const publicationWorkflow = defineType({
   fields: [
     defineField({ name: "candidateRevision", type: "string" }),
@@ -266,6 +316,7 @@ export const publicationWorkflow = defineType({
     defineField({ name: "rollback", type: "publicationRollbackEvidence" }),
     defineField({ name: "publication", type: "publicationRecord" }),
     defineField({ name: "deployment", type: "publicationDeployment" }),
+    defineField({ name: "recovery", type: "publicationRecovery" }),
   ],
   name: "publicationWorkflow",
   title: "Atomic publication workflow",

@@ -23,6 +23,25 @@ export type PublicationDeployment = Readonly<{
   updatedAt: string;
 }>;
 
+export type PublicationRecoveryStatus =
+  | "deploymentReactivationRequired"
+  | "contentRestoreRequired"
+  | "confirmingBuildPending"
+  | "confirmingBuildFailed"
+  | "complete";
+
+export type PublicationRecovery = Readonly<{
+  buildRequestId?: string;
+  completedAt?: string;
+  kind: "failedCandidate" | "postRelease";
+  previousDeploymentId: string;
+  previousRevision: string;
+  reactivatedAt?: string;
+  restoredAt?: string;
+  startedAt: string;
+  status: PublicationRecoveryStatus;
+}>;
+
 export type PublicationWorkflowState = Readonly<{
   acknowledgements: Readonly<
     Partial<Record<Locale, PublicationRevisionEvidence>>
@@ -30,6 +49,7 @@ export type PublicationWorkflowState = Readonly<{
   candidateRevision: string;
   deployment: PublicationDeployment | null;
   publication: PublicationRecord | null;
+  recovery: PublicationRecovery | null;
   rollback: PublicationRollbackEvidence | null;
   validationRevision: string | null;
 }>;
@@ -49,6 +69,7 @@ export function validatedPublicationWorkflow(
     candidateRevision: revision,
     deployment: null,
     publication: null,
+    recovery: null,
     rollback: null,
     validationRevision: revision,
   };
@@ -182,19 +203,199 @@ export function recordPublicationBuildOutcome(
   };
 }
 
+type BeginPublicationRecoveryInput = Readonly<{
+  previousDeploymentId: string;
+  previousRevision: string;
+  startedAt: string;
+}>;
+
+function requireRecoveryInput(input: BeginPublicationRecoveryInput): void {
+  if (
+    !input.previousDeploymentId.trim() ||
+    !input.previousRevision.trim() ||
+    !input.startedAt.trim()
+  ) {
+    throw new Error(
+      "Recovery requires the previous deployment, revision, and start time.",
+    );
+  }
+}
+
+export function beginFailedCandidateRecovery(
+  state: PublicationWorkflowState,
+  input: BeginPublicationRecoveryInput,
+): PublicationWorkflowState {
+  requireRecoveryInput(input);
+  if (
+    state.deployment?.status !== "buildFailed" ||
+    state.deployment.revision !== state.candidateRevision ||
+    state.publication?.revision !== state.candidateRevision
+  ) {
+    throw new Error(
+      "Failed-candidate recovery requires the matching failed publication build.",
+    );
+  }
+  if (!state.rollback || state.rollback.revision !== state.candidateRevision) {
+    throw new Error(
+      "Failed-candidate recovery requires the matching private rollback bundle.",
+    );
+  }
+
+  return {
+    ...state,
+    recovery: {
+      ...input,
+      kind: "failedCandidate",
+      status: "contentRestoreRequired",
+    },
+  };
+}
+
+export function beginPostReleaseRollback(
+  state: PublicationWorkflowState,
+  input: BeginPublicationRecoveryInput,
+): PublicationWorkflowState {
+  requireRecoveryInput(input);
+  if (
+    state.deployment?.status !== "live" ||
+    state.deployment.revision !== state.candidateRevision ||
+    state.publication?.revision !== state.candidateRevision
+  ) {
+    throw new Error(
+      "Post-release rollback requires the matching live publication.",
+    );
+  }
+  if (!state.rollback || state.rollback.revision !== state.candidateRevision) {
+    throw new Error(
+      "Post-release rollback requires the matching private rollback bundle.",
+    );
+  }
+
+  return {
+    ...state,
+    recovery: {
+      ...input,
+      kind: "postRelease",
+      status: "deploymentReactivationRequired",
+    },
+  };
+}
+
+export function confirmPreviousDeploymentReactivated(
+  state: PublicationWorkflowState,
+  reactivatedAt: string,
+): PublicationWorkflowState {
+  const recovery = state.recovery;
+  if (
+    !reactivatedAt.trim() ||
+    recovery?.kind !== "postRelease" ||
+    recovery.status !== "deploymentReactivationRequired"
+  ) {
+    throw new Error(
+      "Only a post-release rollback awaiting deployment reactivation can be confirmed.",
+    );
+  }
+
+  return {
+    ...state,
+    deployment: {
+      revision: recovery.previousRevision,
+      status: "live",
+      updatedAt: reactivatedAt,
+    },
+    recovery: {
+      ...recovery,
+      reactivatedAt,
+      status: "contentRestoreRequired",
+    },
+  };
+}
+
+export function recordPublicationContentRestored(
+  state: PublicationWorkflowState,
+  evidence: Readonly<{ buildRequestId: string; restoredAt: string }>,
+): PublicationWorkflowState {
+  const recovery = state.recovery;
+  if (recovery?.status === "deploymentReactivationRequired") {
+    throw new Error(
+      "Post-release rollback must reactivate the previous successful deployment before restoring Sanity.",
+    );
+  }
+  if (
+    recovery?.status !== "contentRestoreRequired" ||
+    !evidence.buildRequestId.trim() ||
+    !evidence.restoredAt.trim()
+  ) {
+    throw new Error(
+      "Content restoration requires an active recovery and confirming build request.",
+    );
+  }
+
+  return {
+    ...state,
+    recovery: {
+      ...recovery,
+      ...evidence,
+      status: "confirmingBuildPending",
+    },
+  };
+}
+
+export function recordPublicationRecoveryBuildOutcome(
+  state: PublicationWorkflowState,
+  outcome: "buildFailed" | "live",
+  completedAt: string,
+): PublicationWorkflowState {
+  const recovery = state.recovery;
+  if (
+    recovery?.status !== "confirmingBuildPending" ||
+    !completedAt.trim()
+  ) {
+    throw new Error(
+      "A recovery build outcome requires the matching pending confirming build.",
+    );
+  }
+
+  return {
+    ...state,
+    ...(outcome === "live"
+      ? {
+          deployment: {
+            revision: recovery.previousRevision,
+            status: "live" as const,
+            updatedAt: completedAt,
+          },
+        }
+      : {}),
+    recovery: {
+      ...recovery,
+      completedAt,
+      status: outcome === "live" ? "complete" : "confirmingBuildFailed",
+    },
+  };
+}
+
 export function publicationWorkflowVisibility(
   state: PublicationWorkflowState,
   revision: string,
 ): Readonly<{
   portfolio: "buildFailed" | "buildPending" | "live" | "notLive";
-  sanity: "notPublished" | "published";
+  sanity: "notPublished" | "published" | "restored";
 }> {
+  const restoredRevision =
+    state.recovery?.previousRevision === revision &&
+    (state.recovery.status === "confirmingBuildPending" ||
+      state.recovery.status === "confirmingBuildFailed" ||
+      state.recovery.status === "complete");
   return {
     portfolio:
       state.deployment?.revision === revision
         ? state.deployment.status
         : "notLive",
-    sanity:
-      state.publication?.revision === revision ? "published" : "notPublished",
+    sanity: restoredRevision
+      ? "restored"
+      : state.publication?.revision === revision
+        ? "published"
+        : "notPublished",
   };
 }

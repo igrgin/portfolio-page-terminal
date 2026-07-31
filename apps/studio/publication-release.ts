@@ -1,6 +1,10 @@
 import {
+  beginFailedCandidateRecovery,
+  beginPostReleaseRollback,
+  confirmPreviousDeploymentReactivated,
   publishPublicationWorkflow,
   publishedDocumentId,
+  recordPublicationContentRestored,
   validatePublicationBatch,
   type PublicationBatchCandidate,
   type PublicationRollbackEvidence,
@@ -54,6 +58,13 @@ export type AtomicPublicationClient = Readonly<{
   transaction: () => AtomicPublicationTransaction;
 }>;
 
+export type PublicationDeploymentRollbackClient = Readonly<{
+  reactivate: (input: Readonly<{
+    deploymentId: string;
+    revision: string;
+  }>) => Promise<void>;
+}>;
+
 const PUBLISHED_DOCUMENTS_QUERY = `*[
   _id in $documentIds &&
   !(_id in path("drafts.**"))
@@ -62,18 +73,32 @@ const PUBLISHED_DOCUMENTS_QUERY = `*[
 export const publicationBuildWebhook = {
   apiVersion: "v2025-02-19",
   filter: `_type == "publicationBatch" &&
-    defined(after().workflow.publication.buildRequestId) &&
+    defined(coalesce(
+      after().workflow.recovery.buildRequestId,
+      after().workflow.publication.buildRequestId
+    )) &&
     (
       before() == null ||
-      before().workflow.publication.buildRequestId !=
+      coalesce(
+        before().workflow.recovery.buildRequestId,
+        before().workflow.publication.buildRequestId
+      ) != coalesce(
+        after().workflow.recovery.buildRequestId,
         after().workflow.publication.buildRequestId
+      )
     )`,
   includeDrafts: false,
   on: ["create", "update"],
   projection: `{
     "batchId": after()._id,
-    "buildRequestId": after().workflow.publication.buildRequestId,
-    "revision": after().workflow.publication.revision
+    "buildRequestId": coalesce(
+      after().workflow.recovery.buildRequestId,
+      after().workflow.publication.buildRequestId
+    ),
+    "revision": coalesce(
+      after().workflow.recovery.previousRevision,
+      after().workflow.publication.revision
+    )
   }`,
 } as const;
 
@@ -143,6 +168,46 @@ export function publicationWorkflowFromValue(
           updatedAt: stringValue(deploymentValue.updatedAt)!,
         }
       : null;
+  const recoveryValue = record(workflow.recovery);
+  const recoveryKind = stringValue(recoveryValue?.kind);
+  const recoveryStatus = stringValue(recoveryValue?.status);
+  const previousDeploymentId = stringValue(
+    recoveryValue?.previousDeploymentId,
+  );
+  const previousRevision = stringValue(recoveryValue?.previousRevision);
+  const startedAt = stringValue(recoveryValue?.startedAt);
+  const recovery: PublicationWorkflowState["recovery"] =
+    recoveryValue &&
+    (recoveryKind === "failedCandidate" ||
+      recoveryKind === "postRelease") &&
+    (recoveryStatus === "deploymentReactivationRequired" ||
+      recoveryStatus === "contentRestoreRequired" ||
+      recoveryStatus === "confirmingBuildPending" ||
+      recoveryStatus === "confirmingBuildFailed" ||
+      recoveryStatus === "complete") &&
+    previousDeploymentId &&
+    previousRevision &&
+    startedAt
+      ? {
+          ...(stringValue(recoveryValue.buildRequestId)
+            ? { buildRequestId: stringValue(recoveryValue.buildRequestId)! }
+            : {}),
+          ...(stringValue(recoveryValue.completedAt)
+            ? { completedAt: stringValue(recoveryValue.completedAt)! }
+            : {}),
+          kind: recoveryKind,
+          previousDeploymentId,
+          previousRevision,
+          ...(stringValue(recoveryValue.reactivatedAt)
+            ? { reactivatedAt: stringValue(recoveryValue.reactivatedAt)! }
+            : {}),
+          ...(stringValue(recoveryValue.restoredAt)
+            ? { restoredAt: stringValue(recoveryValue.restoredAt)! }
+            : {}),
+          startedAt,
+          status: recoveryStatus,
+        }
+      : null;
 
   return {
     acknowledgements: {
@@ -156,6 +221,7 @@ export function publicationWorkflowFromValue(
     candidateRevision,
     deployment,
     publication,
+    recovery,
     rollback,
     validationRevision: stringValue(workflow.validationRevision),
   };
@@ -196,6 +262,14 @@ export function serializePublicationWorkflow(
           publication: {
             _type: "publicationRecord",
             ...workflow.publication,
+          },
+        }
+      : {}),
+    ...(workflow.recovery
+      ? {
+          recovery: {
+            _type: "publicationRecovery",
+            ...workflow.recovery,
           },
         }
       : {}),
@@ -350,6 +424,29 @@ function publishedSnapshot(draft: UnknownRecord): UnknownRecord {
   return {
     ...content,
     _id: publishedDocumentId(draftId),
+    _type: type,
+  };
+}
+
+function restorablePublishedSnapshot(document: UnknownRecord): UnknownRecord {
+  const { _createdAt, _rev, _system, _updatedAt, ...content } = document;
+  void _createdAt;
+  void _rev;
+  void _system;
+  void _updatedAt;
+  const documentId =
+    typeof document._id === "string"
+      ? publishedDocumentId(document._id)
+      : "";
+  const type = typeof document._type === "string" ? document._type : "";
+  if (!documentId || documentId !== document._id || !type) {
+    throw new Error(
+      "Rollback pre-images must be typed published Sanity documents.",
+    );
+  }
+  return {
+    ...content,
+    _id: documentId,
     _type: type,
   };
 }
@@ -513,4 +610,181 @@ export async function publishAtomicPublicationBatch(
   });
 
   return { workflow };
+}
+
+export async function restorePublicationRollbackBundle(
+  client: AtomicPublicationClient,
+  input: Readonly<{
+    batchDocument: UnknownRecord;
+    currentDocuments: readonly UnknownRecord[];
+    restoredAt: string;
+    rollbackBundle: PublicationRollbackBundle;
+    workflow: PublicationWorkflowState;
+  }>,
+) {
+  const recovery = input.workflow.recovery;
+  const rollback = input.workflow.rollback;
+  const batchId =
+    typeof input.batchDocument._id === "string"
+      ? publishedDocumentId(input.batchDocument._id)
+      : "";
+  if (
+    !recovery ||
+    recovery.status !== "contentRestoreRequired" ||
+    !rollback ||
+    input.rollbackBundle._id !== rollback.bundleId ||
+    input.rollbackBundle.batchId !== batchId ||
+    input.rollbackBundle.candidateRevision !==
+      input.workflow.candidateRevision ||
+    input.rollbackBundle.candidateRevision !== rollback.revision
+  ) {
+    throw new Error(
+      "Publication recovery requires the exact active rollback bundle.",
+    );
+  }
+  if (!input.restoredAt.trim()) {
+    throw new Error("Publication recovery requires a restore timestamp.");
+  }
+
+  const rollbackDocuments = new Map(
+    input.rollbackBundle.documents.map((entry) => [
+      publishedDocumentId(entry.documentId),
+      entry.document,
+    ]),
+  );
+  const currentDocuments = new Map(
+    input.currentDocuments.map((document) => [
+      publishedDocumentId(
+        typeof document._id === "string" ? document._id : "",
+      ),
+      document,
+    ]),
+  );
+  if (
+    rollbackDocuments.size !== input.rollbackBundle.documents.length ||
+    currentDocuments.size !== rollbackDocuments.size ||
+    [...rollbackDocuments].some(
+      ([documentId]) => !currentDocuments.has(documentId),
+    )
+  ) {
+    throw new Error(
+      "Publication recovery requires every affected current document exactly once.",
+    );
+  }
+
+  const buildRequestId = `recovery:${batchId}:${input.workflow.candidateRevision}:${input.restoredAt}`;
+  const workflow = recordPublicationContentRestored(input.workflow, {
+    buildRequestId,
+    restoredAt: input.restoredAt,
+  });
+  const transaction = client
+    .transaction()
+    .transactionId(
+      `recovery-${batchId.replace(/[^A-Za-z0-9_-]/gu, "-")}-${input.workflow.candidateRevision.slice(0, 20)}`,
+    );
+
+  for (const [documentId, previousDocument] of rollbackDocuments) {
+    const currentDocument = currentDocuments.get(documentId);
+    if (!currentDocument) {
+      throw new Error(
+        `Publication recovery is missing current document ${documentId}.`,
+      );
+    }
+    revisionLockedPublishedDocument(transaction, currentDocument);
+    if (previousDocument === null) {
+      transaction.delete(documentId);
+      continue;
+    }
+    if (
+      publishedDocumentId(
+        typeof previousDocument._id === "string"
+          ? previousDocument._id
+          : "",
+      ) !== documentId
+    ) {
+      throw new Error(
+        `The private rollback pre-image does not match ${documentId}.`,
+      );
+    }
+    transaction.createOrReplace(
+      restorablePublishedSnapshot(previousDocument),
+    );
+  }
+
+  revisionLockedPublishedDocument(transaction, input.batchDocument);
+  transaction.createOrReplace({
+    ...restorablePublishedSnapshot(input.batchDocument),
+    workflow: serializePublicationWorkflow(workflow),
+  });
+  await transaction.commit({
+    tag: "portfolio.publication-recovery",
+    visibility: "sync",
+  });
+
+  return { workflow };
+}
+
+export async function recoverPostReleasePublication(
+  deploymentClient: PublicationDeploymentRollbackClient,
+  contentClient: AtomicPublicationClient,
+  input: Readonly<{
+    batchDocument: UnknownRecord;
+    currentDocuments: readonly UnknownRecord[];
+    previousDeploymentId: string;
+    previousRevision: string;
+    reactivatedAt: string;
+    restoredAt: string;
+    rollbackBundle: PublicationRollbackBundle;
+    startedAt: string;
+    workflow: PublicationWorkflowState;
+  }>,
+) {
+  const recovery = beginPostReleaseRollback(input.workflow, {
+    previousDeploymentId: input.previousDeploymentId,
+    previousRevision: input.previousRevision,
+    startedAt: input.startedAt,
+  });
+  await deploymentClient.reactivate({
+    deploymentId: input.previousDeploymentId,
+    revision: input.previousRevision,
+  });
+  const reactivated = confirmPreviousDeploymentReactivated(
+    recovery,
+    input.reactivatedAt,
+  );
+
+  return restorePublicationRollbackBundle(contentClient, {
+    batchDocument: input.batchDocument,
+    currentDocuments: input.currentDocuments,
+    restoredAt: input.restoredAt,
+    rollbackBundle: input.rollbackBundle,
+    workflow: reactivated,
+  });
+}
+
+export async function recoverFailedCandidatePublication(
+  contentClient: AtomicPublicationClient,
+  input: Readonly<{
+    batchDocument: UnknownRecord;
+    currentDocuments: readonly UnknownRecord[];
+    previousDeploymentId: string;
+    previousRevision: string;
+    restoredAt: string;
+    rollbackBundle: PublicationRollbackBundle;
+    startedAt: string;
+    workflow: PublicationWorkflowState;
+  }>,
+) {
+  const recovery = beginFailedCandidateRecovery(input.workflow, {
+    previousDeploymentId: input.previousDeploymentId,
+    previousRevision: input.previousRevision,
+    startedAt: input.startedAt,
+  });
+  return restorePublicationRollbackBundle(contentClient, {
+    batchDocument: input.batchDocument,
+    currentDocuments: input.currentDocuments,
+    restoredAt: input.restoredAt,
+    rollbackBundle: input.rollbackBundle,
+    workflow: recovery,
+  });
 }

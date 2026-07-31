@@ -5,11 +5,16 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   acknowledgePublicationPreview,
+  beginFailedCandidateRecovery,
+  beginPostReleaseRollback,
   capturePublicationRollback,
+  confirmPreviousDeploymentReactivated,
   publicationWorkflowReadiness,
   publicationWorkflowVisibility,
   publishPublicationWorkflow,
   recordPublicationBuildOutcome,
+  recordPublicationContentRestored,
+  recordPublicationRecoveryBuildOutcome,
   invalidatePublicationWorkflow,
   validatePublicationBatch,
   validatedPublicationWorkflow,
@@ -17,8 +22,12 @@ import {
 } from "../packages/content/src";
 import {
   capturePublicationRollbackBundle,
+  publicationWorkflowFromValue,
   publishAtomicPublicationBatch,
   publicationBuildWebhook,
+  recoverPostReleasePublication,
+  restorePublicationRollbackBundle,
+  serializePublicationWorkflow,
   type AtomicPublicationTransaction,
   type PublicationRollbackBundle,
 } from "../apps/studio/publication-release";
@@ -30,6 +39,7 @@ import { PublicationWorkflowSummary } from "../apps/studio/components/publicatio
 
 const revision = "a".repeat(64);
 const editedRevision = "b".repeat(64);
+const previousRevision = "c".repeat(64);
 
 test("English and Croatian preview acknowledgements are revision-bound and every edit clears both", () => {
   const validated = validatedPublicationWorkflow(revision);
@@ -165,6 +175,157 @@ test("published in Sanity remains visibly distinct from live on the portfolio", 
   );
 });
 
+test("failed candidates restore content before a confirming build while the previous deployment stays protected", () => {
+  const ready = capturePublicationRollback(
+    acknowledgePublicationPreview(
+      acknowledgePublicationPreview(
+        validatedPublicationWorkflow(revision),
+        "en",
+        revision,
+        "2026-07-31T08:00:00.000Z",
+      ),
+      "hr",
+      revision,
+      "2026-07-31T08:05:00.000Z",
+    ),
+    {
+      bundleId: "publicationRollbackBundle.publicationBatch.july",
+      capturedAt: "2026-07-31T08:10:00.000Z",
+      revision,
+    },
+  );
+  const published = publishPublicationWorkflow(ready, {
+    buildRequestId: `publication-batch-32:${revision}`,
+    publishedAt: "2026-07-31T08:15:00.000Z",
+    revision,
+  });
+  const failed = recordPublicationBuildOutcome(
+    published,
+    revision,
+    "buildFailed",
+    "2026-07-31T08:20:00.000Z",
+  );
+
+  const recovering = beginFailedCandidateRecovery(failed, {
+    previousDeploymentId: "deployment-content-r7",
+    previousRevision,
+    startedAt: "2026-07-31T08:21:00.000Z",
+  });
+
+  assert.equal(recovering.recovery?.status, "contentRestoreRequired");
+  assert.equal(recovering.deployment?.status, "buildFailed");
+
+  const restored = recordPublicationContentRestored(recovering, {
+    buildRequestId: `recovery-publication-batch-32:${revision}`,
+    restoredAt: "2026-07-31T08:22:00.000Z",
+  });
+  assert.equal(restored.recovery?.status, "confirmingBuildPending");
+  assert.equal(restored.deployment?.status, "buildFailed");
+
+  const aligned = recordPublicationRecoveryBuildOutcome(
+    restored,
+    "live",
+    "2026-07-31T08:30:00.000Z",
+  );
+  assert.equal(aligned.recovery?.status, "complete");
+  assert.deepEqual(aligned.deployment, {
+    revision: previousRevision,
+    status: "live",
+    updatedAt: "2026-07-31T08:30:00.000Z",
+  });
+  assert.deepEqual(
+    publicationWorkflowVisibility(aligned, previousRevision),
+    {
+      portfolio: "live",
+      sanity: "restored",
+    },
+  );
+});
+
+test("post-release rollback cannot restore Sanity before the previous deployment is reactivated", () => {
+  const live = {
+    ...validatedPublicationWorkflow(revision),
+    deployment: {
+      revision,
+      status: "live" as const,
+      updatedAt: "2026-07-31T09:00:00.000Z",
+    },
+    publication: {
+      buildRequestId: `publication-batch-32:${revision}`,
+      publishedAt: "2026-07-31T08:45:00.000Z",
+      revision,
+    },
+    rollback: {
+      bundleId: "publicationRollbackBundle.publicationBatch.july",
+      capturedAt: "2026-07-31T08:40:00.000Z",
+      revision,
+    },
+  };
+  const recovery = beginPostReleaseRollback(live, {
+    previousDeploymentId: "deployment-content-r7",
+    previousRevision,
+    startedAt: "2026-07-31T09:05:00.000Z",
+  });
+
+  assert.equal(recovery.recovery?.status, "deploymentReactivationRequired");
+  assert.throws(
+    () =>
+      recordPublicationContentRestored(recovery, {
+        buildRequestId: `recovery-publication-batch-32:${revision}`,
+        restoredAt: "2026-07-31T09:06:00.000Z",
+      }),
+    /reactivate the previous successful deployment/i,
+  );
+
+  const reactivated = confirmPreviousDeploymentReactivated(
+    recovery,
+    "2026-07-31T09:07:00.000Z",
+  );
+  assert.equal(reactivated.recovery?.status, "contentRestoreRequired");
+  assert.deepEqual(reactivated.deployment, {
+    revision: previousRevision,
+    status: "live",
+    updatedAt: "2026-07-31T09:07:00.000Z",
+  });
+});
+
+test("recovery progress survives the Studio workflow serialization boundary", () => {
+  const recovering = beginPostReleaseRollback(
+    {
+      ...validatedPublicationWorkflow(revision),
+      deployment: {
+        revision,
+        status: "live",
+        updatedAt: "2026-07-31T09:00:00.000Z",
+      },
+      publication: {
+        buildRequestId: `publication-batch-32:${revision}`,
+        publishedAt: "2026-07-31T08:45:00.000Z",
+        revision,
+      },
+      rollback: {
+        bundleId: "publicationRollbackBundle.publicationBatch.july",
+        capturedAt: "2026-07-31T08:40:00.000Z",
+        revision,
+      },
+    },
+    {
+      previousDeploymentId: "deployment-content-r7",
+      previousRevision,
+      startedAt: "2026-07-31T09:05:00.000Z",
+    },
+  );
+  const reactivated = confirmPreviousDeploymentReactivated(
+    recovering,
+    "2026-07-31T09:07:00.000Z",
+  );
+
+  assert.deepEqual(
+    publicationWorkflowFromValue(serializePublicationWorkflow(reactivated)),
+    reactivated,
+  );
+});
+
 test("rollback capture stores current published versions and asset references only in a private dataset", async () => {
   const stored: PublicationRollbackBundle[] = [];
   const contentClient = {
@@ -253,6 +414,282 @@ test("rollback capture stores current published versions and asset references on
     }),
     /separate private dataset/,
   );
+});
+
+test("rollback restores every affected Sanity document in one revision-guarded transaction and requests one confirming build", async () => {
+  const operations: unknown[] = [];
+  let commitCount = 0;
+  let commitOptions: Record<string, unknown> | undefined;
+  const transaction: AtomicPublicationTransaction = {
+    commit: async (options) => {
+      commitCount += 1;
+      commitOptions = options;
+      return { transactionId: "sanity-recovery-32" };
+    },
+    create(document) {
+      operations.push({ create: document });
+      return this;
+    },
+    createOrReplace(document) {
+      operations.push({ createOrReplace: document });
+      return this;
+    },
+    delete(documentId) {
+      operations.push({ delete: documentId });
+      return this;
+    },
+    patch(documentId, buildPatch) {
+      const patch: Record<string, unknown> = { id: documentId };
+      buildPatch({
+        ifRevisionId(expectedRevision) {
+          patch.ifRevisionID = expectedRevision;
+          return this;
+        },
+      });
+      operations.push({ patch });
+      return this;
+    },
+    transactionId(transactionId) {
+      operations.push({ transactionId });
+      return this;
+    },
+  };
+  const failed = beginFailedCandidateRecovery(
+    {
+      ...validatedPublicationWorkflow(revision),
+      deployment: {
+        revision,
+        status: "buildFailed",
+        updatedAt: "2026-07-31T10:00:00.000Z",
+      },
+      publication: {
+        buildRequestId: `publication-batch-32:${revision}`,
+        publishedAt: "2026-07-31T09:50:00.000Z",
+        revision,
+      },
+      rollback: {
+        bundleId: "publicationRollbackBundle.publicationBatch.july",
+        capturedAt: "2026-07-31T09:45:00.000Z",
+        revision,
+      },
+    },
+    {
+      previousDeploymentId: "deployment-content-r7",
+      previousRevision,
+      startedAt: "2026-07-31T10:01:00.000Z",
+    },
+  );
+
+  const result = await restorePublicationRollbackBundle(
+    { transaction: () => transaction },
+    {
+      batchDocument: {
+        _id: "publicationBatch.july",
+        _rev: "batch-published-r5",
+        _type: "publicationBatch",
+        name: "July portfolio refresh",
+        workflow: serializePublicationWorkflow(failed),
+      },
+      currentDocuments: [
+        {
+          _id: "project.platform",
+          _rev: "project-r8",
+          _type: "project",
+          title: "Candidate",
+        },
+        {
+          _id: "skill.kafka",
+          _rev: "skill-r3",
+          _type: "skill",
+        },
+      ],
+      restoredAt: "2026-07-31T10:02:00.000Z",
+      rollbackBundle: {
+        _id: "publicationRollbackBundle.publicationBatch.july",
+        _type: "publicationRollbackBundle",
+        assetReferences: [],
+        batchId: "publicationBatch.july",
+        candidateRevision: revision,
+        capturedAt: "2026-07-31T09:45:00.000Z",
+        documents: [
+          {
+            document: {
+              _createdAt: "2026-06-01T00:00:00.000Z",
+              _id: "project.platform",
+              _rev: "project-r7",
+              _type: "project",
+              _updatedAt: "2026-07-01T00:00:00.000Z",
+              title: "Previous",
+            },
+            documentId: "project.platform",
+          },
+          { document: null, documentId: "skill.kafka" },
+        ],
+      },
+      workflow: failed,
+    },
+  );
+
+  assert.equal(commitCount, 1);
+  assert.deepEqual(commitOptions, {
+    tag: "portfolio.publication-recovery",
+    visibility: "sync",
+  });
+  assert.equal(result.workflow.recovery?.status, "confirmingBuildPending");
+  assert.deepEqual(
+    operations.flatMap((operation) =>
+      "patch" in (operation as Record<string, unknown>)
+        ? [(operation as { patch: Record<string, unknown> }).patch]
+        : [],
+    ),
+    [
+      { id: "project.platform", ifRevisionID: "project-r8" },
+      { id: "skill.kafka", ifRevisionID: "skill-r3" },
+      { id: "publicationBatch.july", ifRevisionID: "batch-published-r5" },
+    ],
+  );
+  assert.deepEqual(
+    operations.flatMap((operation) =>
+      "createOrReplace" in (operation as Record<string, unknown>)
+        ? [
+            (operation as { createOrReplace: Record<string, unknown> })
+              .createOrReplace._id,
+          ]
+        : [],
+    ),
+    ["project.platform", "publicationBatch.july"],
+  );
+  assert.deepEqual(
+    operations.flatMap((operation) =>
+      "delete" in (operation as Record<string, unknown>)
+        ? [(operation as { delete: string }).delete]
+        : [],
+    ),
+    ["skill.kafka"],
+  );
+  assert.match(publicationBuildWebhook.filter, /recovery\.buildRequestId/);
+  assert.match(publicationBuildWebhook.projection, /recovery\.buildRequestId/);
+});
+
+test("post-release recovery reactivates the previous deployment before mutating Sanity", async () => {
+  const events: string[] = [];
+  const transaction: AtomicPublicationTransaction = {
+    commit: async () => {
+      events.push("restore-sanity");
+      return {};
+    },
+    create() {
+      return this;
+    },
+    createOrReplace() {
+      return this;
+    },
+    delete() {
+      return this;
+    },
+    patch(_documentId, buildPatch) {
+      buildPatch({
+        ifRevisionId() {
+          return this;
+        },
+      });
+      return this;
+    },
+    transactionId() {
+      return this;
+    },
+  };
+  const live = {
+    ...validatedPublicationWorkflow(revision),
+    deployment: {
+      revision,
+      status: "live" as const,
+      updatedAt: "2026-07-31T11:00:00.000Z",
+    },
+    publication: {
+      buildRequestId: `publication-batch-32:${revision}`,
+      publishedAt: "2026-07-31T10:50:00.000Z",
+      revision,
+    },
+    rollback: {
+      bundleId: "publicationRollbackBundle.publicationBatch.july",
+      capturedAt: "2026-07-31T10:45:00.000Z",
+      revision,
+    },
+  };
+  const recoveryInput = {
+    batchDocument: {
+      _id: "publicationBatch.july",
+      _rev: "batch-published-r5",
+      _type: "publicationBatch",
+    },
+    currentDocuments: [
+      {
+        _id: "project.platform",
+        _rev: "project-r8",
+        _type: "project",
+      },
+    ],
+    previousDeploymentId: "deployment-content-r7",
+    previousRevision,
+    reactivatedAt: "2026-07-31T11:02:00.000Z",
+    restoredAt: "2026-07-31T11:03:00.000Z",
+    rollbackBundle: {
+      _id: "publicationRollbackBundle.publicationBatch.july",
+      _type: "publicationRollbackBundle" as const,
+      assetReferences: [],
+      batchId: "publicationBatch.july",
+      candidateRevision: revision,
+      capturedAt: "2026-07-31T10:45:00.000Z",
+      documents: [
+        {
+          document: {
+            _id: "project.platform",
+            _rev: "project-r7",
+            _type: "project",
+          },
+          documentId: "project.platform",
+        },
+      ],
+    },
+    startedAt: "2026-07-31T11:01:00.000Z",
+    workflow: live,
+  };
+
+  await recoverPostReleasePublication(
+    {
+      reactivate: async ({ deploymentId }) => {
+        events.push(`reactivate-${deploymentId}`);
+      },
+    },
+    { transaction: () => transaction },
+    recoveryInput,
+  );
+
+  assert.deepEqual(events, [
+    "reactivate-deployment-content-r7",
+    "restore-sanity",
+  ]);
+
+  let transactionCreated = false;
+  await assert.rejects(
+    recoverPostReleasePublication(
+      {
+        reactivate: async () => {
+          throw new Error("hosting rollback failed");
+        },
+      },
+      {
+        transaction: () => {
+          transactionCreated = true;
+          return transaction;
+        },
+      },
+      recoveryInput,
+    ),
+    /hosting rollback failed/,
+  );
+  assert.equal(transactionCreated, false);
 });
 
 test("publication mutation watches cover the complete validated reference closure", () => {

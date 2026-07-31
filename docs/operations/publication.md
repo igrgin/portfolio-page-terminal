@@ -33,11 +33,19 @@ Use this filter:
 
 ```groq
 _type == "publicationBatch" &&
-  defined(after().workflow.publication.buildRequestId) &&
+  defined(coalesce(
+    after().workflow.recovery.buildRequestId,
+    after().workflow.publication.buildRequestId
+  )) &&
   (
     before() == null ||
-    before().workflow.publication.buildRequestId !=
+    coalesce(
+      before().workflow.recovery.buildRequestId,
+      before().workflow.publication.buildRequestId
+    ) != coalesce(
+      after().workflow.recovery.buildRequestId,
       after().workflow.publication.buildRequestId
+    )
   )
 ```
 
@@ -46,16 +54,23 @@ Use this projection:
 ```groq
 {
   "batchId": after()._id,
-  "buildRequestId": after().workflow.publication.buildRequestId,
-  "revision": after().workflow.publication.revision
+  "buildRequestId": coalesce(
+    after().workflow.recovery.buildRequestId,
+    after().workflow.publication.buildRequestId
+  ),
+  "revision": coalesce(
+    after().workflow.recovery.previousRevision,
+    after().workflow.publication.revision
+  )
 }
 ```
 
 The atomic publication transaction creates or updates exactly one published
 `publicationBatch` document with a new build request ID. The filter ignores all
-content document mutations and later deployment-state updates. The receiver's
-idempotency gate converts Sanity's at-least-once delivery into one queued build
-for that request.
+content document mutations and deployment-state-only updates. A recovery
+transaction changes the separate recovery build request ID on that same batch.
+The receiver's idempotency gate converts Sanity's at-least-once delivery into one
+queued build for either request.
 
 Immediately before commit, the Studio reloads the private rollback bundle. The
 transaction revision-guards every captured published pre-image and every
@@ -84,3 +99,98 @@ transactional recovery path.
    **Protected build pending**.
 7. Verify the webhook receiver accepted one idempotent build request. Promotion
    and rollback drills are exercised by issues #39 and #32 respectively.
+
+## Failed candidate recovery
+
+The delivery controller records the exact candidate as `buildFailed`. It then
+calls `recoverFailedCandidatePublication` with the published batch, current
+affected documents, private bundle, and the previous successful deployment ID
+and revision.
+
+1. Do not change hosting: the previous successful deployment is still live.
+2. Load every current affected document from the content dataset with the raw
+   perspective and `useCdn: false`.
+3. Load the exact private bundle referenced by the batch workflow.
+4. Run failed-candidate recovery. It revision-guards the batch and every current
+   affected document, restores previous documents, deletes documents whose
+   pre-image was absent, and writes the recovery build request in one synchronous
+   Sanity transaction.
+5. Accept the one protected confirming build request. Do not promote a different
+   revision.
+6. When that build succeeds, record the recovery outcome as `live`. The workflow
+   reports the previous revision as restored in Sanity and live on the portfolio.
+
+If any revision guard fails, the transaction makes no changes. Reload the batch,
+current documents, and private bundle and investigate the concurrent mutation
+before retrying.
+
+## Post-release rollback
+
+The delivery controller supplies the issue #39 hosting adapter through
+`PublicationDeploymentRollbackClient` and calls
+`recoverPostReleasePublication`.
+
+1. Validate that the defective candidate is the matching live publication and
+   that its exact private bundle is available.
+2. Reactivate the recorded previous successful deployment. The coordinator
+   awaits this provider operation and aborts without a Sanity transaction if it
+   fails.
+3. Only after successful reactivation, restore Sanity through the same
+   revision-guarded transaction used for failed candidates.
+4. Accept the one confirming build request. The previous deployment remains live
+   while it runs.
+5. Record a successful recovery build only after the built Sanity revision
+   matches the already-reactivated deployment.
+
+This ordering permits a temporary state where the safe previous application is
+live while Sanity still contains the defective candidate. It forbids the more
+dangerous inverse ordering.
+
+## Automated off-platform export
+
+The `Encrypted Sanity export` GitHub workflow runs weekly and can be dispatched
+manually. Configure:
+
+- repository variables `SANITY_EXPORT_PROJECT_ID` and
+  `SANITY_EXPORT_DATASET`;
+- secret `SANITY_EXPORT_TOKEN`, scoped only to read the export dataset;
+- secret `SANITY_ROLLBACK_DATASET`, used as a deny-list guard;
+- secret `SANITY_EXPORT_ENCRYPTION_PASSPHRASE`, stored separately from
+  downloaded backup artifacts.
+
+The full Sanity CLI export uses stream mode and leaves both `--no-drafts` and
+`--no-assets` unset. The private rollback dataset is a separate source and is
+rejected explicitly. The archive and evidence are bundled, encrypted with GPG
+AES-256, and only the encrypted file is uploaded. Plaintext files exist only in
+the ephemeral runner directory and are removed before upload.
+
+Treat a missing asset, failed strict asset verification, failed encryption, or
+missing artifact as a failed backup. Do not weaken the export with
+`--no-strict-asset-verification`.
+
+## Dated non-production restore drill
+
+Download an encrypted artifact to an access-controlled workstation, decrypt it
+without putting the passphrase on the command line, and extract the archive plus
+its `.export.json` evidence. Set a token for the dedicated recovery-test project
+in `SANITY_IMPORT_TOKEN`.
+
+First inspect the immutable plan with `npm run content:restore -- ... --dry-run`.
+The command verifies the archive SHA-256 and full coverage evidence, and refuses
+the production project ID. Then remove `--dry-run` and import with replacement
+into a dated dataset such as `restore-2026-07-31`.
+
+After import:
+
+1. Compare published and `drafts.` document counts with the export source.
+2. Query every restored image and file asset document and fetch a sample of each
+   asset kind.
+3. Build the Web application against the recovery-test project and dated
+   dataset.
+4. Record the `.restore.json` evidence path, GitHub export run, operator, count
+   comparison, asset checks, and build result in the private operational log.
+5. Delete the dated dataset only after the evidence has been reviewed and the
+   next drill date has been scheduled.
+
+Never use the rollback dataset as an export source or restore target. Never
+commit decrypted archives, tokens, passphrases, or private restore evidence.
