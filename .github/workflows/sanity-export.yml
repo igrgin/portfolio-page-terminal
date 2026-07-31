@@ -1,0 +1,93 @@
+name: Encrypted Sanity export
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sanity-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    name: Export documents, drafts, and assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --no-audit
+      - name: Select dated private paths
+        id: paths
+        shell: bash
+        run: |
+          evidence_date="$(date -u +%F)"
+          archive="${RUNNER_TEMP}/sanity-export-${evidence_date}.tar.gz"
+          evidence="${RUNNER_TEMP}/sanity-export-${evidence_date}.export.json"
+          bundle="${RUNNER_TEMP}/sanity-export-${evidence_date}.bundle.tar.gz"
+          encrypted="${RUNNER_TEMP}/sanity-export-${evidence_date}.tar.gz.gpg"
+          {
+            echo "evidence_date=${evidence_date}"
+            echo "archive=${archive}"
+            echo "evidence=${evidence}"
+            echo "bundle=${bundle}"
+            echo "encrypted=${encrypted}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Export complete content dataset
+        env:
+          SANITY_AUTH_TOKEN: ${{ secrets.SANITY_EXPORT_TOKEN }}
+          SANITY_DATASET: ${{ vars.SANITY_EXPORT_DATASET }}
+          SANITY_PROJECT_ID: ${{ vars.SANITY_EXPORT_PROJECT_ID }}
+          SANITY_ROLLBACK_DATASET: ${{ secrets.SANITY_ROLLBACK_DATASET }}
+        run: |
+          npm run content:export -- \
+            --project-id "${SANITY_PROJECT_ID}" \
+            --dataset "${SANITY_DATASET}" \
+            --rollback-dataset "${SANITY_ROLLBACK_DATASET}" \
+            --output "${{ steps.paths.outputs.archive }}" \
+            --evidence "${{ steps.paths.outputs.evidence }}" \
+            --date "${{ steps.paths.outputs.evidence_date }}"
+      - name: Encrypt export and evidence
+        env:
+          SANITY_EXPORT_ENCRYPTION_PASSPHRASE: ${{ secrets.SANITY_EXPORT_ENCRYPTION_PASSPHRASE }}
+        shell: bash
+        run: |
+          test -n "${SANITY_EXPORT_ENCRYPTION_PASSPHRASE}"
+          tar \
+            --create \
+            --gzip \
+            --file "${{ steps.paths.outputs.bundle }}" \
+            --directory "${RUNNER_TEMP}" \
+            "$(basename "${{ steps.paths.outputs.archive }}")" \
+            "$(basename "${{ steps.paths.outputs.evidence }}")"
+          printf '%s' "${SANITY_EXPORT_ENCRYPTION_PASSPHRASE}" |
+            gpg \
+              --batch \
+              --yes \
+              --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --symmetric \
+              --cipher-algo AES256 \
+              --output "${{ steps.paths.outputs.encrypted }}" \
+              "${{ steps.paths.outputs.bundle }}"
+          test -s "${{ steps.paths.outputs.encrypted }}"
+          rm -f -- \
+            "${{ steps.paths.outputs.archive }}" \
+            "${{ steps.paths.outputs.evidence }}" \
+            "${{ steps.paths.outputs.bundle }}"
+      - name: Store encrypted off-platform backup
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v7.0.1
+        with:
+          name: sanity-export-${{ steps.paths.outputs.evidence_date }}
+          path: ${{ runner.temp }}/sanity-export-${{ steps.paths.outputs.evidence_date }}.tar.gz.gpg
+          if-no-files-found: error
+          retention-days: 30

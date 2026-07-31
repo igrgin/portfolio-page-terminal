@@ -130,6 +130,7 @@ export type PublicationWorkflow = {
   rollback?: PublicationRollbackEvidence;
   publication?: PublicationRecord;
   deployment?: PublicationDeployment;
+  recovery?: PublicationRecovery;
 };
 
 export type PublicationValidation = {
@@ -478,6 +479,24 @@ export type RelevantSubject = {
   title: LocalizedString;
 };
 
+export type PublicationRecovery = {
+  _type: "publicationRecovery";
+  kind?: "failedCandidate" | "postRelease";
+  status?:
+    | "deploymentReactivationRequired"
+    | "contentRestoreRequired"
+    | "confirmingBuildPending"
+    | "confirmingBuildFailed"
+    | "complete";
+  previousDeploymentId?: string;
+  previousRevision?: string;
+  startedAt?: string;
+  reactivatedAt?: string;
+  restoredAt?: string;
+  buildRequestId?: string;
+  completedAt?: string;
+};
+
 export type PublicationDeployment = {
   _type: "publicationDeployment";
   revision?: string;
@@ -678,6 +697,7 @@ export type AllSanitySchemaTypes =
   | ResumeSet
   | ContactChannel
   | RelevantSubject
+  | PublicationRecovery
   | PublicationDeployment
   | PublicationRecord
   | PublicationRollbackEvidence

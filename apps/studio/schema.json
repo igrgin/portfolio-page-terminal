@@ -513,6 +513,14 @@
             "name": "publicationDeployment"
           },
           "optional": true
+        },
+        "recovery": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "inline",
+            "name": "publicationRecovery"
+          },
+          "optional": true
         }
       }
     }
@@ -2541,6 +2549,117 @@
             "name": "localizedString"
           },
           "optional": false
+        }
+      }
+    }
+  },
+  {
+    "name": "publicationRecovery",
+    "type": "type",
+    "value": {
+      "type": "object",
+      "attributes": {
+        "_type": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string",
+            "value": "publicationRecovery"
+          }
+        },
+        "kind": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "failedCandidate"
+              },
+              {
+                "type": "string",
+                "value": "postRelease"
+              }
+            ]
+          },
+          "optional": true
+        },
+        "status": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "union",
+            "of": [
+              {
+                "type": "string",
+                "value": "deploymentReactivationRequired"
+              },
+              {
+                "type": "string",
+                "value": "contentRestoreRequired"
+              },
+              {
+                "type": "string",
+                "value": "confirmingBuildPending"
+              },
+              {
+                "type": "string",
+                "value": "confirmingBuildFailed"
+              },
+              {
+                "type": "string",
+                "value": "complete"
+              }
+            ]
+          },
+          "optional": true
+        },
+        "previousDeploymentId": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "previousRevision": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "startedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "reactivatedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "restoredAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "buildRequestId": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
+        },
+        "completedAt": {
+          "type": "objectAttribute",
+          "value": {
+            "type": "string"
+          },
+          "optional": true
         }
       }
     }

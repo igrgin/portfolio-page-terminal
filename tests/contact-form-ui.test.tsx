@@ -190,10 +190,11 @@ test("accepted delivery clears fields and focuses the honest status", async () =
   fillValidForm(container);
 
   fireEvent.submit(getByRole("form", { name: "Contact form" }));
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  getByText("Your message was accepted for delivery.");
   const status = getByRole("status");
-  assert.equal(document.activeElement === status, true);
+  await waitFor(() => {
+    getByText("Your message was accepted for delivery.");
+    assert.equal(document.activeElement === status, true);
+  });
   assert.equal(
     container.querySelector<HTMLInputElement>("#contact-name")!.value,
     "",

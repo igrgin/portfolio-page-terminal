@@ -83,6 +83,44 @@ The Studio shows **Published in Sanity** separately from **Live on the
 portfolio**. Configure and operate the private dataset and idempotent webhook
 using [the Publication batch runbook](docs/operations/publication.md).
 
+### Recovery exports and restore drills
+
+The scheduled `Encrypted Sanity export` workflow exports the configured content
+dataset in Sanity's stream mode. The command includes documents, drafts, and
+assets and rejects the private rollback dataset. The archive and its SHA-256
+evidence are encrypted together before the only uploaded artifact is created.
+
+Preview an export command without contacting Sanity:
+
+```sh
+npm run content:export -- \
+  --project-id portfolio-production \
+  --dataset production \
+  --rollback-dataset publication-recovery-private \
+  --output /secure/backups/sanity-2026-07-31.tar.gz \
+  --evidence /secure/backups/sanity-2026-07-31.export.json \
+  --date 2026-07-31 \
+  --dry-run
+```
+
+The matching restore command verifies the archive hash and complete-export
+evidence, then refuses to run unless the target project differs from production:
+
+```sh
+npm run content:restore -- \
+  --source /secure/backups/sanity-2026-07-31.tar.gz \
+  --export-evidence /secure/backups/sanity-2026-07-31.export.json \
+  --production-project-id portfolio-production \
+  --target-project-id portfolio-recovery-test \
+  --target-dataset restore-2026-07-31 \
+  --evidence /secure/backups/sanity-2026-07-31.restore.json \
+  --date 2026-07-31 \
+  --dry-run
+```
+
+Remove `--dry-run` only after following the access, recovery, and verification
+steps in the Publication batch runbook.
+
 ### Project diagrams
 
 Full Project case studies may contain paired English/Croatian Mermaid diagrams.

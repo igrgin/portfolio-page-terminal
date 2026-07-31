@@ -16,6 +16,8 @@
     "dev:web": "npm run dev --workspace @portfolio/web",
     "dev:studio": "npm run dev --workspace @portfolio/studio",
     "draft:token": "tsx scripts/create-draft-token.ts",
+    "content:export": "tsx scripts/sanity-recovery.ts export",
+    "content:restore": "tsx scripts/sanity-recovery.ts restore",
     "build": "npm run build:web && npm run build:studio",
     "build:web": "npm run build --workspace @portfolio/web",
     "build:studio": "npm run build --workspace @portfolio/studio",
