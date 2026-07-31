@@ -104,8 +104,9 @@ transactional recovery path.
 
 The delivery controller records the exact candidate as `buildFailed`. It then
 calls `recoverFailedCandidatePublication` with the published batch, current
-affected documents, private bundle, and the previous successful deployment ID
-and revision.
+affected documents, private bundle, and a deployment-history adapter. The
+adapter, rather than an operator-supplied ID, resolves the distinct previous
+successful deployment.
 
 1. Do not change hosting: the previous successful deployment is still live.
 2. Load every current affected document from the content dataset with the raw
@@ -118,7 +119,9 @@ and revision.
 5. Accept the one protected confirming build request. Do not promote a different
    revision.
 6. When that build succeeds, record the recovery outcome as `live`. The workflow
-   reports the previous revision as restored in Sanity and live on the portfolio.
+   accepts the outcome only when both the confirming `buildRequestId` and built
+   revision match the pending recovery. It then reports the previous revision as
+   restored in Sanity and live on the portfolio.
 
 If any revision guard fails, the transaction makes no changes. Reload the batch,
 current documents, and private bundle and investigate the concurrent mutation
@@ -132,15 +135,17 @@ The delivery controller supplies the issue #39 hosting adapter through
 
 1. Validate that the defective candidate is the matching live publication and
    that its exact private bundle is available.
-2. Reactivate the recorded previous successful deployment. The coordinator
-   awaits this provider operation and aborts without a Sanity transaction if it
-   fails.
-3. Only after successful reactivation, restore Sanity through the same
+2. Ask the hosting adapter for the previous successful deployment. Reject the
+   current candidate or incomplete provider evidence.
+3. Reactivate that exact deployment. The coordinator requires the adapter to
+   return the same deployment ID and revision, and aborts without a Sanity
+   transaction if reactivation fails or returns different evidence.
+4. Only after successful reactivation, restore Sanity through the same
    revision-guarded transaction used for failed candidates.
-4. Accept the one confirming build request. The previous deployment remains live
+5. Accept the one confirming build request. The previous deployment remains live
    while it runs.
-5. Record a successful recovery build only after the built Sanity revision
-   matches the already-reactivated deployment.
+6. Record a successful recovery build only when its request ID and built Sanity
+   revision match the pending recovery and already-reactivated deployment.
 
 This ordering permits a temporary state where the safe previous application is
 live while Sanity still contains the defective candidate. It forbids the more
@@ -160,9 +165,12 @@ manually. Configure:
 
 The full Sanity CLI export uses stream mode and leaves both `--no-drafts` and
 `--no-assets` unset. The private rollback dataset is a separate source and is
-rejected explicitly. The archive and evidence are bundled, encrypted with GPG
-AES-256, and only the encrypted file is uploaded. Plaintext files exist only in
-the ephemeral runner directory and are removed before upload.
+rejected explicitly. After export, the command inspects `data.ndjson`, records
+document and draft counts, verifies that every rewritten asset reference has a
+matching archive file, and rejects Sanity warnings about inaccessible assets.
+The archive and evidence are bundled, encrypted with GPG AES-256, and only the
+encrypted file is uploaded. Plaintext files exist only in the ephemeral runner
+directory and are removed before upload.
 
 Treat a missing asset, failed strict asset verification, failed encryption, or
 missing artifact as a failed backup. Do not weaken the export with
@@ -176,9 +184,10 @@ its `.export.json` evidence. Set a token for the dedicated recovery-test project
 in `SANITY_IMPORT_TOKEN`.
 
 First inspect the immutable plan with `npm run content:restore -- ... --dry-run`.
-The command verifies the archive SHA-256 and full coverage evidence, and refuses
-the production project ID. Then remove `--dry-run` and import with replacement
-into a dated dataset such as `restore-2026-07-31`.
+The command verifies the archive SHA-256, re-inspects document, draft, and asset
+counts against the export evidence, and refuses the production project ID. Then
+remove `--dry-run` and import with replacement into a newly created private,
+dated dataset such as `restore-2026-07-31`.
 
 After import:
 

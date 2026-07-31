@@ -25,8 +25,8 @@ import {
   publicationWorkflowFromValue,
   publishAtomicPublicationBatch,
   publicationBuildWebhook,
+  recoverFailedCandidatePublication,
   recoverPostReleasePublication,
-  restorePublicationRollbackBundle,
   serializePublicationWorkflow,
   type AtomicPublicationTransaction,
   type PublicationRollbackBundle,
@@ -222,23 +222,41 @@ test("failed candidates restore content before a confirming build while the prev
   assert.equal(restored.recovery?.status, "confirmingBuildPending");
   assert.equal(restored.deployment?.status, "buildFailed");
 
-  const aligned = recordPublicationRecoveryBuildOutcome(
-    restored,
-    "live",
-    "2026-07-31T08:30:00.000Z",
-  );
+  const aligned = recordPublicationRecoveryBuildOutcome(restored, {
+    buildRequestId: `recovery-publication-batch-32:${revision}`,
+    completedAt: "2026-07-31T08:30:00.000Z",
+    outcome: "live",
+    revision: previousRevision,
+  });
   assert.equal(aligned.recovery?.status, "complete");
   assert.deepEqual(aligned.deployment, {
     revision: previousRevision,
     status: "live",
     updatedAt: "2026-07-31T08:30:00.000Z",
   });
-  assert.deepEqual(
-    publicationWorkflowVisibility(aligned, previousRevision),
-    {
-      portfolio: "live",
-      sanity: "restored",
-    },
+  assert.deepEqual(publicationWorkflowVisibility(aligned, previousRevision), {
+    portfolio: "live",
+    sanity: "restored",
+  });
+  assert.throws(
+    () =>
+      recordPublicationRecoveryBuildOutcome(restored, {
+        buildRequestId: "unrelated-build",
+        completedAt: "2026-07-31T08:30:00.000Z",
+        outcome: "live",
+        revision: previousRevision,
+      }),
+    /matching pending confirming build/,
+  );
+  assert.throws(
+    () =>
+      recordPublicationRecoveryBuildOutcome(restored, {
+        buildRequestId: `recovery-publication-batch-32:${revision}`,
+        completedAt: "2026-07-31T08:30:00.000Z",
+        outcome: "live",
+        revision,
+      }),
+    /matching pending confirming build/,
   );
 });
 
@@ -454,33 +472,32 @@ test("rollback restores every affected Sanity document in one revision-guarded t
       return this;
     },
   };
-  const failed = beginFailedCandidateRecovery(
-    {
-      ...validatedPublicationWorkflow(revision),
-      deployment: {
-        revision,
-        status: "buildFailed",
-        updatedAt: "2026-07-31T10:00:00.000Z",
-      },
-      publication: {
-        buildRequestId: `publication-batch-32:${revision}`,
-        publishedAt: "2026-07-31T09:50:00.000Z",
-        revision,
-      },
-      rollback: {
-        bundleId: "publicationRollbackBundle.publicationBatch.july",
-        capturedAt: "2026-07-31T09:45:00.000Z",
-        revision,
-      },
+  const failed = {
+    ...validatedPublicationWorkflow(revision),
+    deployment: {
+      revision,
+      status: "buildFailed" as const,
+      updatedAt: "2026-07-31T10:00:00.000Z",
     },
-    {
-      previousDeploymentId: "deployment-content-r7",
-      previousRevision,
-      startedAt: "2026-07-31T10:01:00.000Z",
+    publication: {
+      buildRequestId: `publication-batch-32:${revision}`,
+      publishedAt: "2026-07-31T09:50:00.000Z",
+      revision,
     },
-  );
+    rollback: {
+      bundleId: "publicationRollbackBundle.publicationBatch.july",
+      capturedAt: "2026-07-31T09:45:00.000Z",
+      revision,
+    },
+  };
 
-  const result = await restorePublicationRollbackBundle(
+  const result = await recoverFailedCandidatePublication(
+    {
+      previousSuccessful: async () => ({
+        deploymentId: "deployment-content-r7",
+        revision: previousRevision,
+      }),
+    },
     { transaction: () => transaction },
     {
       batchDocument: {
@@ -526,6 +543,7 @@ test("rollback restores every affected Sanity document in one revision-guarded t
           { document: null, documentId: "skill.kafka" },
         ],
       },
+      startedAt: "2026-07-31T10:01:00.000Z",
       workflow: failed,
     },
   );
@@ -630,8 +648,6 @@ test("post-release recovery reactivates the previous deployment before mutating 
         _type: "project",
       },
     ],
-    previousDeploymentId: "deployment-content-r7",
-    previousRevision,
     reactivatedAt: "2026-07-31T11:02:00.000Z",
     restoredAt: "2026-07-31T11:03:00.000Z",
     rollbackBundle: {
@@ -658,8 +674,16 @@ test("post-release recovery reactivates the previous deployment before mutating 
 
   await recoverPostReleasePublication(
     {
-      reactivate: async ({ deploymentId }) => {
+      previousSuccessful: async () => {
+        events.push("lookup-previous-successful");
+        return {
+          deploymentId: "deployment-content-r7",
+          revision: previousRevision,
+        };
+      },
+      reactivate: async ({ deploymentId, revision: restoredRevision }) => {
         events.push(`reactivate-${deploymentId}`);
+        return { deploymentId, revision: restoredRevision };
       },
     },
     { transaction: () => transaction },
@@ -667,6 +691,7 @@ test("post-release recovery reactivates the previous deployment before mutating 
   );
 
   assert.deepEqual(events, [
+    "lookup-previous-successful",
     "reactivate-deployment-content-r7",
     "restore-sanity",
   ]);
@@ -675,6 +700,10 @@ test("post-release recovery reactivates the previous deployment before mutating 
   await assert.rejects(
     recoverPostReleasePublication(
       {
+        previousSuccessful: async () => ({
+          deploymentId: "deployment-content-r7",
+          revision: previousRevision,
+        }),
         reactivate: async () => {
           throw new Error("hosting rollback failed");
         },
@@ -688,6 +717,27 @@ test("post-release recovery reactivates the previous deployment before mutating 
       recoveryInput,
     ),
     /hosting rollback failed/,
+  );
+  assert.equal(transactionCreated, false);
+
+  await assert.rejects(
+    recoverPostReleasePublication(
+      {
+        previousSuccessful: async () => ({
+          deploymentId: "candidate-deployment",
+          revision,
+        }),
+        reactivate: async (deployment) => deployment,
+      },
+      {
+        transaction: () => {
+          transactionCreated = true;
+          return transaction;
+        },
+      },
+      recoveryInput,
+    ),
+    /distinct previous successful deployment/,
   );
   assert.equal(transactionCreated, false);
 });

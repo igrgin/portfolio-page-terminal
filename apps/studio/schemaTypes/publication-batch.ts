@@ -1,6 +1,10 @@
 import {
   publicationLimitMaximums,
   publicationManagedDocumentTypes,
+  publicationRecoveryKinds,
+  publicationRecoveryStatuses,
+  type PublicationRecoveryKind,
+  type PublicationRecoveryStatus,
 } from "@portfolio/content";
 import {
   defineArrayMember,
@@ -15,6 +19,23 @@ import {
   type ReadinessClient,
 } from "../components/publication-readiness";
 import { PublicationBatchInput } from "../components/publication-workflow-controls";
+
+const publicationRecoveryKindTitles: Readonly<
+  Record<PublicationRecoveryKind, string>
+> = {
+  failedCandidate: "Failed candidate",
+  postRelease: "Post-release rollback",
+};
+
+const publicationRecoveryStatusTitles: Readonly<
+  Record<PublicationRecoveryStatus, string>
+> = {
+  complete: "Complete",
+  confirmingBuildFailed: "Confirming build failed",
+  confirmingBuildPending: "Confirming build pending",
+  contentRestoreRequired: "Content restore required",
+  deploymentReactivationRequired: "Deployment reactivation required",
+};
 
 type StoredBatch = Readonly<{
   documents?: ReadonlyArray<Readonly<{ _ref?: string }>>;
@@ -260,35 +281,20 @@ export const publicationRecovery = defineType({
     defineField({
       name: "kind",
       options: {
-        list: [
-          { title: "Failed candidate", value: "failedCandidate" },
-          { title: "Post-release rollback", value: "postRelease" },
-        ],
+        list: publicationRecoveryKinds.map((value) => ({
+          title: publicationRecoveryKindTitles[value],
+          value,
+        })),
       },
       type: "string",
     }),
     defineField({
       name: "status",
       options: {
-        list: [
-          {
-            title: "Deployment reactivation required",
-            value: "deploymentReactivationRequired",
-          },
-          {
-            title: "Content restore required",
-            value: "contentRestoreRequired",
-          },
-          {
-            title: "Confirming build pending",
-            value: "confirmingBuildPending",
-          },
-          {
-            title: "Confirming build failed",
-            value: "confirmingBuildFailed",
-          },
-          { title: "Complete", value: "complete" },
-        ],
+        list: publicationRecoveryStatuses.map((value) => ({
+          title: publicationRecoveryStatusTitles[value],
+          value,
+        })),
       },
       type: "string",
     }),

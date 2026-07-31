@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
@@ -11,26 +11,52 @@ const tsx = resolve(root, "node_modules/.bin/tsx");
 const recoveryScript = resolve(root, "scripts/sanity-recovery.ts");
 
 async function runRecoveryCli(arguments_: readonly string[]) {
-  return new Promise<Readonly<{ code: number | null; stderr: string; stdout: string }>>(
-    (resolveRun) => {
-      const child = spawn(tsx, [recoveryScript, ...arguments_], {
-        cwd: root,
-        env: { ...process.env },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
-      let stdout = "";
-      let stderr = "";
-      child.stdout.on("data", (chunk) => {
-        stdout += String(chunk);
-      });
-      child.stderr.on("data", (chunk) => {
-        stderr += String(chunk);
-      });
-      child.on("close", (code) => {
-        resolveRun({ code, stderr, stdout });
-      });
-    },
-  );
+  return new Promise<
+    Readonly<{ code: number | null; stderr: string; stdout: string }>
+  >((resolveRun) => {
+    const child = spawn(tsx, [recoveryScript, ...arguments_], {
+      cwd: root,
+      env: { ...process.env },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("close", (code) => {
+      resolveRun({ code, stderr, stdout });
+    });
+  });
+}
+
+async function createTarGzip(
+  parentDirectory: string,
+  sourceName: string,
+  output: string,
+) {
+  await new Promise<void>((resolveArchive, rejectArchive) => {
+    const child = spawn(
+      "tar",
+      ["-czf", output, "-C", parentDirectory, sourceName],
+      { stdio: ["ignore", "pipe", "pipe"] },
+    );
+    let stderr = "";
+    child.stderr.on("data", (chunk) => {
+      stderr += String(chunk);
+    });
+    child.on("error", rejectArchive);
+    child.on("close", (code) => {
+      if (code === 0) {
+        resolveArchive();
+        return;
+      }
+      rejectArchive(new Error(stderr || `tar exited with ${code}`));
+    });
+  });
 }
 
 test("export CLI plans a dated full export with documents, drafts, and assets while excluding the rollback dataset", async () => {
@@ -129,8 +155,29 @@ test("restore CLI accepts only a verified export and a different non-production 
   const directory = await mkdtemp(join(tmpdir(), "portfolio-restore-"));
   try {
     const source = join(directory, "sanity-2026-07-31.tar.gz");
-    const sourceBytes = Buffer.from("full Sanity export fixture");
-    await writeFile(source, sourceBytes);
+    const archiveRoot = join(directory, "portfolio-export");
+    await mkdir(join(archiveRoot, "images"), { recursive: true });
+    await mkdir(join(archiveRoot, "files"), { recursive: true });
+    await writeFile(join(archiveRoot, "images", "hero.jpg"), "image fixture");
+    await writeFile(
+      join(archiveRoot, "data.ndjson"),
+      [
+        JSON.stringify({
+          _id: "siteSettings",
+          _type: "siteSettings",
+          sharingImage: {
+            _sanityAsset: "image@file://./images/hero.jpg",
+          },
+        }),
+        JSON.stringify({
+          _id: "drafts.project.platform",
+          _type: "project",
+          title: "Draft project",
+        }),
+      ].join("\n"),
+    );
+    await createTarGzip(directory, "portfolio-export", source);
+    const sourceBytes = await readFile(source);
     const exportEvidence = join(directory, "sanity-2026-07-31.export.json");
     await writeFile(
       exportEvidence,
@@ -142,16 +189,19 @@ test("restore CLI accepts only a verified export and a different non-production 
           drafts: true,
           privateRollbackDataset: false,
         },
+        counts: {
+          assetFiles: 1,
+          assetReferences: 1,
+          documents: 2,
+          drafts: 1,
+        },
         dataset: "production",
         exportedAt: "2026-07-31T06:00:00.000Z",
         projectId: "portfolio-production",
         status: "succeeded",
       }),
     );
-    const restoreEvidence = join(
-      directory,
-      "sanity-2026-07-31.restore.json",
-    );
+    const restoreEvidence = join(directory, "sanity-2026-07-31.restore.json");
     const result = await runRecoveryCli([
       "restore",
       "--source",
@@ -173,11 +223,18 @@ test("restore CLI accepts only a verified export and a different non-production 
 
     assert.equal(result.code, 0, result.stderr);
     const plan = JSON.parse(result.stdout) as {
+      archiveCounts: Record<string, number>;
       command: readonly string[];
       sourceArchiveSha256: string;
       targetProjectId: string;
     };
     assert.equal(plan.targetProjectId, "portfolio-recovery-test");
+    assert.deepEqual(plan.archiveCounts, {
+      assetFiles: 1,
+      assetReferences: 1,
+      documents: 2,
+      drafts: 1,
+    });
     assert.equal(
       plan.sourceArchiveSha256,
       createHash("sha256").update(sourceBytes).digest("hex"),

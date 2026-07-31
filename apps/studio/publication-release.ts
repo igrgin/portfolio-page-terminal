@@ -2,6 +2,8 @@ import {
   beginFailedCandidateRecovery,
   beginPostReleaseRollback,
   confirmPreviousDeploymentReactivated,
+  isPublicationRecoveryKind,
+  isPublicationRecoveryStatus,
   publishPublicationWorkflow,
   publishedDocumentId,
   recordPublicationContentRestored,
@@ -58,12 +60,24 @@ export type AtomicPublicationClient = Readonly<{
   transaction: () => AtomicPublicationTransaction;
 }>;
 
-export type PublicationDeploymentRollbackClient = Readonly<{
-  reactivate: (input: Readonly<{
-    deploymentId: string;
-    revision: string;
-  }>) => Promise<void>;
+export type PublicationSuccessfulDeployment = Readonly<{
+  deploymentId: string;
+  revision: string;
 }>;
+
+export type PublicationDeploymentHistoryClient = Readonly<{
+  previousSuccessful: (
+    input: Readonly<{ candidateRevision: string }>,
+  ) => Promise<PublicationSuccessfulDeployment>;
+}>;
+
+export type PublicationDeploymentRollbackClient =
+  PublicationDeploymentHistoryClient &
+    Readonly<{
+      reactivate: (
+        input: PublicationSuccessfulDeployment,
+      ) => Promise<PublicationSuccessfulDeployment>;
+    }>;
 
 const PUBLISHED_DOCUMENTS_QUERY = `*[
   _id in $documentIds &&
@@ -171,20 +185,13 @@ export function publicationWorkflowFromValue(
   const recoveryValue = record(workflow.recovery);
   const recoveryKind = stringValue(recoveryValue?.kind);
   const recoveryStatus = stringValue(recoveryValue?.status);
-  const previousDeploymentId = stringValue(
-    recoveryValue?.previousDeploymentId,
-  );
+  const previousDeploymentId = stringValue(recoveryValue?.previousDeploymentId);
   const previousRevision = stringValue(recoveryValue?.previousRevision);
   const startedAt = stringValue(recoveryValue?.startedAt);
   const recovery: PublicationWorkflowState["recovery"] =
     recoveryValue &&
-    (recoveryKind === "failedCandidate" ||
-      recoveryKind === "postRelease") &&
-    (recoveryStatus === "deploymentReactivationRequired" ||
-      recoveryStatus === "contentRestoreRequired" ||
-      recoveryStatus === "confirmingBuildPending" ||
-      recoveryStatus === "confirmingBuildFailed" ||
-      recoveryStatus === "complete") &&
+    isPublicationRecoveryKind(recoveryKind) &&
+    isPublicationRecoveryStatus(recoveryStatus) &&
     previousDeploymentId &&
     previousRevision &&
     startedAt
@@ -435,9 +442,7 @@ function restorablePublishedSnapshot(document: UnknownRecord): UnknownRecord {
   void _system;
   void _updatedAt;
   const documentId =
-    typeof document._id === "string"
-      ? publishedDocumentId(document._id)
-      : "";
+    typeof document._id === "string" ? publishedDocumentId(document._id) : "";
   const type = typeof document._type === "string" ? document._type : "";
   if (!documentId || documentId !== document._id || !type) {
     throw new Error(
@@ -654,9 +659,7 @@ export async function restorePublicationRollbackBundle(
   );
   const currentDocuments = new Map(
     input.currentDocuments.map((document) => [
-      publishedDocumentId(
-        typeof document._id === "string" ? document._id : "",
-      ),
+      publishedDocumentId(typeof document._id === "string" ? document._id : ""),
       document,
     ]),
   );
@@ -697,18 +700,14 @@ export async function restorePublicationRollbackBundle(
     }
     if (
       publishedDocumentId(
-        typeof previousDocument._id === "string"
-          ? previousDocument._id
-          : "",
+        typeof previousDocument._id === "string" ? previousDocument._id : "",
       ) !== documentId
     ) {
       throw new Error(
         `The private rollback pre-image does not match ${documentId}.`,
       );
     }
-    transaction.createOrReplace(
-      restorablePublishedSnapshot(previousDocument),
-    );
+    transaction.createOrReplace(restorablePublishedSnapshot(previousDocument));
   }
 
   revisionLockedPublishedDocument(transaction, input.batchDocument);
@@ -724,30 +723,57 @@ export async function restorePublicationRollbackBundle(
   return { workflow };
 }
 
+type PublicationRecoveryRequest = Readonly<{
+  batchDocument: UnknownRecord;
+  currentDocuments: readonly UnknownRecord[];
+  restoredAt: string;
+  rollbackBundle: PublicationRollbackBundle;
+  startedAt: string;
+  workflow: PublicationWorkflowState;
+}>;
+
+async function previousSuccessfulDeployment(
+  client: PublicationDeploymentHistoryClient,
+  workflow: PublicationWorkflowState,
+): Promise<PublicationSuccessfulDeployment> {
+  const previous = await client.previousSuccessful({
+    candidateRevision: workflow.candidateRevision,
+  });
+  if (
+    !previous.deploymentId.trim() ||
+    !previous.revision.trim() ||
+    previous.revision === workflow.candidateRevision
+  ) {
+    throw new Error(
+      "Recovery requires provider evidence for a distinct previous successful deployment.",
+    );
+  }
+  return previous;
+}
+
 export async function recoverPostReleasePublication(
   deploymentClient: PublicationDeploymentRollbackClient,
   contentClient: AtomicPublicationClient,
-  input: Readonly<{
-    batchDocument: UnknownRecord;
-    currentDocuments: readonly UnknownRecord[];
-    previousDeploymentId: string;
-    previousRevision: string;
-    reactivatedAt: string;
-    restoredAt: string;
-    rollbackBundle: PublicationRollbackBundle;
-    startedAt: string;
-    workflow: PublicationWorkflowState;
-  }>,
+  input: PublicationRecoveryRequest & Readonly<{ reactivatedAt: string }>,
 ) {
+  const previous = await previousSuccessfulDeployment(
+    deploymentClient,
+    input.workflow,
+  );
   const recovery = beginPostReleaseRollback(input.workflow, {
-    previousDeploymentId: input.previousDeploymentId,
-    previousRevision: input.previousRevision,
+    previousDeploymentId: previous.deploymentId,
+    previousRevision: previous.revision,
     startedAt: input.startedAt,
   });
-  await deploymentClient.reactivate({
-    deploymentId: input.previousDeploymentId,
-    revision: input.previousRevision,
-  });
+  const reactivatedDeployment = await deploymentClient.reactivate(previous);
+  if (
+    reactivatedDeployment.deploymentId !== previous.deploymentId ||
+    reactivatedDeployment.revision !== previous.revision
+  ) {
+    throw new Error(
+      "The hosting provider did not confirm the expected previous successful deployment.",
+    );
+  }
   const reactivated = confirmPreviousDeploymentReactivated(
     recovery,
     input.reactivatedAt,
@@ -763,21 +789,17 @@ export async function recoverPostReleasePublication(
 }
 
 export async function recoverFailedCandidatePublication(
+  deploymentClient: PublicationDeploymentHistoryClient,
   contentClient: AtomicPublicationClient,
-  input: Readonly<{
-    batchDocument: UnknownRecord;
-    currentDocuments: readonly UnknownRecord[];
-    previousDeploymentId: string;
-    previousRevision: string;
-    restoredAt: string;
-    rollbackBundle: PublicationRollbackBundle;
-    startedAt: string;
-    workflow: PublicationWorkflowState;
-  }>,
+  input: PublicationRecoveryRequest,
 ) {
+  const previous = await previousSuccessfulDeployment(
+    deploymentClient,
+    input.workflow,
+  );
   const recovery = beginFailedCandidateRecovery(input.workflow, {
-    previousDeploymentId: input.previousDeploymentId,
-    previousRevision: input.previousRevision,
+    previousDeploymentId: previous.deploymentId,
+    previousRevision: previous.revision,
     startedAt: input.startedAt,
   });
   return restorePublicationRollbackBundle(contentClient, {
