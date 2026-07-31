@@ -107,67 +107,69 @@ async function sha256(path: string): Promise<string> {
   });
 }
 
-async function runCommand(command: readonly string[]): Promise<void> {
-  await new Promise<void>((resolveRun, rejectRun) => {
+type CommandResult = Readonly<{
+  stderr: string;
+  stdout: string;
+}>;
+
+async function executeCommand(
+  command: readonly string[],
+  options: Readonly<{
+    failureLabel: string;
+    inheritOutput: boolean;
+  }>,
+): Promise<CommandResult> {
+  return new Promise<CommandResult>((resolveRun, rejectRun) => {
     const child = spawn(command[0]!, command.slice(1), {
       env: process.env,
-      stdio: ["inherit", "inherit", "pipe"],
+      stdio: options.inheritOutput
+        ? ["inherit", "inherit", "pipe"]
+        : ["ignore", "pipe", "pipe"],
     });
+    let stdout = "";
     let stderr = "";
+    child.stdout?.on("data", (chunk) => {
+      stdout += String(chunk);
+    });
     child.stderr.on("data", (chunk) => {
       stderr += String(chunk);
-      process.stderr.write(chunk);
+      if (options.inheritOutput) {
+        process.stderr.write(chunk);
+      }
     });
     child.on("error", rejectRun);
     child.on("close", (code, signal) => {
       if (code === 0) {
-        if (/Asset failed with HTTP\s+(?:401|403|404)/u.test(stderr)) {
-          rejectRun(
-            new Error(
-              "Sanity excluded an inaccessible asset; the export is incomplete.",
-            ),
-          );
-          return;
-        }
-        resolveRun();
+        resolveRun({ stderr, stdout });
         return;
       }
       rejectRun(
         new Error(
-          `Sanity CLI failed${signal ? ` with signal ${signal}` : ` with exit code ${code ?? "unknown"}`}.`,
+          `${options.failureLabel}${signal ? ` with signal ${signal}` : ` with exit code ${code ?? "unknown"}`}${stderr.trim() ? `: ${stderr.trim()}` : "."}`,
         ),
       );
     });
   });
 }
 
-async function captureCommand(command: readonly string[]): Promise<string> {
-  return new Promise<string>((resolveCapture, rejectCapture) => {
-    const child = spawn(command[0]!, command.slice(1), {
-      env: process.env,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += String(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
-    child.on("error", rejectCapture);
-    child.on("close", (code, signal) => {
-      if (code === 0) {
-        resolveCapture(stdout);
-        return;
-      }
-      rejectCapture(
-        new Error(
-          `Archive inspection failed${signal ? ` with signal ${signal}` : ` with exit code ${code ?? "unknown"}`}: ${stderr.trim()}`,
-        ),
-      );
-    });
+async function runCommand(command: readonly string[]): Promise<void> {
+  const { stderr } = await executeCommand(command, {
+    failureLabel: "Sanity CLI failed",
+    inheritOutput: true,
   });
+  if (/Asset failed with HTTP\s+(?:401|403|404)/u.test(stderr)) {
+    throw new Error(
+      "Sanity excluded an inaccessible asset; the export is incomplete.",
+    );
+  }
+}
+
+async function captureCommand(command: readonly string[]): Promise<string> {
+  const { stdout } = await executeCommand(command, {
+    failureLabel: "Archive inspection failed",
+    inheritOutput: false,
+  });
+  return stdout;
 }
 
 function collectSanityAssetPaths(value: unknown, paths: Set<string>): void {
