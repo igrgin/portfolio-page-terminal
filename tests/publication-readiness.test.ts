@@ -87,11 +87,7 @@ test("readiness reports every release-gate category without hiding later failure
         stableFilename: false,
       },
     ],
-    changedDocumentIds: [
-      "project.platform",
-      "skill.kafka",
-      "resumeSet",
-    ],
+    changedDocumentIds: ["project.platform", "skill.kafka", "resumeSet"],
     documents: [
       {
         ...candidate.documents[0],
@@ -127,9 +123,7 @@ test("readiness reports every release-gate category without hiding later failure
         sensitive: true,
         slug: { current: "Not Canonical" },
         startDate: "2026-02",
-        supportingSkills: [
-          { _ref: "skill.kafka", _type: "reference" },
-        ],
+        supportingSkills: [{ _ref: "skill.kafka", _type: "reference" }],
       },
       {
         _id: "drafts.resumeSet",
@@ -203,7 +197,10 @@ test("any document edit invalidates the exact validated batch revision", () => {
     isPublicationValidationCurrent(validated.revision, edited),
     false,
   );
-  assert.notEqual(validatePublicationBatch(edited).revision, validated.revision);
+  assert.notEqual(
+    validatePublicationBatch(edited).revision,
+    validated.revision,
+  );
 });
 
 test("every readiness input and referenced revision invalidates validation", () => {
@@ -344,7 +341,10 @@ test("Experience and Education date states cannot pass batch readiness", () => {
     "COMPLETED_EDUCATION_END_YEAR_MISSING",
     "EDUCATION_YEAR_RANGE_INVALID",
   ]) {
-    assert.ok(report.issues.some((issue) => issue.code === code), code);
+    assert.ok(
+      report.issues.some((issue) => issue.code === code),
+      code,
+    );
   }
 });
 
@@ -355,15 +355,10 @@ test("unrelated drafts do not contaminate a dependency-closed batch", async () =
     withConfig(configuration: Record<string, unknown>) {
       const perspective = configuration.perspective;
       return {
-        fetch: async (
-          _query: string,
-          parameters?: Record<string, unknown>,
-        ) => {
+        fetch: async (_query: string, parameters?: Record<string, unknown>) => {
           if (perspective === "raw") {
-            assert.deepEqual(parameters?.draftIds, [
-              "drafts.project.platform",
-            ]);
-            return [{ _id: "drafts.project.platform" }];
+            assert.deepEqual(parameters?.draftIds, ["drafts.project.platform"]);
+            return candidate.documents;
           }
           return candidate.documents;
         },
@@ -402,7 +397,7 @@ test("ordinary content Publish actions are visibly blocked by batch workflow", (
   );
   assert.deepEqual(
     protectBatchPublicationActions([Publish, Delete], "publicationBatch"),
-    [Publish, Delete],
+    [BatchManagedPublishAction, Delete],
   );
   assert.deepEqual(BatchManagedPublishAction({} as never), {
     disabled: true,
@@ -431,7 +426,7 @@ test("the Studio readiness summary keeps every blocker visible", () => {
   assert.match(markup, /Confirm the batch privacy and disclosure review/);
 });
 
-test("Studio exposes named Publication batches and stores only validation evidence", () => {
+test("Studio exposes named Publication batches and stores revision-bound release evidence", () => {
   const schema = JSON.parse(
     readFileSync(
       new URL("../apps/studio/schema.json", import.meta.url),
@@ -458,6 +453,7 @@ test("Studio exposes named Publication batches and stores only validation eviden
       "name",
       "privacyReviewed",
       "validation",
+      "workflow",
     ],
   );
   assert.equal(
@@ -468,4 +464,17 @@ test("Studio exposes named Publication batches and stores only validation eviden
     schema.some(({ name }) => name === "publicationReleaseLimits"),
     true,
   );
+  for (const name of [
+    "publicationPreviewAcknowledgements",
+    "publicationRollbackEvidence",
+    "publicationRecord",
+    "publicationDeployment",
+    "publicationWorkflow",
+  ]) {
+    assert.equal(
+      schema.some((entry) => entry.name === name),
+      true,
+      name,
+    );
+  }
 });

@@ -129,3 +129,20 @@ export {
   type PublicationReadinessReport,
   type PublicationReleaseLimits,
 } from "./publication-batch";
+
+export {
+  acknowledgePublicationPreview,
+  capturePublicationRollback,
+  invalidatePublicationWorkflow,
+  publicationWorkflowVisibility,
+  publicationWorkflowReadiness,
+  publishPublicationWorkflow,
+  recordPublicationBuildOutcome,
+  validatedPublicationWorkflow,
+  type PublicationRevisionEvidence,
+  type PublicationRollbackEvidence,
+  type PublicationDeployment,
+  type PublicationRecord,
+  type PublicationWorkflowState,
+  type PublicationWorkflowReadiness,
+} from "./publication-workflow";

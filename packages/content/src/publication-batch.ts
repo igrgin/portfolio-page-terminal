@@ -82,6 +82,7 @@ export type PublicationBatchCandidate = Readonly<{
 }>;
 
 export type PublicationReadinessReport = Readonly<{
+  closureDocumentIds: readonly string[];
   documentIds: readonly string[];
   issues: readonly PublicationReadinessIssue[];
   ready: boolean;
@@ -212,8 +213,7 @@ function validPublicationDate(value: string): boolean {
   }
   const date = new Date(`${value}T00:00:00Z`);
   return (
-    !Number.isNaN(date.valueOf()) &&
-    date.toISOString().slice(0, 10) === value
+    !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value
   );
 }
 
@@ -224,9 +224,7 @@ export function validatePublicationBatch(
     .map((document) => record(document))
     .filter((document): document is UnknownRecord => document !== null);
   const documentIds = documents
-    .map((document) =>
-      publishedDocumentId(nonEmptyString(document._id) ?? ""),
-    )
+    .map((document) => publishedDocumentId(nonEmptyString(document._id) ?? ""))
     .filter(Boolean)
     .sort();
   const issues: PublicationReadinessIssue[] = [];
@@ -396,13 +394,7 @@ export function validatePublicationBatch(
     if (diagramCandidate) {
       const validation = validatePortfolioDiagram(diagramCandidate);
       if (!validation.ok) {
-        issue(
-          "diagram",
-          "DIAGRAM_INVALID",
-          path,
-          validation.error,
-          documentId,
-        );
+        issue("diagram", "DIAGRAM_INVALID", path, validation.error, documentId);
       }
       for (const field of ["title", "description"] as const) {
         const localized = record(object[field]);
@@ -498,9 +490,7 @@ export function validatePublicationBatch(
 
       if (
         key === "order" &&
-        (typeof child !== "number" ||
-          !Number.isInteger(child) ||
-          child < 0)
+        (typeof child !== "number" || !Number.isInteger(child) || child < 0)
       ) {
         issue(
           "ordering",
@@ -626,11 +616,7 @@ export function validatePublicationBatch(
         documentId,
       );
     }
-    if (
-      status &&
-      ["completed", "archived"].includes(status) &&
-      !endDate
-    ) {
+    if (status && ["completed", "archived"].includes(status) && !endDate) {
       issue(
         "date",
         "COMPLETED_END_DATE_MISSING",
@@ -682,11 +668,7 @@ export function validatePublicationBatch(
           documentId,
         );
       }
-      if (
-        startYear !== null &&
-        endYear !== null &&
-        endYear < startYear
-      ) {
+      if (startYear !== null && endYear !== null && endYear < startYear) {
         issue(
           "date",
           "EDUCATION_YEAR_RANGE_INVALID",
@@ -842,6 +824,15 @@ export function validatePublicationBatch(
   }
 
   return {
+    closureDocumentIds: [
+      ...new Set([
+        ...documentIds,
+        ...(candidate.referenceDocuments ?? [])
+          .map((document) => nonEmptyString(document._id))
+          .filter((id): id is string => id !== null)
+          .map(publishedDocumentId),
+      ]),
+    ].sort(),
     documentIds,
     issues,
     ready: issues.length === 0,
